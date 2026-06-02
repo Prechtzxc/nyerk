@@ -41,6 +41,9 @@ export interface OfficeRoom {
   updatedAt: string
 }
 
+export type VenueContent = Venue
+export type OfficeRoomContent = OfficeRoom
+
 export interface ContentDatabase {
   homepage: HomepageContent
   venues: Venue[]

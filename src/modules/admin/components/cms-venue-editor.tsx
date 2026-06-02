@@ -15,10 +15,10 @@ export function CMSVenueEditor() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [showNewForm, setShowNewForm] = useState(false)
 
-  const [newVenue, setNewVenue] = useState<Partial<Venue>>({
+  const [newVenue, setNewVenue] = useState<Partial<VenueContent>>({
     name: '',
     description: '',
-    capacity: '',
+    capacity: 0,
     features: [],
     images: [],
   })
@@ -28,11 +28,11 @@ export function CMSVenueEditor() {
       addVenue({
         name: newVenue.name,
         description: newVenue.description,
-        capacity: newVenue.capacity || '100 guests',
+        capacity: Number(newVenue.capacity) || 100,
         features: newVenue.features || [],
         images: newVenue.images || [],
       })
-      setNewVenue({ name: '', description: '', capacity: '', features: [], images: [] })
+      setNewVenue({ name: '', description: '', capacity: 0, features: [], images: [] })
       setShowNewForm(false)
     }
   }
@@ -42,17 +42,17 @@ export function CMSVenueEditor() {
     if (!file) return
 
     const url = URL.createObjectURL(file)
-    const venue = venues.find((v) => v.id === venueId)
+    const venue = venues.find((v: any) => v.id === venueId)
     if (venue) {
       const newImage = { id: `img-${Date.now()}`, url, alt: file.name, uploadedAt: new Date().toISOString() }
-      updateVenue(venueId, { images: [...(venue.images || []), newImage] })
+      updateVenue(venueId, { images: [...((venue.images as any[]) || []), newImage] })
     }
   }
 
   const handleRemoveImage = (venueId: string, imageId: string) => {
-    const venue = venues.find((v) => v.id === venueId)
+    const venue = venues.find((v: any) => v.id === venueId)
     if (venue) {
-      updateVenue(venueId, { images: venue.images.filter((img) => img.id !== imageId) })
+      updateVenue(venueId, { images: ((venue.images as any[]) || []).filter((img: any) => img.id !== imageId) })
     }
   }
 
@@ -71,7 +71,12 @@ export function CMSVenueEditor() {
           <CardContent className="space-y-4">
             <Input placeholder="Venue Name" value={newVenue.name} onChange={(e) => setNewVenue({ ...newVenue, name: e.target.value })} />
             <Textarea placeholder="Venue Description" value={newVenue.description} onChange={(e) => setNewVenue({ ...newVenue, description: e.target.value })} />
-            <Input placeholder="Capacity (e.g., '500 guests')" value={newVenue.capacity} onChange={(e) => setNewVenue({ ...newVenue, capacity: e.target.value })} />
+            <Input
+              type="number"
+              placeholder="Capacity (number of guests)"
+              value={newVenue.capacity || ""}
+              onChange={(e) => setNewVenue({ ...newVenue, capacity: Number(e.target.value) })}
+            />
             <div className="flex gap-2">
               <Button onClick={handleAddVenue} className="flex-1">
                 Create Venue
@@ -85,13 +90,13 @@ export function CMSVenueEditor() {
       )}
 
       <div className="grid gap-6">
-        {venues.map((venue) => (
+        {venues.map((venue: any) => (
           <Card key={venue.id}>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <CardTitle className="text-lg">{venue.name}</CardTitle>
-                  <p className="text-sm text-muted-foreground">{venue.capacity}</p>
+                  <p className="text-sm text-muted-foreground">{typeof venue.capacity === "number" ? `${venue.capacity} guests` : venue.capacity}</p>
                 </div>
                 <Button variant="destructive" size="sm" onClick={() => deleteVenue(venue.id)}>
                   <Trash2 className="h-4 w-4" />
@@ -102,7 +107,12 @@ export function CMSVenueEditor() {
               {editingId === venue.id ? (
                 <div className="space-y-3">
                   <Textarea placeholder="Description" value={venue.description} onChange={(e) => updateVenue(venue.id, { description: e.target.value })} />
-                  <Input placeholder="Capacity" value={venue.capacity} onChange={(e) => updateVenue(venue.id, { capacity: e.target.value })} />
+                  <Input
+                    type="number"
+                    placeholder="Capacity"
+                    value={venue.capacity || ""}
+                    onChange={(e) => updateVenue(venue.id, { capacity: Number(e.target.value) })}
+                  />
                   <Button size="sm" onClick={() => setEditingId(null)}>
                     Done Editing
                   </Button>
@@ -119,7 +129,7 @@ export function CMSVenueEditor() {
               <div className="space-y-3">
                 <h4 className="font-medium text-sm">Venue Images</h4>
                 <div className="grid grid-cols-2 gap-4">
-                  {venue.images.map((image) => (
+                  {((venue.images as any[]) || []).map((image: any) => (
                     <div key={image.id} className="relative group">
                       <div className="bg-gray-100 rounded-lg overflow-hidden h-32">
                         <img src={image.url || "/placeholder.svg"} alt={image.alt} className="w-full h-full object-cover" />
@@ -150,7 +160,7 @@ export function CMSVenueEditor() {
               <div className="space-y-2 pt-4 border-t">
                 <h4 className="font-medium text-sm">Features</h4>
                 <div className="flex flex-wrap gap-2">
-                  {venue.features.map((feature, idx) => (
+                  {((venue.features as string[]) || []).map((feature: string, idx: number) => (
                     <span key={idx} className="px-2 py-1 bg-gray-100 rounded text-xs">
                       {feature}
                     </span>

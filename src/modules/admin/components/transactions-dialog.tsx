@@ -157,7 +157,7 @@ export function TransactionsDialog({ open, onOpenChange }: TransactionsDialogPro
                       </div>
                       <div className="flex items-center">
                         <Users className="mr-2 h-4 w-4" />
-                        {booking.guests || booking.guestCount} guests
+                        {booking.guestCount} guests
                       </div>
                     </div>
                     <div className="flex items-center justify-between">
@@ -165,12 +165,12 @@ export function TransactionsDialog({ open, onOpenChange }: TransactionsDialogPro
                         <p className="text-sm text-gray-600">Booking ID: {booking.id}</p>
                         <p className="text-sm text-gray-600">Client ID: {booking.userId}</p>
                         <p className="text-sm text-gray-600">
-                          Submitted: {new Date(booking.createdAt || booking.submittedAt).toLocaleDateString()}
+                          Submitted: {new Date(booking.createdAt).toLocaleDateString()}
                         </p>
                         <p className="text-sm text-gray-600">Event Type: {booking.eventType}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-lg font-semibold">{booking.total || "Pending Quote"}</p>
+                        <p className="text-lg font-semibold">{booking.totalPrice || "Pending Quote"}</p>
                       </div>
                     </div>
                   </div>

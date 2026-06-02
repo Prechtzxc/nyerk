@@ -16,7 +16,7 @@ import { Label } from "@/src/modules/shared/components/ui/label"
 import { Textarea } from "@/src/modules/shared/components/ui/textarea"
 import { Checkbox } from "@/src/modules/shared/components/ui/checkbox"
 
-declare global { interface Window { pannellum: any; } }
+declare global { interface Window { pannellum?: any; } }
 
 // --- PREMIUM FALLBACK 360 IMAGE ---
 const PANO_IMG = 'https://pannellum.org/images/alma.jpg'; 
@@ -980,10 +980,10 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
     const getParsedTime = (timeStr: string) => venueSlots.find(s => s.label === timeStr);
 
     const existingBookings = bookings.filter(b => 
-        b.date === selectedDate && 
-        b.venueId === selectedItem?.id && 
-        (!selectedRoom || b.venue.includes(`Room ${selectedRoom}`)) &&
-        b.status !== 'cancelled' && 
+        b.date === selectedDate &&
+        b.venueId === selectedItem?.id &&
+        (!selectedRoom || (b.venue ?? "").includes(`Room ${selectedRoom}`)) &&
+        b.status !== 'cancelled' &&
         b.status !== 'declined'
     );
 
@@ -1125,7 +1125,7 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
                                             const dayBookings = bookings.filter(b =>
                                                 b.date === iterDateStr &&
                                                 b.venueId === selectedItem?.id &&
-                                                (!selectedRoom || b.venue.includes(`Room ${selectedRoom}`)) &&
+                                                (!selectedRoom || (b.venue ?? "").includes(`Room ${selectedRoom}`)) &&
                                                 b.status !== 'cancelled' &&
                                                 b.status !== 'declined'
                                             );

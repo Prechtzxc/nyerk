@@ -5,12 +5,12 @@ import { useAuth } from "@/src/modules/shared/auth/auth-context"
 import { useChat } from "@/src/modules/shared/contexts/chat-context"
 import { Button } from "@/src/modules/shared/components/ui/button"
 import { ShieldCheck, Paperclip, Send, MessageCircle, X } from "lucide-react"
+import { clearUnread, getUnreadCount, incrementUnread } from "@/src/modules/shared/lib/chat-unread"
 
 export default function ClientSupportChatPage() {
   const { user } = useAuth()
-  
-  // ✨ TINAWAG NATIN ANG markAsReadByClient ✨
-  const { messages, sendMessage, isChatLoaded, markAsReadByClient } = useChat() 
+
+  const { messages, sendMessage, isChatLoaded, markAsReadByClient } = useChat()
   
   const [inputValue, setInputValue] = useState("")
   const [imagePreview, setImagePreview] = useState<string | null>(null)
@@ -22,30 +22,35 @@ export default function ClientSupportChatPage() {
 
   const predefinedAnswers: Record<string, string> = {
     "How do I book a venue?": "To book a venue, please go to the 'My Bookings' tab and click on 'New Booking' to select your preferred date and space.",
-    "What are the payment methods?": "We accept Bank Transfer, GCash, Maya, and Cash payments at our main office.",
+    "What are the payment methods?": "We accept Bank Transfer, GCash, Maya, and Pay at the Office payments at our main office.",
     "Can I reschedule my event?": "Yes! Rescheduling is allowed up to 30 days before the event, subject to venue availability."
   }
   const predefinedQuestions = Object.keys(predefinedAnswers)
 
   const myMessages = messages.filter((m: any) => m.clientId === user?.id)
   const hasRealAdminReplied = myMessages.some((m: any) => m.sender === "admin" && !m.isBot)
-  
-  // ✨ CHECK KUNG MAY UNREAD ✨
+
   const unreadCount = myMessages.filter((m: any) => m.sender === "admin" && !m.isReadByClient).length
 
   useEffect(() => {
+    if (unreadCount > 0) {
+      incrementUnread("client", unreadCount)
+    }
+  }, [unreadCount])
+
+  useEffect(() => {
     if (isChatLoaded && user?.id && myMessages.length === 0 && !hasGreeted.current) {
-      hasGreeted.current = true 
-      sendMessage("Hello! Welcome to One Estela Place Support 👋 How can we help you today?", "admin", user.id, user.name, true)
+      hasGreeted.current = true
+      sendMessage("Hello! Welcome to One Estela Place Support. How can we help you today?", "admin", user.id, user.name, true)
     }
   }, [isChatLoaded, user?.id, myMessages.length])
 
-  // ✨ I-MARK AS READ AGAD PAG NANDITO SA FULL PAGE ✨
   useEffect(() => {
     if (unreadCount > 0 && user?.id) {
       markAsReadByClient(user.id)
+      clearUnread("client")
     }
-  }, [unreadCount, user?.id])
+  }, [unreadCount, user?.id, markAsReadByClient])
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -82,10 +87,10 @@ export default function ClientSupportChatPage() {
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 shrink-0"><ShieldCheck className="w-6 h-6" /></div>
-            <div>
-              <h2 className="text-lg font-bold text-slate-900 leading-tight">Admin Support</h2>
-              <div className="flex items-center gap-1.5 mt-0.5"><div className="w-2 h-2 rounded-full bg-emerald-500"></div><span className="text-xs font-medium text-emerald-600">Online and ready to help</span></div>
-            </div>
+          <div>
+            <h2 className="text-lg font-bold text-slate-900 leading-tight">Chat Support</h2>
+            <div className="flex items-center gap-1.5 mt-0.5"><div className="w-2 h-2 rounded-full bg-emerald-500"></div><span className="text-xs font-medium text-emerald-600">Online and ready to help</span></div>
+          </div>
           </div>
         </div>
 

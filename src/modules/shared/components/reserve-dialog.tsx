@@ -144,7 +144,8 @@ export function ReserveDialog({ open, onOpenChange, selectedVenueId, onBackToVen
         return isConfirmed && isSameDate && b.time
       })
       .map(b => {
-        const parts = b.time.includes('-') ? b.time.split('-') : b.time.split(/to/i)
+        const time = b.time ?? ""
+        const parts = time.includes('-') ? time.split('-') : time.split(/to/i)
         // Isama yung 1-hour clearing gap sa logic ng conflict checker
         return { start: parseTimeStr(parts[0]), end: parseTimeStr(parts[1]) + REQUIRED_GAP }
       })
@@ -214,6 +215,7 @@ export function ReserveDialog({ open, onOpenChange, selectedVenueId, onBackToVen
       endTime: formatTime(parseFloat(endTime)),
       specialRequests: notes,
       status: editingBooking ? editingBooking.status : "pending",
+      totalPrice: editingBooking?.totalPrice ?? 0,
       userInfo: {
         name: user.name,
         email: user.email,

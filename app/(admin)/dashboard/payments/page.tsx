@@ -1088,7 +1088,7 @@ function formatCurrency(value: number) {
 
 function getPaymentMethodLabel(method?: string) {
   if (method === "bank") return "Bank Transfer"
-  if (method === "cash") return "Cash at Office"
+  if (method === "cash") return "Pay at the Office"
   return "Payment Method"
 }
 

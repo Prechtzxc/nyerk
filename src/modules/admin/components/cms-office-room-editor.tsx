@@ -17,7 +17,7 @@ export function CMSOfficeRoomEditor() {
   const [showNewForm, setShowNewForm] = useState(false)
   const [newFloor, setNewFloor] = useState<'ground' | 'second'>('ground')
 
-  const [newRoom, setNewRoom] = useState<Partial<OfficeRoom>>({
+  const [newRoom, setNewRoom] = useState<Partial<OfficeRoomContent>>({
     name: '',
     description: '',
     features: [],
@@ -30,8 +30,8 @@ export function CMSOfficeRoomEditor() {
         floor: newFloor,
         name: newRoom.name,
         description: newRoom.description,
-        features: newRoom.features || [],
-        images: newRoom.images || [],
+        features: (newRoom.features as string[]) || [],
+        images: (newRoom.images as string[]) || [],
       })
       setNewRoom({ name: '', description: '', features: [], images: [] })
       setShowNewForm(false)
@@ -46,18 +46,18 @@ export function CMSOfficeRoomEditor() {
     const room = (officeRoomsGround || []).find((r: any) => r.id === roomId) || (officeRoomsSecond || []).find((r: any) => r.id === roomId)
     if (room) {
       const newImage = { id: `img-${Date.now()}`, url, alt: file.name, uploadedAt: new Date().toISOString() }
-      updateOfficeRoom(roomId, { images: [...(room.images || []), newImage] })
+      updateOfficeRoom(roomId, { images: [...((room.images as any[]) || []), newImage] })
     }
   }
 
   const handleRemoveImage = (roomId: string, imageId: string) => {
     const room = (officeRoomsGround || []).find((r: any) => r.id === roomId) || (officeRoomsSecond || []).find((r: any) => r.id === roomId)
     if (room) {
-      updateOfficeRoom(roomId, { images: room.images.filter((img: any) => img.id !== imageId) })
+      updateOfficeRoom(roomId, { images: ((room.images as any[]) || []).filter((img: any) => img.id !== imageId) })
     }
   }
 
-  const RoomCard = ({ room }: { room: OfficeRoom }) => (
+  const RoomCard = ({ room }: { room: OfficeRoomContent }) => (
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
@@ -90,7 +90,7 @@ export function CMSOfficeRoomEditor() {
         <div className="space-y-3">
           <h4 className="font-medium text-sm">Room Images</h4>
           <div className="grid grid-cols-2 gap-4">
-            {(room.images || []).map((image) => (
+            {((room.images as any[]) || []).map((image: any) => (
               <div key={image.id} className="relative group">
                 <div className="bg-gray-100 rounded-lg overflow-hidden h-32">
                   <img src={image.url || "/placeholder.svg"} alt={image.alt} className="w-full h-full object-cover" />
@@ -121,7 +121,7 @@ export function CMSOfficeRoomEditor() {
         <div className="space-y-2 pt-4 border-t">
           <h4 className="font-medium text-sm">Features</h4>
           <div className="flex flex-wrap gap-2">
-            {(room.features || []).map((feature, idx) => (
+            {((room.features as string[]) || []).map((feature: string, idx: number) => (
               <span key={idx} className="px-2 py-1 bg-gray-100 rounded text-xs">
                 {feature}
               </span>

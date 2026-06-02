@@ -258,6 +258,8 @@ interface BookingContextType {
   cancelBooking: (id: string) => void;
   deleteBooking: (id: string) => void;
   getUserBookings: (userId: string) => Booking[];
+  getBookingById: (id: string) => Booking | undefined;
+  modifyBooking: (id: string, updates: Partial<Booking>) => void;
 
   requestCancellation: (id: string, reason: string) => void;
   approveCancellation: (id: string) => void;
@@ -606,7 +608,7 @@ function getOfficeTermMonths(term?: OfficeRentalTerm) {
 }
 
 function getReceiptPaymentMethodLabel(method?: Booking["paymentMethod"]) {
-  if (method === "cash") return "Pay at Office / Cash";
+  if (method === "cash") return "Pay at the Office";
   if (method === "bank") return "Bank Transfer";
   return "Not specified";
 }
@@ -984,7 +986,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       };
     });
 
-    saveBookings(updatedBookings);
+    saveBookings(updatedBookings as Booking[]);
   };
 
   const deleteBooking = (id: string) => {
@@ -993,6 +995,16 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
 
   const getUserBookings = (userId: string) => {
     return bookings.filter((booking) => booking.userId === userId);
+  };
+
+  const getBookingById = (id: string) => {
+    return bookings.find((booking) => booking.id === id);
+  };
+
+  const modifyBooking = (id: string, updates: Partial<Booking>) => {
+    saveBookings(
+      bookings.map((booking) => (booking.id === id ? { ...booking, ...updates, updatedAt: new Date().toISOString() } : booking))
+    );
   };
 
   const requestCancellation = (id: string, reason: string) => {
@@ -1048,7 +1060,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       };
     });
 
-    saveBookings(updatedBookings);
+    saveBookings(updatedBookings as Booking[]);
   };
 
   const approveCancellation = (id: string) => {
@@ -1094,7 +1106,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       };
     });
 
-    saveBookings(updatedBookings);
+    saveBookings(updatedBookings as Booking[]);
   };
 
   const declineCancellation = (id: string, reason: string) => {
@@ -1477,7 +1489,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       };
     });
 
-    saveBookings(updatedBookings);
+    saveBookings(updatedBookings as Booking[]);
   };
 
   const toggleMaintenanceDate = (date: string, venueId: string) => {
@@ -1607,7 +1619,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       };
     });
 
-    saveBookings(updatedBookings);
+    saveBookings(updatedBookings as Booking[]);
   };
 
   const addOfficeRentalRequest = async (
@@ -1697,7 +1709,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       };
     });
 
-    saveOfficeRentals(updatedRentals);
+    saveOfficeRentals(updatedRentals as OfficeRental[]);
   };
 
   const declineOfficeRental = (id: string, reason: string) => {
@@ -1827,7 +1839,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       };
     });
 
-    saveOfficeRentals(updatedRentals);
+    saveOfficeRentals(updatedRentals as OfficeRental[]);
   };
 
   const activateOfficeLease = (id: string) => {
@@ -2034,6 +2046,8 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         cancelBooking,
         deleteBooking,
         getUserBookings,
+        getBookingById,
+        modifyBooking,
         requestCancellation,
         approveCancellation,
         declineCancellation,

@@ -54,7 +54,7 @@ export function ChatWindow({ mode }: { mode: "widget" | "full" }) {
     const reader = new FileReader()
     reader.onload = (event) => {
       const base64String = event.target?.result as string
-      sendMessage("Sent an attachment", "user", undefined, false, base64String)
+      sendMessage("Sent an attachment", "user", undefined, undefined, false, base64String)
     }
     reader.readAsDataURL(file)
     
@@ -62,7 +62,7 @@ export function ChatWindow({ mode }: { mode: "widget" | "full" }) {
   }
 
   const handleQuickReply = (qr: {text: string, reply: string}) => {
-    sendMessage(qr.text, "user", undefined, true) 
+    sendMessage(qr.text, "user", undefined, undefined, true) 
     setIsTyping(true)            
     setTimeout(() => {
       setIsTyping(false)         

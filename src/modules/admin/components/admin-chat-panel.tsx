@@ -32,25 +32,29 @@ export default function AdminChatPanel() {
       let threadName = ""
 
       if (m.sender === "user") {
-        threadId = m.senderId
-        threadName = m.senderName
+        threadId = m.senderId ?? ""
+        threadName = m.senderName ?? ""
       } else if (m.sender === "admin" || m.sender === "bot") {
         threadId = m.targetId || ""
       }
 
       if (!threadId || threadId === "admin" || threadId === "system") return;
 
+      const ts = m.timestamp instanceof Date
+        ? m.timestamp.getTime()
+        : new Date(m.timestamp).getTime()
+
       if (!groups[threadId]) {
         groups[threadId] = {
           name: threadName || "Client",
           lastMessage: m.imageUrl ? "[Sent an attachment]" : m.text,
-          timestamp: m.timestamp.getTime(),
+          timestamp: ts,
           hasUnread: m.sender === "user" && !m.isRead,
           hasUserMessage: m.sender === "user" 
         }
       } else {
         groups[threadId].lastMessage = m.imageUrl ? "[Sent an attachment]" : m.text
-        groups[threadId].timestamp = m.timestamp.getTime()
+        groups[threadId].timestamp = ts
         if (m.sender === "user" && !m.isRead) {
           groups[threadId].hasUnread = true
         }
@@ -100,7 +104,7 @@ export default function AdminChatPanel() {
     const reader = new FileReader()
     reader.onload = (event) => {
       const base64String = event.target?.result as string
-      sendMessage("Sent an attachment", "admin", selectedClientId, false, base64String)
+      sendMessage("Sent an attachment", "admin", selectedClientId, undefined, false, base64String)
     }
     reader.readAsDataURL(file)
     

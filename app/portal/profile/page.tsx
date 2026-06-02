@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useAuth } from "@/src/modules/shared/auth/auth-context"
 import { useToast } from "@/src/modules/shared/hooks/use-toast"
 import { Card, CardContent } from "@/src/modules/shared/components/ui/card"
@@ -22,21 +22,40 @@ import {
   ShieldCheck,
   User as UserIcon,
 } from "lucide-react"
+import { cn } from "@/src/modules/shared/lib/utils"
+import { ProfilePictureUploader } from "@/src/modules/shared/components/profile-picture-uploader"
+import {
+  getProfilePicture,
+  subscribeProfilePictureUpdates,
+} from "@/src/modules/shared/lib/profile-picture"
 
 export default function ProfilePage() {
-  const { user } = useAuth()
+  const { user, updateProfilePicture } = useAuth()
   const { toast } = useToast()
 
   const [email, setEmail] = useState(user?.email || "")
-  const [phone, setPhone] = useState("")
+  const [phone, setPhone] = useState(user?.phone || "")
 
   const [currentPassword, setCurrentPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
 
+  const [profilePicture, setPicture] = useState<string | null>(user?.profilePicture ?? null)
+
   useEffect(() => {
     if (user?.email) setEmail(user.email)
   }, [user?.email])
+
+  useEffect(() => {
+    if (!user?.id) {
+      setPicture(null)
+      return
+    }
+    setPicture(user.profilePicture || getProfilePicture(user.id))
+    return subscribeProfilePictureUpdates(() => {
+      setPicture(user.profilePicture || getProfilePicture(user.id))
+    })
+  }, [user?.id, user?.profilePicture])
 
   if (!user) return null
 
@@ -60,7 +79,6 @@ export default function ProfilePage() {
       })
       return
     }
-
     if (newPassword !== confirmPassword) {
       toast({
         title: "Password Mismatch",
@@ -69,20 +87,34 @@ export default function ProfilePage() {
       })
       return
     }
-
     toast({
       title: "Password Changed",
       description: "Your password has been successfully updated.",
     })
-
     setCurrentPassword("")
     setNewPassword("")
     setConfirmPassword("")
   }
 
+  const handleProfilePictureChange = (dataUrl: string | null) => {
+    setPicture(dataUrl)
+    if (dataUrl) {
+      updateProfilePicture(dataUrl)
+      toast({
+        title: "Profile picture updated",
+        description: "Your new photo has been saved.",
+      })
+    } else {
+      updateProfilePicture("")
+      toast({
+        title: "Profile picture removed",
+        description: "Your default avatar is now in use.",
+      })
+    }
+  }
+
   return (
     <div className="mx-auto w-full max-w-4xl space-y-5 p-4 pb-10 animate-in fade-in duration-500 md:p-6">
-      {/* PAGE TITLE */}
       <div>
         <h1 className="text-2xl font-black tracking-tight text-slate-900 md:text-3xl">
           My Profile
@@ -92,37 +124,51 @@ export default function ProfilePage() {
         </p>
       </div>
 
-      {/* ONE MAIN CARD */}
       <Card className="overflow-hidden rounded-3xl border-slate-200 bg-white shadow-sm">
         <CardContent className="p-0">
-          {/* PROFILE SUMMARY */}
           <div className="border-b border-slate-100 bg-white p-5 sm:p-6">
-            <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex min-w-0 items-center gap-4">
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-orange-100 text-2xl font-black uppercase text-orange-700 ring-4 ring-white">
-                  {user.name?.charAt(0) || "C"}
+                <div className="shrink-0">
+                  <ProfilePictureUploader
+                    value={profilePicture || ""}
+                    fallbackName={user.name || "Client"}
+                    onChange={handleProfilePictureChange}
+                    onError={(message) =>
+                      toast({
+                        title: "Invalid image",
+                        description: message,
+                        variant: "destructive",
+                      })
+                    }
+                    size="md"
+                    label="Profile Picture"
+                  />
                 </div>
 
                 <div className="min-w-0">
                   <p className="text-xs font-black uppercase tracking-[0.2em] text-orange-600">
                     Client Account
                   </p>
-
                   <h2 className="mt-1 break-words text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">
                     {user.name || "Client"}
                   </h2>
-
                   <p className="mt-1 break-words text-sm font-medium text-slate-500">
                     {user.email}
                   </p>
                 </div>
               </div>
 
-              <div className="flex w-fit items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-emerald-700">
-                <ShieldCheck className="h-5 w-5 shrink-0" />
-                <span className="text-xs font-black uppercase tracking-wider">
-                  Active Account
-                </span>
+              <div className="flex w-fit flex-col items-end gap-2">
+                <div className="flex w-fit items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-emerald-700">
+                  <ShieldCheck className="h-5 w-5 shrink-0" />
+                  <span className="text-xs font-black uppercase tracking-wider">
+                    Active Account
+                  </span>
+                </div>
+                <p className="text-[10px] font-semibold text-slate-400">
+                  Signed in as a {user.role}
+                </p>
               </div>
             </div>
           </div>
@@ -137,7 +183,6 @@ export default function ProfilePage() {
                   <UserIcon className="mr-2 hidden h-4 w-4 sm:block" />
                   Personal Info
                 </TabsTrigger>
-
                 <TabsTrigger
                   value="security"
                   className="rounded-xl text-xs font-black transition-all data-[state=active]:bg-orange-600 data-[state=active]:text-white sm:text-sm"

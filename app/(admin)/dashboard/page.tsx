@@ -13,9 +13,12 @@ import {
   CreditCard,
   Inbox,
   Tent,
+  TrendingUp,
+  Activity,
 } from "lucide-react"
 
 import { useBookings } from "@/src/modules/client/contexts/booking-context"
+import { cn } from "@/src/modules/shared/lib/utils"
 
 const ROUTES = {
   bookings: "/dashboard/bookings",
@@ -37,9 +40,7 @@ export default function AdminDashboardPage() {
       setBookings(contextBookings)
       return
     }
-
     const stored = localStorage.getItem("oneestela_global_bookings_v2")
-
     if (stored) {
       try {
         setBookings(JSON.parse(stored))
@@ -60,7 +61,7 @@ export default function AdminDashboardPage() {
       verifying: bookings.filter((b) => b.status === "verifying").length,
       confirmed: bookings.filter((b) => b.status === "confirmed").length,
       cancellationRequests: bookings.filter(
-        (b) => b.status === "cancellation_requested"
+        (b) => b.status === "cancellation_requested",
       ).length,
       total: bookings.length,
     }
@@ -71,26 +72,23 @@ export default function AdminDashboardPage() {
       .sort(
         (a, b) =>
           new Date(b.createdAt || 0).getTime() -
-          new Date(a.createdAt || 0).getTime()
+          new Date(a.createdAt || 0).getTime(),
       )
-      .slice(0, 3)
+      .slice(0, 4)
   }, [bookings])
 
   return (
     <div className="mx-auto w-full max-w-[1500px] animate-in fade-in slide-in-from-bottom-2 duration-500">
-      <div className="space-y-5 p-4 sm:p-6 xl:p-7">
-        {/* HEADER */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="space-y-4 p-4 sm:p-5 xl:p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-orange-600">
+            <p className="text-[11px] font-black uppercase tracking-[0.22em] text-orange-600">
               Admin Dashboard
             </p>
-
-            <h1 className="mt-1 text-3xl font-black tracking-tight text-slate-950 md:text-4xl">
+            <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
               Management Overview
             </h1>
-
-            <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
+            <p className="mt-1 text-xs leading-5 text-slate-500 sm:text-sm">
               Monitor bookings, payments, approvals, and venue activity.
             </p>
           </div>
@@ -98,53 +96,48 @@ export default function AdminDashboardPage() {
           <div className="flex flex-col gap-2 sm:flex-row">
             <Link
               href={ROUTES.bookings}
-              className="inline-flex h-10 items-center justify-center rounded-xl bg-orange-600 px-4 text-sm font-black text-white shadow-sm transition hover:bg-orange-700"
+              className="inline-flex h-9 items-center justify-center rounded-lg bg-orange-600 px-3 text-xs font-black text-white shadow-sm transition hover:bg-orange-700 sm:text-sm"
             >
               Manage Bookings
-              <ArrowRight className="ml-2 h-4 w-4" />
+              <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
             </Link>
-
             <Link
               href={ROUTES.payments}
-              className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 shadow-sm transition hover:bg-slate-50"
+              className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 shadow-sm transition hover:bg-slate-50 sm:text-sm"
             >
               Review Payments
             </Link>
           </div>
         </div>
 
-        {/* STATS FULL WIDTH */}
-        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:gap-4">
           <StatCard
             href={ROUTES.payments}
-            icon={<Banknote />}
+            icon={<Banknote className="h-4 w-4" />}
             label="Revenue"
             value={formatCurrency(stats.totalRevenue)}
             description="Confirmed income"
             tone="orange"
           />
-
           <StatCard
             href={ROUTES.pendingBookings}
-            icon={<Clock />}
+            icon={<Clock className="h-4 w-4" />}
             label="Pending"
             value={stats.pending.toString()}
             description="Needs approval"
             tone="amber"
           />
-
           <StatCard
             href={ROUTES.verifyingBookings}
-            icon={<CreditCard />}
+            icon={<CreditCard className="h-4 w-4" />}
             label="Verifying"
             value={stats.verifying.toString()}
             description="Payment check"
             tone="purple"
           />
-
           <StatCard
             href={ROUTES.confirmedBookings}
-            icon={<CheckCircle2 />}
+            icon={<CheckCircle2 className="h-4 w-4" />}
             label="Confirmed"
             value={stats.confirmed.toString()}
             description="Approved bookings"
@@ -152,39 +145,34 @@ export default function AdminDashboardPage() {
           />
         </section>
 
-        {/* MAIN LAYOUT */}
-        <section className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_390px]">
-          {/* RECENT BOOKINGS */}
-          <div className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm">
-            <div className="flex flex-col gap-3 border-b border-slate-100 p-5 sm:flex-row sm:items-center sm:justify-between">
+        <section className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="flex flex-col gap-2 border-b border-slate-100 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.22em] text-orange-600">
                   Latest Activity
                 </p>
-
-                <h2 className="mt-1 text-xl font-black tracking-tight text-slate-950">
+                <h2 className="mt-0.5 text-base font-black tracking-tight text-slate-950 sm:text-lg">
                   Recent Bookings
                 </h2>
-
-                <p className="mt-1 text-sm leading-6 text-slate-500">
-                  Showing the latest 3 reservation requests only.
+                <p className="mt-0.5 text-[11px] leading-5 text-slate-500">
+                  Showing the latest 4 reservation requests.
                 </p>
               </div>
-
               <Link
                 href={ROUTES.bookings}
-                className="inline-flex h-9 w-fit items-center justify-center rounded-xl bg-orange-600 px-4 text-xs font-black text-white shadow-sm transition hover:bg-orange-700"
+                className="inline-flex h-8 w-fit items-center justify-center rounded-lg bg-orange-600 px-3 text-[11px] font-black text-white shadow-sm transition hover:bg-orange-700"
               >
                 View All
-                <ArrowRight className="ml-2 h-3.5 w-3.5" />
+                <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
               </Link>
             </div>
 
-            <div className="p-4">
+            <div className="p-3 sm:p-4">
               {recentBookings.length === 0 ? (
                 <EmptyState />
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {recentBookings.map((booking) => (
                     <BookingRow
                       key={booking.id}
@@ -197,55 +185,62 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-          {/* RIGHT SIDE */}
-          <aside className="grid h-fit self-start gap-5">
-            <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="mb-4 flex items-center justify-between gap-4">
+          <aside className="grid h-fit gap-4 self-start">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+              <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-[0.22em] text-orange-600">
                     Action Center
                   </p>
-
-                  <h3 className="mt-1 text-xl font-black text-slate-950">
+                  <h3 className="mt-0.5 text-base font-black text-slate-950 sm:text-lg">
                     Needs Attention
                   </h3>
-
-                  <p className="mt-1 text-sm leading-6 text-slate-500">
-                    Review pending bookings, payment verification, and
-                    cancellation requests.
-                  </p>
                 </div>
-
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-orange-50 text-orange-600">
-                  <AlertCircle className="h-5 w-5" />
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
+                  <Activity className="h-4 w-4" />
                 </div>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <ActionItem
                   href={ROUTES.pendingBookings}
-                  icon={<Clock />}
+                  icon={<Clock className="h-4 w-4" />}
                   label="Pending approval"
                   value={stats.pending}
                   tone="orange"
                 />
-
                 <ActionItem
                   href={ROUTES.verifyingBookings}
-                  icon={<CreditCard />}
+                  icon={<CreditCard className="h-4 w-4" />}
                   label="Payment verifying"
                   value={stats.verifying}
                   tone="purple"
                 />
-
                 <ActionItem
                   href={ROUTES.cancellationRequests}
-                  icon={<AlertCircle />}
+                  icon={<AlertCircle className="h-4 w-4" />}
                   label="Cancel requests"
                   value={stats.cancellationRequests}
                   tone="rose"
                 />
               </div>
+            </div>
+
+            <div className="rounded-2xl border border-orange-200 bg-gradient-to-br from-orange-50 to-orange-100/60 p-4 shadow-sm sm:p-5">
+              <div className="mb-2 flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-orange-600 shadow-sm">
+                  <TrendingUp className="h-4 w-4" />
+                </div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-orange-700">
+                  Total Records
+                </p>
+              </div>
+              <p className="text-2xl font-black tabular-nums text-orange-900">
+                {stats.total}
+              </p>
+              <p className="mt-1 text-[11px] font-semibold text-orange-800">
+                All bookings in the system
+              </p>
             </div>
           </aside>
         </section>
@@ -266,54 +261,54 @@ function formatCurrency(value: number) {
 
 function getBookingTime(booking: any) {
   if (booking.time) return booking.time
-  return `${booking.startTime || "No start"} - ${booking.endTime || "No end"}`
+  return `${booking.startTime || "—"} - ${booking.endTime || "—"}`
 }
 
 function getStatusBadge(status: string) {
   const baseClass =
-    "inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-widest"
+    "inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-widest"
 
   switch (status) {
     case "pending":
       return (
-        <span className={`${baseClass} bg-orange-100 text-orange-700`}>
+        <span className={cn(baseClass, "bg-orange-100 text-orange-700")}>
           Pending
         </span>
       )
     case "verifying":
       return (
-        <span className={`${baseClass} bg-purple-100 text-purple-700`}>
+        <span className={cn(baseClass, "bg-purple-100 text-purple-700")}>
           Verifying
         </span>
       )
     case "confirmed":
       return (
-        <span className={`${baseClass} bg-emerald-100 text-emerald-700`}>
+        <span className={cn(baseClass, "bg-emerald-100 text-emerald-700")}>
           Confirmed
         </span>
       )
     case "cancellation_requested":
       return (
-        <span className={`${baseClass} bg-amber-100 text-amber-700`}>
+        <span className={cn(baseClass, "bg-amber-100 text-amber-700")}>
           Cancel Req.
         </span>
       )
     case "cancelled":
     case "declined":
       return (
-        <span className={`${baseClass} bg-rose-100 text-rose-700`}>
+        <span className={cn(baseClass, "bg-rose-100 text-rose-700")}>
           {status}
         </span>
       )
     case "completed":
       return (
-        <span className={`${baseClass} bg-blue-100 text-blue-700`}>
+        <span className={cn(baseClass, "bg-blue-100 text-blue-700")}>
           Completed
         </span>
       )
     default:
       return (
-        <span className={`${baseClass} bg-slate-100 text-slate-700`}>
+        <span className={cn(baseClass, "bg-slate-100 text-slate-700")}>
           {status || "Unknown"}
         </span>
       )
@@ -345,27 +340,29 @@ function StatCard({
   return (
     <Link
       href={href}
-      className="group flex min-h-[150px] flex-col rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+      className="group flex min-h-[110px] flex-col rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:p-4"
     >
-      <div className="mb-4 flex items-center justify-between gap-4">
+      <div className="mb-2 flex items-center justify-between gap-2">
         <div
-          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${tones[tone]} [&_svg]:h-5 [&_svg]:w-5`}
+          className={cn(
+            "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
+            tones[tone],
+          )}
         >
           {icon}
         </div>
-
-        <ArrowRight className="h-4 w-4 shrink-0 text-slate-300 transition group-hover:translate-x-1 group-hover:text-orange-600" />
+        <ArrowRight className="h-3.5 w-3.5 shrink-0 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-orange-600" />
       </div>
 
-      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">
         {label}
       </p>
 
-      <h3 className="mt-1 whitespace-nowrap text-[22px] font-black tracking-tight text-slate-950 xl:text-2xl 2xl:text-3xl">
+      <h3 className="mt-0.5 whitespace-nowrap text-lg font-black tracking-tight text-slate-950 xl:text-xl 2xl:text-2xl">
         {value}
       </h3>
 
-      <p className="mt-auto pt-3 text-xs font-medium leading-5 text-slate-500">
+      <p className="mt-auto pt-1 text-[10px] font-medium leading-4 text-slate-500 sm:text-xs">
         {description}
       </p>
     </Link>
@@ -384,64 +381,36 @@ function BookingRow({
   return (
     <Link
       href={ROUTES.bookings}
-      className="group block rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-orange-200 hover:bg-orange-50/30"
+      className="group block rounded-xl border border-slate-200 bg-white p-3 transition hover:border-orange-200 hover:bg-orange-50/30 sm:p-4"
     >
-      <div className="flex flex-col gap-4">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex min-w-0 flex-1 gap-3">
-            <div
-              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
-                isOffice
-                  ? "bg-blue-50 text-blue-600"
-                  : "bg-orange-50 text-orange-600"
-              }`}
-            >
-              {isOffice ? (
-                <Building2 className="h-5 w-5" />
-              ) : (
-                <Tent className="h-5 w-5" />
-              )}
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <p className="break-words text-sm font-black leading-snug text-slate-950">
-                {booking.eventName || "Untitled Event"}
-              </p>
-
-              <p className="mt-1 break-words text-xs font-bold leading-snug text-orange-600">
-                {booking.venue || "No venue selected"}
-              </p>
-            </div>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-1 items-center gap-2.5">
+          <div
+            className={cn(
+              "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+              isOffice ? "bg-blue-50 text-blue-600" : "bg-orange-50 text-orange-600",
+            )}
+          >
+            {isOffice ? (
+              <Building2 className="h-4 w-4" />
+            ) : (
+              <Tent className="h-4 w-4" />
+            )}
           </div>
 
-          <div className="shrink-0">{statusBadge}</div>
+          <div className="min-w-0 flex-1">
+            <p className="break-words text-xs font-black leading-snug text-slate-950 sm:text-sm">
+              {booking.eventName || "Untitled Event"}
+            </p>
+            <p className="mt-0.5 break-words text-[10px] font-bold leading-snug text-slate-500 sm:text-[11px]">
+              {booking.venue || "No venue"} · {formatCurrency(getSafePrice(booking.totalPrice))}
+            </p>
+          </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
-          <InfoBox label="Client" value={booking.userInfo?.name || "Client"} />
-          <InfoBox label="Date" value={booking.date || "No date"} />
-          <InfoBox label="Time" value={getBookingTime(booking)} />
-          <InfoBox
-            label="Amount"
-            value={formatCurrency(getSafePrice(booking.totalPrice))}
-          />
-        </div>
+        <div className="shrink-0">{statusBadge}</div>
       </div>
     </Link>
-  )
-}
-
-function InfoBox({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="min-w-0 rounded-xl bg-slate-50 p-3">
-      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">
-        {label}
-      </p>
-
-      <p className="mt-1 break-words text-xs font-bold leading-snug text-slate-800">
-        {value}
-      </p>
-    </div>
   )
 }
 
@@ -467,19 +436,20 @@ function ActionItem({
   return (
     <Link
       href={href}
-      className="flex min-h-[72px] items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 transition hover:bg-slate-50"
+      className="flex min-h-[58px] items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-2.5 transition hover:bg-slate-50 sm:p-3"
     >
-      <div className="flex min-w-0 items-center gap-3">
+      <div className="flex min-w-0 items-center gap-2.5">
         <div
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${tones[tone]} [&_svg]:h-5 [&_svg]:w-5`}
+          className={cn(
+            "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+            tones[tone],
+          )}
         >
           {icon}
         </div>
-
-        <p className="text-sm font-black text-slate-800">{label}</p>
+        <p className="text-xs font-black text-slate-800 sm:text-sm">{label}</p>
       </div>
-
-      <div className="flex h-8 min-w-8 shrink-0 items-center justify-center rounded-full bg-slate-950 px-3 text-xs font-black text-white">
+      <div className="flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full bg-slate-950 px-2 text-[11px] font-black text-white">
         {value}
       </div>
     </Link>
@@ -488,16 +458,11 @@ function ActionItem({
 
 function EmptyState() {
   return (
-    <div className="flex min-h-[220px] flex-col items-center justify-center rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
-      <Inbox className="mb-3 h-10 w-10 text-slate-300" />
-
-      <h3 className="text-base font-black text-slate-900">
-        No bookings available
-      </h3>
-
-      <p className="mt-1 max-w-sm text-sm leading-6 text-slate-500">
-        Recent booking requests will appear here once clients start reserving
-        spaces.
+    <div className="flex min-h-[180px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
+      <Inbox className="mb-2 h-8 w-8 text-slate-300" />
+      <h3 className="text-sm font-black text-slate-900">No bookings available</h3>
+      <p className="mt-1 max-w-sm text-[11px] leading-5 text-slate-500">
+        Recent booking requests will appear here once clients start reserving spaces.
       </p>
     </div>
   )

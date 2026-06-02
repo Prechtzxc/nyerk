@@ -27,7 +27,8 @@ export function MainLayout({ children }: MainLayoutProps) {
   const { toast } = useToast()
   
   const { logout, user, isLoading } = useAuth() 
-  const { unreadCount } = useChat()
+  const chat = useChat()
+  const unreadCount = "getUnreadCount" in chat ? chat.getUnreadCount() : 0
   const { bookings } = useBookings()
   
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -39,7 +40,7 @@ export function MainLayout({ children }: MainLayoutProps) {
     if (!isLoading) {
       if (!user) {
         router.push("/")
-      } else if (user.role === "user" && pathname.startsWith("/dashboard")) {
+      } else if ((user.role === "client" || user.role === "customer") && pathname.startsWith("/dashboard")) {
         router.push("/portal")
       }
     }

@@ -38,6 +38,7 @@ import { useCMS } from "@/src/modules/admin/contexts/cms-context"
 import { LoginDialog } from "@shared/auth/login-dialog"
 import { SignupDialog } from "@shared/auth/signup-dialog"
 import { UnifiedChatWidget } from "@shared/components/unified-chat-widget"
+import { LogoutConfirmDialog } from "@shared/components/logout-confirm-dialog"
 
 interface PublicLayoutProps {
   children: React.ReactNode
@@ -48,6 +49,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
   const { user, logout, isLoading } = useAuth()
   const { cmsData } = useCMS()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
 
   useEffect(() => {
     if (user) {
@@ -60,6 +62,11 @@ export function PublicLayout({ children }: PublicLayoutProps) {
   }, [user, router])
 
   const handleLogout = () => {
+    setShowLogoutConfirm(true)
+  }
+
+  const handleConfirmLogout = () => {
+    setShowLogoutConfirm(false)
     logout()
   }
 
@@ -94,7 +101,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
                     className="relative h-11 w-11 rounded-full border-2 border-white/50 p-0 hover:border-white hover:bg-white/10"
                   >
                     <Avatar className="h-9 w-9">
-                      <AvatarImage src="/placeholder-user.jpg" alt={user.name} />
+                      <AvatarImage src={user.profilePicture || "/placeholder-user.jpg"} alt={user.name} />
                       <AvatarFallback className="bg-white font-black text-orange-600">
                         {user.name.charAt(0)}
                       </AvatarFallback>
@@ -308,6 +315,13 @@ export function PublicLayout({ children }: PublicLayoutProps) {
       </footer>
 
       {user && user.role === "client" && <UnifiedChatWidget />}
+
+      <LogoutConfirmDialog
+        open={showLogoutConfirm}
+        onOpenChange={setShowLogoutConfirm}
+        onConfirm={handleConfirmLogout}
+        description="Are you sure you want to log out of your account? You will be returned to the home page."
+      />
     </div>
   )
 }

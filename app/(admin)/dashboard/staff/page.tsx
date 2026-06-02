@@ -117,7 +117,7 @@ export default function StaffManagementPage() {
     const keyword = searchTerm.trim().toLowerCase()
 
     return staff
-      .filter((staffMember) => {
+      .filter((staffMember: StaffAccount) => {
         const normalizedStatus = normalizeStaffStatus(staffMember.status)
         const matchesStatus = statusFilter === "all" || normalizedStatus === statusFilter
 
@@ -137,7 +137,7 @@ export default function StaffManagementPage() {
 
         return matchesStatus && matchesSearch
       })
-      .sort((a, b) => {
+      .sort((a: StaffAccount, b: StaffAccount) => {
         const statusA = normalizeStaffStatus(a.status)
         const statusB = normalizeStaffStatus(b.status)
 
@@ -206,7 +206,7 @@ export default function StaffManagementPage() {
       return null
     }
 
-    const duplicateEmail = staff.some((staffMember) => {
+    const duplicateEmail = staff.some((staffMember: StaffAccount) => {
       const sameEmail = normalizeEmail(staffMember.email) === email
       const notCurrentStaff = !editingStaff || staffMember.id !== editingStaff.id
       return sameEmail && notCurrentStaff
@@ -237,7 +237,7 @@ export default function StaffManagementPage() {
 
     addStaff({
       ...payload,
-      status: "Active",
+      status: "active",
     })
 
     toast({
@@ -541,7 +541,7 @@ export default function StaffManagementPage() {
           </div>
 
           <div className="divide-y divide-slate-100">
-            {filteredStaff.map((staffMember) => {
+            {filteredStaff.map((staffMember: StaffAccount) => {
               const fullName = getFullName(staffMember)
               const normalizedStatus = normalizeStaffStatus(staffMember.status)
 

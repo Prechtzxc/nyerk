@@ -82,7 +82,7 @@ function toDateKey(date: Date) {
 }
 
 function getPaymentMethodLabel(method?: string) {
-  if (method === "cash") return "Cash / Pay at the Office"
+  if (method === "cash") return "Pay at the Office"
   if (method === "bank") return "Bank Transfer"
   return "Not selected"
 }

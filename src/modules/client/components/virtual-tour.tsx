@@ -11,7 +11,7 @@ import {
 // Mag-declare tayo ng types para sa Pannellum na nira-load natin via CDN
 declare global {
   interface Window {
-    pannellum: any;
+    pannellum?: any;
   }
 }
 

@@ -160,7 +160,7 @@ export function UnifiedAdminChatPanel() {
         toast({
           title: `New message from ${latestMessage.senderName}`,
           description:
-            latestMessage.content.length > 50 ? latestMessage.content.substring(0, 50) + "..." : latestMessage.content,
+            latestMessage.content && latestMessage.content.length > 50 ? latestMessage.content.substring(0, 50) + "..." : (latestMessage.content || ""),
           duration: 5000,
         })
       }
@@ -171,7 +171,8 @@ export function UnifiedAdminChatPanel() {
   const conversations: UnifiedConversation[] = React.useMemo(() => {
     const userMessages = chatHistory.reduce(
       (acc, message) => {
-        const userId = message.senderId === user?.id ? message.recipientId || "unknown" : message.senderId
+        const userId: string =
+          message.senderId === user?.id ? message.recipientId || "unknown" : (message.senderId ?? "unknown")
         if (!acc[userId]) {
           acc[userId] = []
         }
@@ -193,23 +194,28 @@ export function UnifiedAdminChatPanel() {
         const lastMessage = messages[messages.length - 1]
         const unreadCount = messages.filter((msg) => !msg.read && msg.senderId !== user?.id).length
         const userStatus = userStatuses[userId]
+        const escalated = escalatedChats[userId]
         const hasNewNotification = messages.some((msg) => newMessageNotifications.includes(msg.id))
-        const isEscalated = escalatedChats[userId] !== undefined
-        const hasBotHistory = escalatedChats[userId] !== undefined
-        const botMessageCount = escalatedChats[userId]?.filter((msg) => msg.senderType === "bot").length || 0
+        const isEscalated = escalated !== undefined
+        const hasBotHistory = escalated !== undefined
+        const botMessageCount = escalated?.filter((msg) => msg.senderType === "bot").length || 0
+        const lastEscalated = escalated?.[escalated.length - 1]
 
         return {
           userId,
-          userName: lastMessage?.senderName || escalatedChats[userId]?.[0]?.senderName || "Unknown User",
+          userName: lastMessage?.senderName || lastEscalated?.senderName || "Unknown User",
           userAvatar: lastMessage?.senderAvatar || "/placeholder.svg?height=40&width=40",
           lastMessage:
             lastMessage?.content ||
-            escalatedChats[userId]?.[escalatedChats[userId].length - 1]?.content ||
+            lastEscalated?.content ||
             "Chat escalated from AI",
-          lastMessageTime:
-            lastMessage?.timestamp ||
-            escalatedChats[userId]?.[escalatedChats[userId].length - 1]?.timestamp ||
-            new Date().toISOString(),
+          lastMessageTime: (() => {
+            const ts = lastMessage?.timestamp || lastEscalated?.timestamp
+            if (typeof ts === "string") return ts
+            if (ts instanceof Date) return ts.toISOString()
+            if (typeof ts === "number") return new Date(ts).toISOString()
+            return new Date().toISOString()
+          })(),
           unreadCount,
           isOnline: userStatus?.isOnline || false,
           userType: "client" as const,
@@ -244,12 +250,17 @@ export function UnifiedAdminChatPanel() {
     // Convert regular messages to unified format
     const convertedRegularMessages: UnifiedMessage[] = regularMessages.map((msg) => ({
       id: msg.id,
-      content: msg.content,
+      content: msg.content ?? msg.text ?? "",
       senderType: msg.senderId === user?.id ? "admin" : "user",
-      senderName: msg.senderId === user?.id ? "Support Team" : msg.senderName,
-      senderAvatar: msg.senderAvatar,
-      timestamp: msg.timestamp,
-      read: msg.read,
+      senderName: msg.senderId === user?.id ? "Support Team" : (msg.senderName ?? "Guest"),
+      senderAvatar: msg.senderAvatar ?? undefined,
+      timestamp: (() => {
+        const ts = msg.timestamp
+        if (typeof ts === "string") return ts
+        if (ts instanceof Date) return ts.toISOString()
+        return new Date(ts).toISOString()
+      })(),
+      read: msg.read ?? false,
     }))
 
     // Combine and sort all messages
@@ -482,7 +493,7 @@ export function UnifiedAdminChatPanel() {
                             >
                               <span>{conversation.userName}</span>
                               {conversation.hasBotHistory && (
-                                <Sparkles className="h-3 w-3 text-purple-500" title="Has AI chat history" />
+                                <Sparkles className="h-3 w-3 text-purple-500" aria-label="Has AI chat history" />
                               )}
                             </h4>
                             <span className="text-xs text-gray-500">{formatTime(conversation.lastMessageTime)}</span>

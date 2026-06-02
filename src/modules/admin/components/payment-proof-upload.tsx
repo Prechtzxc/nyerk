@@ -136,7 +136,7 @@ export function PaymentProofUpload({ open, onOpenChange, bookingId }: PaymentPro
     } catch (error) {
       toast({
         title: "Upload failed",
-        description: error.message,
+        description: error instanceof Error ? error.message : String(error),
         variant: "destructive",
       })
     } finally {
@@ -212,11 +212,11 @@ export function PaymentProofUpload({ open, onOpenChange, bookingId }: PaymentPro
                 </div>
                 <div>
                   <span className="font-medium">Payment Date:</span>
-                  <p className="text-gray-600">{new Date(existingProof.paymentDate).toLocaleDateString()}</p>
+                  <p className="text-gray-600">{new Date(existingProof.paymentDate || existingProof.submittedAt).toLocaleDateString()}</p>
                 </div>
                 <div>
                   <span className="font-medium">Uploaded:</span>
-                  <p className="text-gray-600">{new Date(existingProof.uploadedAt).toLocaleDateString()}</p>
+                  <p className="text-gray-600">{new Date(existingProof.uploadedAt || existingProof.submittedAt).toLocaleDateString()}</p>
                 </div>
               </div>
 
@@ -230,7 +230,7 @@ export function PaymentProofUpload({ open, onOpenChange, bookingId }: PaymentPro
               <div className="flex items-center space-x-2">
                 <FileImage className="h-4 w-4" />
                 <span className="text-sm">{existingProof.fileName}</span>
-                <span className="text-xs text-gray-500">({formatFileSize(existingProof.fileSize)})</span>
+                <span className="text-xs text-gray-500">({formatFileSize(existingProof.fileSize ?? 0)})</span>
               </div>
 
               {existingProof.adminNote && (

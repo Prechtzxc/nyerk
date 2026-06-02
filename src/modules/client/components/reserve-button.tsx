@@ -10,9 +10,10 @@ interface ReserveButtonProps {
   className?: string
   size?: "default" | "sm" | "lg" | "icon"
   variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
+  onClick?: React.MouseEventHandler<HTMLButtonElement>
 }
 
-export function ReserveButton({ children, className, size, variant }: ReserveButtonProps) {
+export function ReserveButton({ children, className, size, variant, onClick }: ReserveButtonProps) {
   const { user } = useAuth()
   const [mounted, setMounted] = useState(false)
 
@@ -29,7 +30,7 @@ export function ReserveButton({ children, className, size, variant }: ReserveBut
   // Prevent hydration mismatch
   if (!mounted) {
     return (
-      <Button className={className} size={size} variant={variant}>
+      <Button className={className} size={size} variant={variant} onClick={onClick}>
         {children || "Book Now"}
       </Button>
     )
@@ -40,7 +41,7 @@ export function ReserveButton({ children, className, size, variant }: ReserveBut
   if (user) {
     return (
       <ReserveDialog>
-        <Button className={className} size={size} variant={variant}>
+        <Button className={className} size={size} variant={variant} onClick={onClick}>
           {children || "Book Now"}
         </Button>
       </ReserveDialog>
@@ -49,7 +50,7 @@ export function ReserveButton({ children, className, size, variant }: ReserveBut
 
   // ✨ KAPAG WALANG NAKA-LOGIN: Bubuksan niya yung Login Dialog ✨
   return (
-    <Button className={className} size={size} variant={variant} onClick={handleLoginTrigger}>
+    <Button className={className} size={size} variant={variant} onClick={onClick ?? handleLoginTrigger}>
       {children || "Book Now"}
     </Button>
   )

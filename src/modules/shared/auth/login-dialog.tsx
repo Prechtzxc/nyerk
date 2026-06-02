@@ -1,6 +1,5 @@
 "use client"
 
-import type { React } from "react"
 import { useState, useEffect } from "react"
 import { Button } from "@/src/modules/shared/components/ui/button"
 import {
@@ -22,9 +21,10 @@ import { ForgotPasswordDialog } from "@/src/modules/shared/auth/forgot-password-
 
 interface LoginDialogProps {
   className?: string
+  children?: React.ReactNode
 }
 
-export function LoginDialog({ className }: LoginDialogProps) {
+export function LoginDialog({ className, children }: LoginDialogProps) {
   const [open, setOpen] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -58,7 +58,6 @@ export function LoginDialog({ className }: LoginDialogProps) {
     }
   }, [])
 
-  // ✨ ITO YUNG NA-FIX NA HANDLESUBMIT ✨
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -68,17 +67,21 @@ export function LoginDialog({ className }: LoginDialogProps) {
     }
 
     try {
-      // Tatawagin lang natin yung login. Si auth-context na ang bahala mag-redirect.
-      login(email) 
-      setOpen(false) // Isara agad ang dialog
-
-      // Magpakita ng tamang success message
+      const result = await login(email, password)
+      if (!result.success) {
+        toast({
+          title: "Login failed",
+          description: result.message || "Invalid credentials",
+          variant: "destructive",
+        })
+        return
+      }
+      setOpen(false)
       if (email.toLowerCase().includes("admin")) {
         toast({ title: "Login Successful", description: "Welcome Admin!" })
       } else {
         toast({ title: "Welcome back!", description: "Taking you to your portal..." })
       }
-      
     } catch (error) {
       toast({ title: "Error", description: "Something went wrong", variant: "destructive" })
     }
@@ -88,9 +91,11 @@ export function LoginDialog({ className }: LoginDialogProps) {
     <>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
-          <Button variant="outline" className={`border-slate-200 text-slate-900 hover:bg-slate-50 rounded-md px-6 font-bold ${className}`}>
-            Login
-          </Button>
+          {children ?? (
+            <Button variant="outline" className={`border-slate-200 text-slate-900 hover:bg-slate-50 rounded-md px-6 font-bold ${className}`}>
+              Login
+            </Button>
+          )}
         </DialogTrigger>
         <DialogContent className="sm:max-w-[400px] p-8">
           <DialogHeader className="mb-4">

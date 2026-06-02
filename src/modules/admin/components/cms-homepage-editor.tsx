@@ -36,12 +36,12 @@ export function CMSHomepageEditor() {
     }
   }
 
-  const SectionEditor = ({ title, field, image }: { title: string; field: keyof typeof homepage; image?: string }) => (
+  const SectionEditor = ({ title, field, image }: { title: string; field: string; image?: string }) => (
     <Card>
       <CardHeader>
         <CardTitle className="text-base flex items-center justify-between">
           <span>{title}</span>
-          <Button size="sm" variant="outline" onClick={() => setEditingSection(editingSection === field ? null : String(field))}>
+          <Button size="sm" variant="outline" onClick={() => setEditingSection(editingSection === field ? null : field)}>
             <Edit2 className="h-4 w-4" />
           </Button>
         </CardTitle>
@@ -66,9 +66,9 @@ export function CMSHomepageEditor() {
                 size="sm"
                 variant="destructive"
                 onClick={() => {
-                  if (field.includes('hero')) updateHomepage({ heroImage: '' })
-                  else if (field.includes('about')) updateHomepage({ aboutImage: '' })
-                  else if (field.includes('cta')) updateHomepage({ ctaImage: '' })
+                  if (String(field).includes('hero')) updateHomepage({ heroImage: '' })
+                  else if (String(field).includes('about')) updateHomepage({ aboutImage: '' })
+                  else if (String(field).includes('cta')) updateHomepage({ ctaImage: '' })
                 }}
               >
                 <X className="h-4 w-4" />
@@ -79,10 +79,10 @@ export function CMSHomepageEditor() {
 
         {editingSection === field && (
           <div className="space-y-3 p-3 bg-gray-50 rounded-lg">
-            {field.includes('Title') || field.includes('title') ? (
+            {String(field).includes('Title') || String(field).includes('title') ? (
               <Input
                 placeholder="Enter title"
-                value={field === 'heroTitle' ? homepage.heroTitle : field === 'ctaTitle' ? homepage.ctaTitle : homepage.aboutTitle}
+                value={field === 'heroTitle' ? (homepage.heroTitle ?? "") : field === 'ctaTitle' ? (homepage.ctaTitle ?? "") : (homepage.aboutTitle ?? "")}
                 onChange={(e) => {
                   if (field === 'heroTitle') updateHomepage({ heroTitle: e.target.value })
                   else if (field === 'ctaTitle') updateHomepage({ ctaTitle: e.target.value })
@@ -92,7 +92,7 @@ export function CMSHomepageEditor() {
             ) : (
               <Textarea
                 placeholder="Enter description"
-                value={field === 'heroDescription' ? homepage.heroDescription : field === 'ctaDescription' ? homepage.ctaDescription : homepage.aboutDescription}
+                value={field === 'heroDescription' ? (homepage.heroDescription ?? "") : field === 'ctaDescription' ? (homepage.ctaDescription ?? "") : (homepage.aboutDescription ?? "")}
                 onChange={(e) => {
                   if (field === 'heroDescription') updateHomepage({ heroDescription: e.target.value })
                   else if (field === 'ctaDescription') updateHomepage({ ctaDescription: e.target.value })
@@ -149,7 +149,7 @@ export function CMSHomepageEditor() {
           <div>
             <h4 className="font-medium mb-2">Features ({(homepage?.features || []).length})</h4>
             <div className="space-y-2">
-              {(homepage?.features || []).map((feature) => (
+              {(homepage?.features || []).map((feature: { id: string; title: string; description: string }) => (
                 <div key={feature.id} className="p-3 bg-gray-50 rounded-lg">
                   <p className="font-medium text-sm">{feature.title}</p>
                   <p className="text-xs text-muted-foreground">{feature.description}</p>

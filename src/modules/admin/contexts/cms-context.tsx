@@ -17,12 +17,28 @@ export type PastEvent = {
   updatedAt?: string
 }
 
+export interface HomepageContent {
+  heroTitle: string
+  heroSubtitle: string
+  heroImage: string
+  heroDescription?: string
+  aboutTitle?: string
+  aboutDescription?: string
+  aboutImage?: string
+  ctaText?: string
+  ctaButtonText?: string
+  ctaTitle?: string
+  ctaDescription?: string
+  ctaImage?: string
+  features?: Array<{
+    id: string
+    title: string
+    description: string
+  }>
+}
+
 export interface CMSData {
-  homepage: {
-    heroTitle: string
-    heroSubtitle: string
-    heroImage: string
-  }
+  homepage: HomepageContent
   footer: {
     email: string
     phone: string
@@ -37,15 +53,23 @@ export interface CMSData {
 
 type CMSContextType = {
   cmsData: CMSData
+  homepage: CMSData["homepage"]
   updateHomepage: (data: Partial<CMSData["homepage"]>) => void
   updateFooter: (data: Partial<CMSData["footer"]>) => void
 
+  venues: CMSData["venues"]
+  offices: CMSData["offices"]
+  officeRoomsGround: any[]
+  officeRoomsSecond: any[]
   updateVenue: (id: string, data: any) => void
   updateOffice: (id: string, data: any) => void
   addVenue: (data: any) => void
   deleteVenue: (id: string) => void
   addOffice: (data: any) => void
   deleteOffice: (id: string) => void
+  updateOfficeRoom: (id: string, data: any) => void
+  addOfficeRoom: (data: any) => void
+  deleteOfficeRoom: (id: string) => void
 
   addPastEvent: (data: Omit<PastEvent, "id" | "createdAt" | "updatedAt">) => void
   updatePastEvent: (id: string, data: Partial<PastEvent>) => void
@@ -171,24 +195,36 @@ const defaultCMSData: CMSData = {
   pastEvents: [],
 }
 
-const CMSContext = createContext<CMSContextType>({
+const defaultHomepage: CMSData["homepage"] = defaultCMSData.homepage
+
+const defaultContextValue: CMSContextType = {
   cmsData: defaultCMSData,
+  homepage: defaultHomepage,
   updateHomepage: () => {},
   updateFooter: () => {},
 
+  venues: defaultCMSData.venues,
+  offices: defaultCMSData.offices,
+  officeRoomsGround: [],
+  officeRoomsSecond: [],
   updateVenue: () => {},
   updateOffice: () => {},
   addVenue: () => {},
   deleteVenue: () => {},
   addOffice: () => {},
   deleteOffice: () => {},
+  updateOfficeRoom: () => {},
+  addOfficeRoom: () => {},
+  deleteOfficeRoom: () => {},
 
   addPastEvent: () => {},
   updatePastEvent: () => {},
   deletePastEvent: () => {},
 
   saveCMSData: () => {},
-})
+}
+
+const CMSContext = createContext<CMSContextType>(defaultContextValue)
 
 function createLocalId(prefix: string) {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -450,19 +486,61 @@ export const CMSProvider = ({ children }: { children: React.ReactNode }) => {
     })
   }
 
+  const updateOfficeRoom: CMSContextType["updateOfficeRoom"] = (id, data) => {
+    saveCMSData({
+      ...cmsData,
+      offices: cmsData.offices.map((office) =>
+        office.id === id
+          ? {
+              ...office,
+              ...data,
+              updatedAt: new Date().toISOString(),
+            }
+          : office
+      ),
+    })
+  }
+
+  const addOfficeRoom: CMSContextType["addOfficeRoom"] = (data) => {
+    const newRoom = {
+      id: data.id || createLocalId("office-room"),
+      ...data,
+      createdAt: new Date().toISOString(),
+    }
+    saveCMSData({
+      ...cmsData,
+      offices: [...cmsData.offices, newRoom],
+    })
+  }
+
+  const deleteOfficeRoom: CMSContextType["deleteOfficeRoom"] = (id) => {
+    saveCMSData({
+      ...cmsData,
+      offices: cmsData.offices.filter((office) => office.id !== id),
+    })
+  }
+
   return (
     <CMSContext.Provider
       value={{
         cmsData,
+        homepage: cmsData.homepage,
         updateHomepage,
         updateFooter,
 
+        venues: cmsData.venues,
+        offices: cmsData.offices,
+        officeRoomsGround: cmsData.offices.filter((office: any) => office?.floor === "ground" || office?.floor === "Ground"),
+        officeRoomsSecond: cmsData.offices.filter((office: any) => office?.floor === "second" || office?.floor === "Second"),
         updateVenue,
         updateOffice,
         addVenue,
         deleteVenue,
         addOffice,
         deleteOffice,
+        updateOfficeRoom,
+        addOfficeRoom,
+        deleteOfficeRoom,
 
         addPastEvent,
         updatePastEvent,

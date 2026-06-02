@@ -8,13 +8,18 @@ import {
   Banknote,
   Calendar,
   CheckCircle2,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   CreditCard,
   FileImage,
+  Filter,
   Info,
   Loader2,
   MapPin,
   Receipt,
+  Search,
   UploadCloud,
   X,
   XCircle,
@@ -36,19 +41,39 @@ import {
   type Booking,
 } from "@/src/modules/client/contexts/booking-context";
 import { useAuth } from "@/src/modules/shared/auth/auth-context";
+import { PAYMENT_LABELS, getPaymentMethodLabel } from "@/src/modules/shared/lib/labels";
+import { cn } from "@/src/modules/shared/lib/utils";
 
 const PAYMENT_WINDOW_HOURS = 24;
 const PAYMENT_WINDOW_MS = PAYMENT_WINDOW_HOURS * 60 * 60 * 1000;
 const BOOKING_STORAGE_KEY = "oneestela_global_bookings_v2";
 const MAX_PROOF_FILE_MB = 5;
 const MAX_PROOF_FILE_SIZE = MAX_PROOF_FILE_MB * 1024 * 1024;
+const PAGE_SIZE = 10;
+
+type TransactionFilter =
+  | "all"
+  | "verified"
+  | "for_review"
+  | "rejected"
+  | "incomplete"
+  | "refund_eligible"
+  | "non_refundable"
+
+const FILTER_OPTIONS: { value: TransactionFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "verified", label: "Verified" },
+  { value: "for_review", label: "Pending Verification" },
+  { value: "rejected", label: "Rejected" },
+  { value: "incomplete", label: "Incomplete" },
+  { value: "refund_eligible", label: "Refund Eligible" },
+  { value: "non_refundable", label: "Non-Refundable" },
+];
 
 function getDeadline(booking?: Booking | null) {
   if (!booking?.createdAt) return null;
-
   const created = new Date(booking.createdAt).getTime();
   if (Number.isNaN(created)) return null;
-
   return created + PAYMENT_WINDOW_MS;
 }
 
@@ -58,7 +83,6 @@ function formatCountdown(ms: number) {
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
-
   return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(
     2,
     "0",
@@ -84,7 +108,6 @@ function readStoredBookings() {
 function fileToDataUrl(file: File) {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
-
     reader.onload = () => resolve(String(reader.result || ""));
     reader.onerror = () => reject(new Error("Failed to read file."));
     reader.readAsDataURL(file);
@@ -116,24 +139,12 @@ function getOfficeTermLabel(term?: string) {
   return "Not selected";
 }
 
-function getOfficePaymentStatusClass(status?: string) {
-  if (status === "Paid")
-    return "border-emerald-100 bg-emerald-50 text-emerald-700";
-  if (status === "Verified") return "border-blue-100 bg-blue-50 text-blue-700";
-  if (status === "Overdue") return "border-rose-100 bg-rose-50 text-rose-700";
-  return "border-amber-100 bg-amber-50 text-amber-700";
-}
-
 function getPaymentTermLabel(
   type: "full" | "downpayment",
   isSettlingBalance: boolean,
 ) {
   if (isSettlingBalance) return "Remaining Balance";
   return type === "full" ? "Full Payment" : "Down Payment";
-}
-
-function getPaymentMethodLabel(method: "bank" | "cash") {
-  return method === "bank" ? "Bank Transfer" : "Cash / Pay at the Office";
 }
 
 function SummaryLine({ label, value }: { label: string; value: string }) {
@@ -147,6 +158,372 @@ function SummaryLine({ label, value }: { label: string; value: string }) {
   );
 }
 
+function isCurrentTransaction(booking: Booking) {
+  const status = String(booking.status || "").toLowerCase();
+  if (["completed", "cancelled", "declined"].includes(status)) return false;
+  const ps = String(booking.paymentStatus || "").toLowerCase();
+  if (ps === "verified" || ps === "paid" || ps === "slot_verified") {
+    if (status === "confirmed" || status === "completed") return false;
+  }
+  return true;
+}
+
+function paymentMatchesFilter(paymentStatus: string, status: string, filter: TransactionFilter) {
+  if (filter === "all") return true;
+  const ps = paymentStatus.toLowerCase();
+  const st = status.toLowerCase();
+  if (filter === "verified") {
+    return ["verified", "paid", "slot_verified"].includes(ps);
+  }
+  if (filter === "for_review") {
+    return ["for_review", "cash_pending", "slot_pending", "pending_verification"].includes(ps);
+  }
+  if (filter === "rejected") return ps === "rejected";
+  if (filter === "incomplete") {
+    return ps === "incomplete" || (!ps && st === "pending");
+  }
+  if (filter === "refund_eligible") {
+    return st === "cancelled" && ps !== "rejected";
+  }
+  if (filter === "non_refundable") {
+    return st === "cancelled" && ps === "rejected";
+  }
+  return true;
+}
+
+function isDateInRange(value: string, from?: string, to?: string) {
+  if (!from && !to) return true;
+  if (!value) return false;
+  const target = new Date(value).getTime();
+  if (Number.isNaN(target)) return false;
+  if (from) {
+    const fromTime = new Date(from).getTime();
+    if (!Number.isNaN(fromTime) && target < fromTime) return false;
+  }
+  if (to) {
+    const toTime = new Date(to).getTime();
+    if (!Number.isNaN(toTime) && target > toTime) return false;
+  }
+  return true;
+}
+
+function getStatusBadgeClass(status?: string) {
+  const v = String(status || "").toLowerCase();
+  if (["verified", "paid", "slot_verified", "partial"].includes(v)) {
+    return "border-emerald-100 bg-emerald-50 text-emerald-700";
+  }
+  if (["for_review", "cash_pending", "slot_pending", "pending_verification", "incomplete"].includes(v)) {
+    return "border-amber-100 bg-amber-50 text-amber-700";
+  }
+  if (v === "rejected") return "border-rose-100 bg-rose-50 text-rose-700";
+  return "border-slate-200 bg-slate-50 text-slate-700";
+}
+
+function getStatusLabel(paymentStatus?: string, status?: string) {
+  const v = String(paymentStatus || "").toLowerCase();
+  if (["verified", "paid", "slot_verified"].includes(v)) return "Verified";
+  if (v === "partial") return "Partial";
+  if (["for_review", "cash_pending", "slot_pending", "pending_verification"].includes(v)) return "For Review";
+  if (v === "incomplete") return "Incomplete";
+  if (v === "rejected") return "Rejected";
+  if (status === "cancelled") return "Cancelled";
+  if (status === "pending" && !v) return "Pending";
+  if (!v && !status) return "Pending";
+  return v ? v.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "Pending";
+}
+
+function getBookingStatusBadgeClass(status?: string) {
+  const v = String(status || "").toLowerCase();
+  if (["confirmed", "reservation_secured", "slot_secured"].includes(v))
+    return "border-emerald-100 bg-emerald-50 text-emerald-700";
+  if (["completed", "complete"].includes(v))
+    return "border-blue-100 bg-blue-50 text-blue-700";
+  if (["pending", "verifying"].includes(v))
+    return "border-orange-100 bg-orange-50 text-orange-700";
+  if (["cancellation_requested", "cancellation requested"].includes(v))
+    return "border-amber-100 bg-amber-50 text-amber-700";
+  if (["cancelled", "declined"].includes(v))
+    return "border-rose-100 bg-rose-50 text-rose-700";
+  return "border-slate-200 bg-slate-50 text-slate-600";
+}
+
+function getBookingStatusLabel(status?: string) {
+  const v = String(status || "").toLowerCase();
+  if (v === "pending") return "Pending";
+  if (v === "verifying") return "Verifying";
+  if (v === "confirmed") return "Confirmed";
+  if (v === "completed" || v === "complete") return "Completed";
+  if (v === "cancelled") return "Cancelled";
+  if (v === "declined") return "Declined";
+  if (v === "cancellation_requested" || v === "cancellation requested")
+    return "Cancel Req";
+  if (v === "reservation_secured") return "Secured";
+  return v ? v.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "—";
+}
+
+function CurrentTransactionCard({
+  booking,
+  onPay,
+  onSettle,
+  onView,
+}: {
+  booking: Booking;
+  onPay: (b: Booking) => void;
+  onSettle: (b: Booking) => void;
+  onView: (b: Booking) => void;
+}) {
+  const isOfficeRental = isOfficeRentalBooking(booking);
+  const total = (booking as any).totalPrice || 0;
+  const amountPaid = (booking as any).amountPaid ?? 0;
+  const remaining = (booking as any).remainingBalance ?? Math.max(total - amountPaid, 0);
+  const isDownpaymentActive =
+    booking.status === "confirmed" && booking.paymentType === "downpayment" && !["cancelled", "declined"].includes(String(booking.status).toLowerCase());
+  const remainingMs = getRemainingMs(booking);
+  const isExpired = booking.status === "pending" && remainingMs <= 0;
+  const isCashPending = booking.paymentMethod === "cash" && booking.paymentStatus === "cash_pending";
+
+  return (
+    <div className="group flex w-full flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-orange-200 hover:shadow-md sm:flex-row sm:items-center sm:gap-4">
+      <div className="flex shrink-0 items-center gap-3 sm:w-[260px]">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
+          <Receipt className="h-5 w-5" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+            Current Transaction
+          </p>
+          <p className="truncate text-sm font-black text-slate-900">
+            {booking.eventName || "Untitled"}
+          </p>
+          <p className="truncate text-[11px] font-bold text-orange-600">
+            {formatMoney(total)}
+          </p>
+        </div>
+      </div>
+
+      <div className="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-4">
+        <div>
+          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Booking ID</p>
+          <p className="mt-0.5 truncate text-xs font-black text-slate-800">{booking.id}</p>
+        </div>
+        <div>
+          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Method</p>
+          <p className="mt-0.5 truncate text-xs font-bold text-slate-800">
+            {getPaymentMethodLabel(booking.paymentMethod)}
+          </p>
+        </div>
+        <div>
+          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Type</p>
+          <p className="mt-0.5 truncate text-xs font-bold text-slate-800">
+            {isOfficeRental ? "Slot Reservation" : (booking as any).paymentType === "downpayment" ? "Down Payment" : "Full Payment"}
+          </p>
+        </div>
+        <div>
+          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Status</p>
+          <div className="mt-1 flex flex-wrap gap-1">
+            <span
+              className={cn(
+                "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest",
+                getStatusBadgeClass(booking.paymentStatus),
+              )}
+            >
+              {getStatusLabel(booking.paymentStatus, booking.status)}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-col items-stretch gap-2 sm:items-end">
+        {booking.status === "pending" && !isCashPending && !isExpired && (
+          <p className="rounded-md bg-orange-50 px-2 py-1 text-[10px] font-black text-orange-700">
+            Time left: {formatCountdown(remainingMs)}
+          </p>
+        )}
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            onClick={() => onView(booking)}
+            className="h-9 rounded-lg border-slate-200 px-3 text-[11px] font-bold text-slate-700 hover:bg-slate-50"
+          >
+            View Details
+          </Button>
+          {booking.status === "pending" && !isCashPending && !isExpired && (
+            <Button
+              onClick={() => onPay(booking)}
+              className="h-9 rounded-lg bg-orange-600 px-3 text-[11px] font-bold text-white shadow-sm hover:bg-orange-700"
+            >
+              <CreditCard className="mr-1 h-3.5 w-3.5" />
+              Pay Now
+            </Button>
+          )}
+          {isDownpaymentActive && (
+            <Button
+              onClick={() => onSettle(booking)}
+              className="h-9 rounded-lg bg-emerald-600 px-3 text-[11px] font-bold text-white shadow-sm hover:bg-emerald-700"
+            >
+              Settle Balance
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HistoryRow({
+  booking,
+  expanded,
+  onToggle,
+  onView,
+}: {
+  booking: Booking;
+  expanded: boolean;
+  onToggle: () => void;
+  onView: (b: Booking) => void;
+}) {
+  const isOfficeRental = isOfficeRentalBooking(booking);
+  const total = (booking as any).totalPrice || 0;
+  const isCancelled =
+    String(booking.status).toLowerCase() === "cancelled" ||
+    String(booking.status).toLowerCase() === "declined";
+  const displayTotal = isCancelled ? 0 : total;
+  const amountPaid =
+    typeof (booking as any).amountPaid === "number"
+      ? (booking as any).amountPaid
+      : (booking as any).paymentType === "downpayment"
+        ? displayTotal * 0.5
+        : ["paid", "verified", "slot_verified"].includes(
+            String(booking.paymentStatus).toLowerCase(),
+          )
+          ? displayTotal
+          : 0;
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="grid w-full grid-cols-[1fr_auto] items-center gap-3 p-3 text-left transition hover:bg-slate-50 sm:grid-cols-[2fr_1fr_1fr_auto]"
+      >
+        <div className="min-w-0">
+          <p className="truncate text-sm font-black text-slate-900">
+            {booking.eventName || "Untitled"}
+          </p>
+          <p className="mt-0.5 truncate text-[11px] font-bold text-slate-500">
+            {booking.id} · {booking.venue || "N/A"}
+          </p>
+        </div>
+        <div className="hidden text-left sm:block">
+          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Method</p>
+          <p className="text-[11px] font-bold text-slate-700">
+            {getPaymentMethodLabel(booking.paymentMethod)}
+          </p>
+        </div>
+        <div className="hidden text-left sm:block">
+          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Amount</p>
+          <p className="text-[11px] font-black text-slate-900">
+            {formatMoney(displayTotal)}
+          </p>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span
+            className={cn(
+              "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest",
+              getStatusBadgeClass(booking.paymentStatus),
+            )}
+          >
+            {getStatusLabel(booking.paymentStatus, booking.status)}
+          </span>
+          {expanded ? (
+            <ChevronDown className="h-4 w-4 -rotate-180 text-slate-400 transition" />
+          ) : (
+            <ChevronDown className="h-4 w-4 text-slate-400 transition" />
+          )}
+        </div>
+      </button>
+      {expanded && (
+        <div className="grid gap-3 border-t border-slate-100 bg-slate-50/60 p-3 sm:grid-cols-3">
+          <DetailItem label="Booking Status" value={
+            <span
+              className={cn(
+                "inline-block rounded-md border px-2 py-0.5 text-[10px] font-black uppercase tracking-widest",
+                getBookingStatusBadgeClass(booking.status),
+              )}
+            >
+              {getBookingStatusLabel(booking.status)}
+            </span>
+          } />
+          <DetailItem label="Type" value={isOfficeRental ? "Slot Reservation" : (booking as any).paymentType === "downpayment" ? "Down Payment" : "Full Payment"} />
+          <DetailItem label="Amount Paid" value={formatMoney(amountPaid)} />
+          <div className="sm:col-span-3">
+            <Button
+              variant="outline"
+              onClick={() => onView(booking)}
+              className="h-9 w-full rounded-lg border-slate-200 text-[11px] font-bold text-slate-700 hover:bg-white sm:w-auto"
+            >
+              <Receipt className="mr-1.5 h-3.5 w-3.5" />
+              Open Full Details
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DetailItem({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div>
+      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+        {label}
+      </p>
+      <div className="mt-0.5 break-words text-xs font-bold text-slate-800">{value}</div>
+    </div>
+  );
+}
+
+function Pagination({
+  page,
+  totalPages,
+  onPageChange,
+}: {
+  page: number;
+  totalPages: number;
+  onPageChange: (p: number) => void;
+}) {
+  if (totalPages <= 1) return null;
+  return (
+    <div className="mt-4 flex items-center justify-between gap-2">
+      <p className="text-[11px] font-bold text-slate-500">
+        Page <span className="font-black text-slate-900">{page}</span> of{" "}
+        <span className="font-black text-slate-900">{totalPages}</span>
+      </p>
+      <div className="flex items-center gap-1">
+        <Button
+          variant="outline"
+          size="icon"
+          disabled={page === 1}
+          onClick={() => onPageChange(page - 1)}
+          className="h-9 w-9 rounded-lg border-slate-200"
+          aria-label="Previous page"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          disabled={page === totalPages}
+          onClick={() => onPageChange(page + 1)}
+          className="h-9 w-9 rounded-lg border-slate-200"
+          aria-label="Next page"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function TransactionsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -156,21 +533,26 @@ function TransactionsContent() {
   const { bookings, submitPayment, cancelBooking } = useBookings();
   const { user } = useAuth();
 
-  const [selectedBookingToPay, setSelectedBookingToPay] = useState<
-    string | null
-  >(null);
+  const [selectedBookingToPay, setSelectedBookingToPay] = useState<string | null>(null);
   const [localBookings, setLocalBookings] = useState<Booking[]>([]);
   const [isHydrated, setIsHydrated] = useState(false);
 
-  const [paymentType, setPaymentType] = useState<"full" | "downpayment">(
-    "full",
-  );
+  const [paymentType, setPaymentType] = useState<"full" | "downpayment">("full");
   const [paymentMethod, setPaymentMethod] = useState<"bank" | "cash">("bank");
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [bankReferenceNumber, setBankReferenceNumber] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPaymentConfirmOpen, setIsPaymentConfirmOpen] = useState(false);
   const [now, setNow] = useState(Date.now());
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filter, setFilter] = useState<TransactionFilter>("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [showDateFilter, setShowDateFilter] = useState(false);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [expandedBookingId, setExpandedBookingId] = useState<string | null>(null);
+  const [viewingReceipt, setViewingReceipt] = useState<Booking | null>(null);
 
   useEffect(() => {
     if (urlBookingId) setSelectedBookingToPay(urlBookingId);
@@ -182,7 +564,6 @@ function TransactionsContent() {
     } else {
       setLocalBookings(readStoredBookings());
     }
-
     setIsHydrated(true);
   }, [bookings]);
 
@@ -253,88 +634,66 @@ function TransactionsContent() {
     toast,
   ]);
 
-  const getTransactionBadge = (booking: Booking) => {
-    const baseClass =
-      "px-2.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest border shadow-none";
-
-    if (booking.status === "pending" && booking.paymentMethod === "cash") {
-      return (
-        <span
-          className={`${baseClass} border-amber-200 bg-amber-50 text-amber-700`}
-        >
-          Cash Pending
-        </span>
-      );
-    }
-
-    switch (booking.status) {
-      case "pending":
-        return (
-          <span
-            className={`${baseClass} border-orange-100 bg-orange-50 text-orange-600`}
-          >
-            Pencil Booking
-          </span>
-        );
-      case "verifying":
-        return (
-          <span
-            className={`${baseClass} border-purple-100 bg-purple-50 text-purple-600`}
-          >
-            For Review
-          </span>
-        );
-      case "reservation_secured":
-        return (
-          <span
-            className={`${baseClass} border-emerald-100 bg-emerald-50 text-emerald-600`}
-          >
-            Reservation Secured
-          </span>
-        );
-      case "confirmed":
-        return (
-          <span
-            className={`${baseClass} border-emerald-100 bg-emerald-50 text-emerald-600`}
-          >
-            Confirmed
-          </span>
-        );
-      case "cancellation_requested":
-        return (
-          <span
-            className={`${baseClass} border-amber-100 bg-amber-50 text-amber-600`}
-          >
-            Cancel Review
-          </span>
-        );
-      case "cancelled":
-      case "declined":
-        return (
-          <span
-            className={`${baseClass} border-rose-100 bg-rose-50 text-rose-600`}
-          >
-            Cancelled
-          </span>
-        );
-      case "completed":
-        return (
-          <span
-            className={`${baseClass} border-blue-100 bg-blue-50 text-blue-600`}
-          >
-            Completed
-          </span>
-        );
-      default:
-        return (
-          <span
-            className={`${baseClass} border-slate-200 bg-slate-50 text-slate-600`}
-          >
-            {booking.status}
-          </span>
-        );
-    }
+  const searchMatch = (booking: Booking, query: string) => {
+    if (!query) return true;
+    const q = query.toLowerCase().trim();
+    const fields = [
+      booking.id,
+      booking.eventName,
+      booking.eventType,
+      booking.venue,
+      booking.status,
+      booking.paymentStatus,
+      booking.paymentMethod,
+    ];
+    return fields.some((f) => f && String(f).toLowerCase().includes(q));
   };
+
+  const currentTransaction = useMemo(
+    () => myTransactions.find(isCurrentTransaction) || null,
+    [myTransactions],
+  );
+
+  const historyTransactions = useMemo(
+    () =>
+      myTransactions.filter(
+        (b) => !currentTransaction || b.id !== currentTransaction.id,
+      ),
+    [myTransactions, currentTransaction],
+  );
+
+  const filteredHistory = useMemo(
+    () =>
+      historyTransactions.filter(
+        (b) =>
+          paymentMatchesFilter(
+            String(b.paymentStatus || ""),
+            String(b.status || ""),
+            filter,
+          ) &&
+          searchMatch(b, searchQuery) &&
+          isDateInRange(b.date, dateFrom || undefined, dateTo || undefined),
+      ),
+    [historyTransactions, filter, searchQuery, dateFrom, dateTo],
+  );
+
+  const totalHistoryPages = Math.max(
+    1,
+    Math.ceil(filteredHistory.length / PAGE_SIZE),
+  );
+  const safeHistoryPage = Math.min(historyPage, totalHistoryPages);
+  const paginatedHistory = useMemo(
+    () =>
+      filteredHistory.slice(
+        (safeHistoryPage - 1) * PAGE_SIZE,
+        safeHistoryPage * PAGE_SIZE,
+      ),
+    [filteredHistory, safeHistoryPage],
+  );
+
+  useEffect(() => {
+    setHistoryPage(1);
+  }, [searchQuery, filter, dateFrom, dateTo]);
 
   if (!isHydrated) {
     return (
@@ -397,7 +756,6 @@ function TransactionsContent() {
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
-
       if (!file) return;
 
       if (!file.type.startsWith("image/")) {
@@ -425,9 +783,7 @@ function TransactionsContent() {
 
     const submitSelectedPayment = async () => {
       if (isSubmitting) return;
-
       setIsSubmitting(true);
-
       try {
         const finalPaymentType = isOfficeRental
           ? ("slot_reservation" as any)
@@ -452,7 +808,7 @@ function TransactionsContent() {
           title: isOfficeRental
             ? "Slot Reservation Payment Submitted"
             : paymentMethod === "cash"
-              ? "Cash Payment Selected"
+              ? "Pay at the Office Selected"
               : "Payment Submitted!",
           description: isOfficeRental
             ? paymentMethod === "cash"
@@ -492,7 +848,6 @@ function TransactionsContent() {
         });
         return;
       }
-
       if (isExpired) {
         toast({
           title: "Payment Window Expired",
@@ -501,7 +856,6 @@ function TransactionsContent() {
         });
         return;
       }
-
       if (paymentMethod === "bank" && !proofFile) {
         toast({
           title: "Proof Required",
@@ -510,7 +864,6 @@ function TransactionsContent() {
         });
         return;
       }
-
       if (
         paymentMethod === "bank" &&
         bankReferenceNumber.replace(/\D/g, "").length < 13
@@ -523,7 +876,6 @@ function TransactionsContent() {
         });
         return;
       }
-
       setIsPaymentConfirmOpen(true);
     };
 
@@ -533,64 +885,75 @@ function TransactionsContent() {
           open={isPaymentConfirmOpen}
           onOpenChange={setIsPaymentConfirmOpen}
         >
-          <DialogContent className="w-[calc(100vw-32px)] max-w-[500px] rounded-[1.75rem] border-0 bg-white p-0 shadow-2xl [&>button]:hidden">
-            <div className="p-6 text-center sm:p-7">
-              <div
-                className={`mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl ${
-                  paymentMethod === "cash"
-                    ? "bg-orange-50 text-orange-600"
-                    : "bg-blue-50 text-blue-600"
-                }`}
-              >
-                {paymentMethod === "cash" ? (
-                  <Banknote className="h-8 w-8" />
-                ) : (
-                  <CreditCard className="h-8 w-8" />
-                )}
+          <DialogContent className="flex max-h-[92vh] w-[calc(100vw-2rem)] max-w-lg flex-col gap-0 overflow-hidden rounded-2xl border-0 bg-white p-0 shadow-2xl">
+            <div className="flex shrink-0 items-start justify-between gap-3 border-b border-slate-100 p-5">
+              <div className="flex items-center gap-3">
+                <div
+                  className={cn(
+                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+                    paymentMethod === "cash"
+                      ? "bg-orange-50 text-orange-600"
+                      : "bg-blue-50 text-blue-600",
+                  )}
+                >
+                  {paymentMethod === "cash" ? (
+                    <Banknote className="h-5 w-5" />
+                  ) : (
+                    <CreditCard className="h-5 w-5" />
+                  )}
+                </div>
+                <div>
+                  <DialogTitle className="text-lg font-black text-slate-950">
+                    {paymentMethod === "cash"
+                      ? isOfficeRental
+                        ? "Submit office slot reservation pay-at-the-office payment?"
+                        : "Are you sure you want to pay at the office?"
+                      : isOfficeRental
+                        ? "Submit office slot reservation proof?"
+                        : "Are you sure you want to submit bank transfer?"}
+                  </DialogTitle>
+                </div>
               </div>
+              <DialogClose asChild>
+                <button
+                  type="button"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+                  aria-label="Close"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </DialogClose>
+            </div>
 
-              <DialogTitle className="text-2xl font-black text-slate-950">
-                {paymentMethod === "cash"
-                  ? isOfficeRental
-                    ? "Submit office slot reservation cash payment?"
-                    : "Are you sure you want to pay cash?"
-                  : isOfficeRental
-                    ? "Submit office slot reservation proof?"
-                    : "Are you sure you want to submit bank transfer?"}
-              </DialogTitle>
-
-              <p className="mt-3 text-sm leading-6 text-slate-600">
+            <div className="flex-1 space-y-4 overflow-y-auto p-5">
+              <p className="text-sm leading-6 text-slate-600">
                 {paymentMethod === "cash"
                   ? isOfficeRental
                     ? "You selected Pay at the Office for the office slot reservation fee. Your office slot is not secured until admin verifies the payment."
-                    : "You selected Pay at the Office. Your booking will remain as Pencil Booking until the admin verifies your cash payment."
+                    : "You selected Pay at the Office. Your booking will remain as Pencil Booking until the admin verifies your office payment."
                   : isOfficeRental
                     ? "You are submitting proof for slot reservation only. After verification, customer-side online payments stop and succeeding office rental payments are tracked by admin."
                     : "You are about to submit your bank transfer proof. Please make sure the uploaded receipt and amount are correct before continuing."}
               </p>
 
-              <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                 <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-slate-400">
                   Payment Summary
                 </p>
 
                 <div className="space-y-3 text-sm">
                   <div className="flex items-start justify-between gap-4">
-                    <span className="font-semibold text-slate-500">
-                      Booking
-                    </span>
+                    <span className="font-semibold text-slate-500">Booking</span>
                     <span className="max-w-[230px] text-right font-black text-slate-900">
                       {booking.eventName}
                     </span>
                   </div>
-
                   <div className="flex items-start justify-between gap-4">
                     <span className="font-semibold text-slate-500">Method</span>
                     <span className="text-right font-black text-slate-900">
                       {getPaymentMethodLabel(paymentMethod)}
                     </span>
                   </div>
-
                   <div className="flex items-start justify-between gap-4">
                     <span className="font-semibold text-slate-500">Term</span>
                     <span className="text-right font-black text-slate-900">
@@ -599,25 +962,20 @@ function TransactionsContent() {
                         : getPaymentTermLabel(paymentType, isSettlingBalance)}
                     </span>
                   </div>
-
                   {paymentMethod === "bank" && bankReferenceNumber.trim() && (
                     <SummaryLine
                       label="Bank Reference No."
                       value={bankReferenceNumber.trim()}
                     />
                   )}
-
                   {paymentMethod === "bank" && proofFile && (
                     <div className="flex items-start justify-between gap-4">
-                      <span className="font-semibold text-slate-500">
-                        Proof
-                      </span>
+                      <span className="font-semibold text-slate-500">Proof</span>
                       <span className="max-w-[220px] break-all text-right text-xs font-black text-slate-900">
                         {proofFile.name}
                       </span>
                     </div>
                   )}
-
                   <div className="border-t border-dashed border-slate-300 pt-3">
                     <div className="flex items-center justify-between gap-4">
                       <span className="text-xs font-black uppercase tracking-widest text-slate-500">
@@ -632,9 +990,9 @@ function TransactionsContent() {
               </div>
 
               {paymentMethod === "cash" && (
-                <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-left">
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
                   <p className="text-sm font-black text-amber-900">
-                    Cash Payment Reminder
+                    Pay at the Office Reminder
                   </p>
                   <p className="mt-1 text-xs font-semibold leading-5 text-amber-700">
                     {isOfficeRental
@@ -643,31 +1001,30 @@ function TransactionsContent() {
                   </p>
                 </div>
               )}
+            </div>
 
-              <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsPaymentConfirmOpen(false)}
-                  disabled={isSubmitting}
-                  className="h-11 rounded-xl border-slate-200 text-sm font-black text-slate-700"
-                >
-                  Cancel / Go Back
-                </Button>
-
-                <Button
-                  type="button"
-                  onClick={submitSelectedPayment}
-                  disabled={isSubmitting}
-                  className="h-11 rounded-xl bg-orange-600 text-sm font-black text-white hover:bg-orange-700"
-                >
-                  {isSubmitting
-                    ? "Submitting..."
-                    : paymentMethod === "cash"
-                      ? "Yes, Pay Cash"
-                      : "Yes, Submit Bank Transfer"}
-                </Button>
-              </div>
+            <div className="flex shrink-0 justify-end gap-2 border-t border-slate-100 bg-slate-50 p-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsPaymentConfirmOpen(false)}
+                disabled={isSubmitting}
+                className="h-10 rounded-xl border-slate-200 px-4 text-xs font-bold"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={submitSelectedPayment}
+                disabled={isSubmitting}
+                className="h-10 rounded-xl bg-orange-600 px-4 text-xs font-bold text-white hover:bg-orange-700"
+              >
+                {isSubmitting
+                  ? "Submitting..."
+                  : paymentMethod === "cash"
+                    ? "Yes, Pay at the Office"
+                    : "Yes, Submit Bank Transfer"}
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -690,7 +1047,6 @@ function TransactionsContent() {
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-orange-100 text-orange-600">
                 <Clock className="h-5 w-5" />
               </div>
-
               <div>
                 <h2 className="text-xl font-black text-orange-950">
                   {isOfficeRental
@@ -771,11 +1127,12 @@ function TransactionsContent() {
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <button
                     onClick={() => setPaymentType("full")}
-                    className={`rounded-xl border-2 p-5 text-left transition-all ${
+                    className={cn(
+                      "rounded-xl border-2 p-5 text-left transition-all",
                       paymentType === "full"
                         ? "border-orange-600 bg-orange-50"
-                        : "border-slate-100 hover:border-slate-300"
-                    }`}
+                        : "border-slate-100 hover:border-slate-300",
+                    )}
                   >
                     <div className="mb-2 flex items-center justify-between gap-3">
                       <p className="text-sm font-bold text-slate-900">
@@ -792,11 +1149,12 @@ function TransactionsContent() {
 
                   <button
                     onClick={() => setPaymentType("downpayment")}
-                    className={`rounded-xl border-2 p-5 text-left transition-all ${
+                    className={cn(
+                      "rounded-xl border-2 p-5 text-left transition-all",
                       paymentType === "downpayment"
                         ? "border-orange-600 bg-orange-50"
-                        : "border-slate-100 hover:border-slate-300"
-                    }`}
+                        : "border-slate-100 hover:border-slate-300",
+                    )}
                   >
                     <div className="mb-2 flex items-center justify-between gap-3">
                       <p className="text-sm font-bold text-slate-900">
@@ -825,18 +1183,20 @@ function TransactionsContent() {
               <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <button
                   onClick={() => setPaymentMethod("bank")}
-                  className={`flex items-center gap-3 rounded-xl border-2 p-4 text-left transition-all ${
+                  className={cn(
+                    "flex items-center gap-3 rounded-xl border-2 p-4 text-left transition-all",
                     paymentMethod === "bank"
                       ? "border-orange-600 bg-orange-50"
-                      : "border-slate-100 hover:border-slate-300"
-                  }`}
+                      : "border-slate-100 hover:border-slate-300",
+                  )}
                 >
                   <div
-                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+                    className={cn(
+                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
                       paymentMethod === "bank"
                         ? "bg-orange-600 text-white"
-                        : "bg-slate-100 text-slate-500"
-                    }`}
+                        : "bg-slate-100 text-slate-500",
+                    )}
                   >
                     <CreditCard className="h-4 w-4" />
                   </div>
@@ -847,23 +1207,25 @@ function TransactionsContent() {
 
                 <button
                   onClick={() => setPaymentMethod("cash")}
-                  className={`flex items-center gap-3 rounded-xl border-2 p-4 text-left transition-all ${
+                  className={cn(
+                    "flex items-center gap-3 rounded-xl border-2 p-4 text-left transition-all",
                     paymentMethod === "cash"
                       ? "border-orange-600 bg-orange-50"
-                      : "border-slate-100 hover:border-slate-300"
-                  }`}
+                      : "border-slate-100 hover:border-slate-300",
+                  )}
                 >
                   <div
-                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+                    className={cn(
+                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
                       paymentMethod === "cash"
                         ? "bg-orange-600 text-white"
-                        : "bg-slate-100 text-slate-500"
-                    }`}
+                        : "bg-slate-100 text-slate-500",
+                    )}
                   >
                     <Banknote className="h-4 w-4" />
                   </div>
                   <p className="text-sm font-bold text-slate-900">
-                    Pay at the Office
+                    {PAYMENT_LABELS.payAtOffice}
                   </p>
                 </button>
               </div>
@@ -905,12 +1267,13 @@ function TransactionsContent() {
                       className="h-11 rounded-xl border-slate-200 bg-white text-sm font-bold focus-visible:ring-orange-600"
                     />
                     <p
-                      className={`text-[11px] font-semibold leading-5 ${
+                      className={cn(
+                        "text-[11px] font-semibold leading-5",
                         bankReferenceNumber.length > 0 &&
-                        bankReferenceNumber.length < 13
+                          bankReferenceNumber.length < 13
                           ? "text-rose-600"
-                          : "text-slate-500"
-                      }`}
+                          : "text-slate-500",
+                      )}
                     >
                       Required for Bank Transfer payments. Numbers only, minimum
                       13 digits. ({bankReferenceNumber.length}/13)
@@ -946,7 +1309,6 @@ function TransactionsContent() {
                             {proofFile.name}
                           </p>
                         </div>
-
                         <button
                           onClick={() => setProofFile(null)}
                           className="shrink-0 p-1 text-emerald-600"
@@ -961,7 +1323,7 @@ function TransactionsContent() {
                 <div className="animate-in fade-in flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
                   <Info className="h-5 w-5 shrink-0 text-amber-600" />
                   <p className="text-xs leading-relaxed text-amber-800">
-                    You selected Pay at the Office. Please visit One Estela
+                    You selected {PAYMENT_LABELS.payAtOffice}. Please visit One Estela
                     Place within 24 hours to settle your payment. Your booking
                     will remain as Pencil Booking until the payment is verified
                     by the admin.
@@ -1034,7 +1396,7 @@ function TransactionsContent() {
                     : isExpired
                       ? "Payment Expired"
                       : paymentMethod === "cash"
-                        ? "Submit Cash Payment"
+                        ? PAYMENT_LABELS.payAtOfficeButton
                         : "Submit Verification"}
               </Button>
             </div>
@@ -1045,238 +1407,242 @@ function TransactionsContent() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-7xl animate-in fade-in p-4 duration-500 md:p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-black tracking-tight text-slate-900 md:text-3xl">
-          My Transactions
-        </h1>
-        <p className="mt-1 text-xs text-slate-500 md:text-sm">
-          Manage your payments and invoices.
-        </p>
-      </div>
-
-      {myTransactions.length === 0 ? (
-        <div className="flex flex-col items-center rounded-2xl border border-slate-200 bg-white p-10 text-center">
-          <Receipt className="mb-3 h-12 w-12 text-slate-300" />
-          <h3 className="mb-1 text-lg font-black text-slate-900">
-            No transactions yet
-          </h3>
-          <p className="mb-4 text-xs text-slate-500">
-            You don&apos;t have any payment history.
+    <div className="mx-auto w-full max-w-7xl animate-in fade-in space-y-6 p-4 duration-500 md:p-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-black tracking-tight text-slate-900 md:text-3xl">
+            My Transactions
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Manage your payments and invoices.
           </p>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 2xl:grid-cols-3">
-          {myTransactions.map((booking) => {
-            const isCancelled =
-              booking.status === "cancelled" || booking.status === "declined";
-            const displayTotal = isCancelled ? 0 : booking.totalPrice || 15000;
-            const amountPaid =
-              typeof booking.amountPaid === "number"
-                ? booking.amountPaid
-                : booking.paymentType === "downpayment"
-                  ? displayTotal * 0.5
-                  : booking.paymentStatus === "paid" ||
-                      booking.paymentStatus === "verified"
-                    ? displayTotal
-                    : 0;
-            const remainingBalance =
-              typeof booking.remainingBalance === "number"
-                ? booking.remainingBalance
-                : Math.max(displayTotal - amountPaid, 0);
-            const isDownpaymentActive =
-              booking.status === "confirmed" &&
-              booking.paymentType === "downpayment" &&
-              !isCancelled;
-            const hasCashReminder =
-              booking.paymentMethod === "cash" &&
-              booking.paymentStatus === "cash_pending";
-            const isOfficeRental = isOfficeRentalBooking(booking);
-            const isOfficeSecured =
-              isOfficeRental &&
-              (booking.status === "reservation_secured" ||
-                booking.officeReservationStatus === "reservation_secured");
-            const officeTracker = booking.officePaymentTracker || [];
-            const pendingRemainingMs = getRemainingMs(booking);
+      </div>
 
+      {/* Search + Filter bar */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by booking ID, event, venue, method, or status..."
+              className="h-10 rounded-xl border-slate-200 pl-9 text-sm focus-visible:ring-2 focus-visible:ring-orange-500"
+            />
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => setShowDateFilter((v) => !v)}
+            className={cn(
+              "h-10 rounded-xl border-slate-200 px-3 text-xs font-bold text-slate-700 hover:bg-slate-50",
+              showDateFilter && "bg-orange-50 text-orange-700 border-orange-200",
+            )}
+          >
+            <Filter className="mr-1.5 h-3.5 w-3.5" />
+            Date Filter
+          </Button>
+        </div>
+
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {FILTER_OPTIONS.map((opt) => {
+            const active = filter === opt.value;
             return (
-              <div
-                key={booking.id}
-                className="relative flex min-h-[310px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setFilter(opt.value)}
+                className={cn(
+                  "rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-wider transition",
+                  active
+                    ? "border-orange-300 bg-orange-100 text-orange-800"
+                    : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
+                )}
               >
-                <div className="relative z-10 mb-4 flex items-start justify-between gap-4 border-b border-slate-100 pb-4">
-                  <div className="min-w-0 flex-1">
-                    <span className="mb-1 block text-[10px] font-black tracking-widest text-slate-400">
-                      {booking.id}
-                    </span>
-                    <h3 className="break-words text-base font-black leading-snug text-slate-900">
-                      {booking.eventName}
-                    </h3>
-                    <p className="mt-1 break-words text-[11px] font-medium leading-snug text-slate-500">
-                      {booking.date}
-                    </p>
-                  </div>
-
-                  <div className="shrink-0 text-right">
-                    {getTransactionBadge(booking)}
-                    <p
-                      className={`mt-2 text-lg font-black ${
-                        isCancelled
-                          ? "text-rose-500 line-through opacity-70"
-                          : "text-slate-900"
-                      }`}
-                    >
-                      ₱{displayTotal.toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="relative z-10 mb-5 flex-1 space-y-3">
-                  {hasCashReminder && (
-                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-                      <div className="mb-1 flex items-center gap-2 text-amber-800">
-                        <Banknote className="h-3.5 w-3.5 shrink-0" />
-                        <p className="text-[10px] font-black uppercase tracking-widest">
-                          Payment Method: Pay at the Office
-                        </p>
-                      </div>
-                      <p className="text-xs leading-5 text-amber-800">
-                        Please visit the venue within 24 hours to complete your
-                        payment. Your booking is not yet confirmed until the
-                        admin verifies your payment.
-                      </p>
-                    </div>
-                  )}
-
-                  {booking.status === "pending" && !hasCashReminder && (
-                    <div className="rounded-xl border border-orange-100 bg-orange-50 p-3">
-                      <div className="mb-2 flex items-center gap-2 text-orange-800">
-                        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                        <p className="text-[10px] font-bold uppercase tracking-widest">
-                          Secure your booking
-                        </p>
-                      </div>
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-xs font-bold text-orange-700">
-                          Time left
-                        </span>
-                        <span className="font-black tabular-nums text-orange-700">
-                          {formatCountdown(pendingRemainingMs)}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {isOfficeSecured ? (
-                    <div className="space-y-3">
-                      <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700">
-                          Reservation Secured
-                        </p>
-                        <p className="mt-1 text-xs font-semibold leading-5 text-emerald-800">
-                          Customer-side online payment is complete. Succeeding
-                          office rental payments are settled onsite via check.
-                        </p>
-                      </div>
-                      <OfficePaymentTracker payments={officeTracker} compact />
-                    </div>
-                  ) : isDownpaymentActive ? (
-                    <div className="rounded-xl border border-slate-100 bg-slate-50 p-3.5">
-                      <div className="mb-1.5 flex items-center justify-between gap-3 text-xs">
-                        <span className="font-bold text-slate-500">
-                          Paid (DP)
-                        </span>
-                        <span className="font-black text-emerald-600">
-                          ₱{amountPaid.toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between gap-3 border-t border-dashed border-slate-200 pt-1.5 text-xs">
-                        <span className="font-bold text-slate-500">
-                          Balance
-                        </span>
-                        <span className="font-black text-orange-600">
-                          ₱{remainingBalance.toLocaleString()}
-                        </span>
-                      </div>
-                    </div>
-                  ) : booking.paymentMethod ? (
-                    <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-100 bg-slate-50 p-3.5">
-                      <div className="text-xs">
-                        <p className="mb-0.5 text-[9px] font-bold uppercase tracking-widest text-slate-500">
-                          Method
-                        </p>
-                        <p className="font-bold capitalize text-slate-700">
-                          {booking.paymentMethod === "cash"
-                            ? "Pay at the Office"
-                            : "Bank Transfer"}
-                        </p>
-                      </div>
-                      <div className="text-right text-xs">
-                        <p className="mb-0.5 text-[9px] font-bold uppercase tracking-widest text-slate-500">
-                          Amount
-                        </p>
-                        <p className="font-black text-slate-900">
-                          ₱{amountPaid.toLocaleString()}{" "}
-                          <span className="text-[9px] font-medium uppercase">
-                            ({booking.paymentType || "pending"})
-                          </span>
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="rounded-xl border border-orange-100 bg-orange-50 p-3 text-[10px] font-bold text-orange-800">
-                      Settle payment within 24hrs.
-                    </div>
-                  )}
-                </div>
-
-                <div className="relative z-10 mt-auto flex flex-col gap-2 border-t border-slate-100 pt-4 sm:flex-row">
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="h-10 flex-1 rounded-xl border-slate-200 text-xs font-bold"
-                      >
-                        E-Receipt
-                      </Button>
-                    </DialogTrigger>
-
-                    <DialogContent className="!w-[calc(100vw-1.5rem)] !max-w-[680px] overflow-hidden rounded-[1.35rem] border-slate-200 bg-white p-0 shadow-2xl [&>button]:hidden">
-                      <DialogTitle className="sr-only">
-                        E-Receipt Details
-                      </DialogTitle>
-
-                      <ReceiptDetails
-                        booking={booking}
-                        isCancelled={isCancelled}
-                        displayTotal={displayTotal}
-                      />
-                    </DialogContent>
-                  </Dialog>
-
-                  {isDownpaymentActive && (
-                    <Button
-                      onClick={() => setSelectedBookingToPay(booking.id)}
-                      className="h-10 flex-1 rounded-xl bg-emerald-600 text-xs font-bold text-white hover:bg-emerald-700"
-                    >
-                      Settle Balance
-                    </Button>
-                  )}
-
-                  {booking.status === "pending" && !hasCashReminder && (
-                    <Button
-                      onClick={() => setSelectedBookingToPay(booking.id)}
-                      className="h-10 flex-1 rounded-xl bg-orange-600 text-xs font-bold text-white hover:bg-orange-700"
-                    >
-                      Pay Now
-                    </Button>
-                  )}
-                </div>
-              </div>
+                {opt.label}
+              </button>
             );
           })}
         </div>
-      )}
+
+        {showDateFilter && (
+          <div className="mt-3 grid grid-cols-1 gap-2 rounded-xl border border-slate-100 bg-slate-50 p-3 sm:grid-cols-[1fr_1fr_auto]">
+            <div>
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                From
+              </Label>
+              <Input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="mt-1 h-9 rounded-lg border-slate-200 text-xs"
+              />
+            </div>
+            <div>
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                To
+              </Label>
+              <Input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="mt-1 h-9 rounded-lg border-slate-200 text-xs"
+              />
+            </div>
+            <div className="flex items-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setDateFrom("");
+                  setDateTo("");
+                }}
+                className="h-9 rounded-lg border-slate-200 px-3 text-xs font-bold"
+              >
+                <XCircle className="mr-1.5 h-3.5 w-3.5" />
+                Clear Dates
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <Dialog
+        open={!!viewingReceipt}
+        onOpenChange={(v) => !v && setViewingReceipt(null)}
+      >
+        <DialogContent className="flex max-h-[92vh] w-[calc(100vw-2rem)] max-w-3xl flex-col gap-0 overflow-hidden rounded-2xl border-0 bg-white p-0 shadow-2xl">
+          <div className="flex shrink-0 items-start justify-between gap-3 border-b border-slate-100 p-5">
+            <div>
+              <DialogTitle className="text-lg font-black text-slate-900">
+                Transaction Details
+              </DialogTitle>
+              <p className="mt-0.5 text-[11px] font-bold text-slate-500">
+                {viewingReceipt?.id}
+              </p>
+            </div>
+            <DialogClose asChild>
+              <button
+                type="button"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </DialogClose>
+          </div>
+          {viewingReceipt && (
+            <div className="flex-1 overflow-y-auto p-5">
+              <ReceiptDetails
+                booking={viewingReceipt}
+                isCancelled={
+                  String(viewingReceipt.status).toLowerCase() === "cancelled" ||
+                  String(viewingReceipt.status).toLowerCase() === "declined"
+                }
+                displayTotal={
+                  ["cancelled", "declined"].includes(
+                    String(viewingReceipt.status).toLowerCase(),
+                  )
+                    ? 0
+                    : (viewingReceipt as any).totalPrice || 0
+                }
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <section>
+        <SectionHeader
+          title="Current Transaction"
+          subtitle="Active payment"
+          icon={<CreditCard className="h-4 w-4" />}
+        />
+        {currentTransaction ? (
+          <div className="mt-3">
+            <CurrentTransactionCard
+              booking={currentTransaction}
+              onPay={(b) => setSelectedBookingToPay(b.id)}
+              onSettle={(b) => setSelectedBookingToPay(b.id)}
+              onView={(b) => setViewingReceipt(b)}
+            />
+          </div>
+        ) : (
+          <div className="mt-3 flex flex-col items-center rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
+            <Receipt className="mb-3 h-10 w-10 text-slate-300" />
+            <h3 className="text-sm font-black text-slate-900">No active transaction</h3>
+            <p className="mt-1 max-w-sm text-xs text-slate-500">
+              You don&apos;t have any active payment right now. Settled payments will appear in
+              your transaction history.
+            </p>
+          </div>
+        )}
+      </section>
+
+      <section>
+        <SectionHeader
+          title="Transaction History"
+          subtitle={`${filteredHistory.length} record${filteredHistory.length === 1 ? "" : "s"}`}
+          icon={<Receipt className="h-4 w-4" />}
+        />
+        {filteredHistory.length === 0 ? (
+          <div className="mt-3 flex flex-col items-center rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
+            <FileImage className="mb-3 h-10 w-10 text-slate-300" />
+            <h3 className="text-sm font-black text-slate-900">No matching transactions</h3>
+            <p className="mt-1 text-xs text-slate-500">
+              Try adjusting your search, filter, or date range.
+            </p>
+          </div>
+        ) : (
+          <div className="mt-3 space-y-2">
+            {paginatedHistory.map((booking) => (
+              <HistoryRow
+                key={booking.id}
+                booking={booking}
+                expanded={expandedBookingId === booking.id}
+                onToggle={() =>
+                  setExpandedBookingId(
+                    expandedBookingId === booking.id ? null : booking.id,
+                  )
+                }
+                onView={(b) => setViewingReceipt(b)}
+              />
+            ))}
+            <Pagination
+              page={safeHistoryPage}
+              totalPages={totalHistoryPages}
+              onPageChange={setHistoryPage}
+            />
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function SectionHeader({
+  title,
+  subtitle,
+  icon,
+}: {
+  title: string;
+  subtitle?: string;
+  icon: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-100 text-orange-600">
+          {icon}
+        </div>
+        <div>
+          <h2 className="text-base font-black tracking-tight text-slate-900">
+            {title}
+          </h2>
+          {subtitle && (
+            <p className="text-[11px] font-semibold text-slate-500">{subtitle}</p>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -1296,9 +1662,7 @@ function OfficePaymentTracker({
       </div>
     );
   }
-
   const visiblePayments = compact ? payments.slice(0, 3) : payments;
-
   return (
     <div className="space-y-2">
       {visiblePayments.map((payment) => (
@@ -1316,9 +1680,10 @@ function OfficePaymentTracker({
               </p>
             </div>
             <span
-              className={`shrink-0 rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest ${getOfficePaymentStatusClass(
-                payment.paymentStatus,
-              )}`}
+              className={cn(
+                "shrink-0 rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest",
+                getStatusBadgeClass(payment.paymentStatus),
+              )}
             >
               {payment.paymentStatus || "Pending"}
             </span>
@@ -1340,13 +1705,10 @@ function OfficePaymentTracker({
   );
 }
 
-
 function formatReceiptDate(value?: string) {
   if (!value) return "Not available";
-
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-
   return date.toLocaleString("en-PH", {
     year: "numeric",
     month: "short",
@@ -1367,169 +1729,149 @@ function ReceiptDetails({
 }) {
   const receipt = booking.receipt as any;
   const isOfficeRental = isOfficeRentalBooking(booking);
-  const amountToShow = Number(receipt?.amountPaid ?? receipt?.paymentAmount ?? displayTotal ?? 0);
+  const amountToShow = Number(
+    receipt?.amountPaid ?? receipt?.paymentAmount ?? displayTotal ?? 0,
+  );
   const remainingBalance = Number(
     receipt?.remainingBalance ??
       (booking as any).remainingBalance ??
-      Math.max(Number((booking as any).totalPrice || displayTotal || 0) - Number(amountToShow || 0), 0)
+      Math.max(
+        Number((booking as any).totalPrice || displayTotal || 0) -
+          Number(amountToShow || 0),
+        0,
+      ),
   );
-  const contractTerm = receipt?.contractTerm || (booking as any).contractTerm || (booking as any).rentalTerm;
+  const contractTerm =
+    receipt?.contractTerm || (booking as any).contractTerm || (booking as any).rentalTerm;
   const paymentType = isOfficeRental
     ? "Slot Reservation Only"
     : receipt?.paymentType || receipt?.paymentPurpose || "Booking Payment";
-  const paymentMethod = receipt?.paymentMethod || booking.paymentMethod || "Not specified";
-  const paymentStatus = receipt?.paymentStatus || booking.paymentStatus || "Payment Verified";
-  const dateGenerated = receipt?.dateGenerated || receipt?.dateIssued || new Date().toISOString();
+  const paymentMethod =
+    receipt?.paymentMethod || booking.paymentMethod || "Not specified";
+  const paymentStatus =
+    receipt?.paymentStatus || booking.paymentStatus || "Payment Verified";
+  const dateGenerated =
+    receipt?.dateGenerated || receipt?.dateIssued || new Date().toISOString();
+
+  if (!receipt) {
+    return (
+      <div className="rounded-[1.25rem] border border-slate-200 bg-white shadow-sm">
+        <div className="p-4">
+          <h2 className="text-xl font-black leading-tight text-slate-900">
+            E-Receipt Not Generated Yet
+          </h2>
+          <p className="mt-1 text-sm font-semibold leading-6 text-slate-500">
+            The system will automatically generate your e-receipt after admin
+            verifies your payment.
+          </p>
+        </div>
+        <div className="space-y-3 p-4">
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
+            <Receipt className="mx-auto mb-3 h-10 w-10 text-slate-300" />
+            <p className="text-sm font-black text-slate-700">
+              No system-generated receipt yet.
+            </p>
+            <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">
+              Booking ID: {booking.id}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-h-[92vh] overflow-y-auto p-4 sm:p-5">
-      {!receipt ? (
-        <div className="rounded-[1.25rem] border border-slate-200 bg-white shadow-sm">
-          <div className="flex items-start justify-between gap-4 border-b border-dashed border-slate-200 p-4">
-            <div>
-              <h2 className="text-xl font-black leading-tight text-slate-900">
-                E-Receipt Not Generated Yet
-              </h2>
-              <p className="mt-1 text-sm font-semibold leading-6 text-slate-500">
-                The system will automatically generate your e-receipt after admin verifies your payment.
-              </p>
-            </div>
-
-            <DialogClose asChild>
-              <button
-                type="button"
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </DialogClose>
-          </div>
-
-          <div className="space-y-3 p-4">
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
-              <Receipt className="mx-auto mb-3 h-10 w-10 text-slate-300" />
-              <p className="text-sm font-black text-slate-700">
-                No system-generated receipt yet.
-              </p>
-              <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">
-                Booking ID: {booking.id}
-              </p>
-            </div>
-          </div>
+    <div className="mx-auto max-w-[680px] rounded-[1.1rem] border border-slate-200 bg-white shadow-sm">
+      <div className="relative border-b border-dashed border-slate-200 px-5 py-4 text-center">
+        <h2 className="text-xl font-black tracking-wide text-slate-950 sm:text-2xl">
+          ONE ESTELA PLACE
+        </h2>
+        <p className="mt-1 text-[10px] font-black uppercase tracking-[0.22em] text-orange-600">
+          System-Generated E-Receipt
+        </p>
+        <div className="mx-auto mt-3 grid max-w-xl gap-1 text-xs font-bold text-slate-600 sm:grid-cols-2 sm:text-left">
+          <p>
+            <span className="text-slate-400">Receipt No:</span>{" "}
+            <span className="text-slate-900">
+              {receipt.receiptNumber || receipt.receiptNo || "N/A"}
+            </span>
+          </p>
+          <p className="sm:text-right">
+            <span className="text-slate-400">Date Generated:</span>{" "}
+            <span className="text-slate-900">{formatReceiptDate(dateGenerated)}</span>
+          </p>
         </div>
-      ) : (
-        <div className="mx-auto max-w-[680px] rounded-[1.1rem] border border-slate-200 bg-white shadow-sm">
-          <div className="relative border-b border-dashed border-slate-200 px-5 py-4 text-center">
-            <DialogClose asChild>
-              <button
-                type="button"
-                className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </DialogClose>
+      </div>
 
-            <h2 className="text-xl font-black tracking-wide text-slate-950 sm:text-2xl">
-              ONE ESTELA PLACE
-            </h2>
-            <p className="mt-1 text-[10px] font-black uppercase tracking-[0.22em] text-orange-600">
-              System-Generated E-Receipt
-            </p>
-
-            <div className="mx-auto mt-3 grid max-w-xl gap-1 text-xs font-bold text-slate-600 sm:grid-cols-2 sm:text-left">
-              <p>
-                <span className="text-slate-400">Receipt No:</span>{" "}
-                <span className="text-slate-900">
-                  {receipt.receiptNumber || receipt.receiptNo || "N/A"}
-                </span>
-              </p>
-              <p className="sm:text-right">
-                <span className="text-slate-400">Date Generated:</span>{" "}
-                <span className="text-slate-900">{formatReceiptDate(dateGenerated)}</span>
-              </p>
-            </div>
+      <div className="space-y-3 px-5 py-4">
+        <ReceiptSection title="Customer Information">
+          <ReceiptLine
+            label="Customer Name"
+            value={receipt.fullName || booking.userInfo?.name || "Client"}
+          />
+        </ReceiptSection>
+        <ReceiptDivider />
+        <ReceiptSection title="Booking Details">
+          <ReceiptLine label="Booking ID" value={receipt.bookingId || booking.id} />
+          <ReceiptLine
+            label={isOfficeRental ? "Rental Type" : "Event Type"}
+            value={
+              isOfficeRental
+                ? "Office Space Rental"
+                : receipt.eventType || (booking as any).eventType || "Event Venue Rental"
+            }
+          />
+          <ReceiptLine
+            label="Venue Reserved"
+            value={receipt.venueReserved || receipt.venue || booking.venue || "N/A"}
+          />
+          <ReceiptLine
+            label={isOfficeRental ? "Reservation Date" : "Event Date"}
+            value={receipt.startDate || booking.date || "Not set"}
+          />
+          <ReceiptLine
+            label={isOfficeRental ? "Contract Term" : "Reservation Time"}
+            value={isOfficeRental ? contractTerm || "N/A" : getBookingTime(booking)}
+          />
+        </ReceiptSection>
+        <ReceiptDivider />
+        <ReceiptSection title="Payment Details">
+          <ReceiptLine label="Payment Method" value={paymentMethod} />
+          {booking.bankReferenceNumber && (
+            <ReceiptLine label="Bank Reference No." value={booking.bankReferenceNumber} />
+          )}
+          <ReceiptLine label="Payment Type" value={paymentType} />
+          <ReceiptLine label="Amount Paid" value={formatMoney(amountToShow)} highlight />
+          {!isOfficeRental && (
+            <ReceiptLine label="Remaining Balance" value={formatMoney(remainingBalance)} />
+          )}
+        </ReceiptSection>
+        <ReceiptDivider />
+        <ReceiptSection title="Payment Status">
+          <div className="flex items-center justify-between gap-4 rounded-xl bg-emerald-50 px-4 py-3">
+            <span className="text-xs font-black uppercase tracking-widest text-emerald-700">
+              Status
+            </span>
+            <span className="text-right text-sm font-black text-emerald-700">
+              {paymentStatus}
+            </span>
           </div>
-
-          <div className="space-y-3 px-5 py-4">
-            <ReceiptSection title="Customer Information">
-              <ReceiptLine
-                label="Customer Name"
-                value={receipt.fullName || booking.userInfo?.name || "Client"}
-              />
-            </ReceiptSection>
-
-            <ReceiptDivider />
-
-            <ReceiptSection title="Booking Details">
-              <ReceiptLine label="Booking ID" value={receipt.bookingId || booking.id} />
-              <ReceiptLine
-                label={isOfficeRental ? "Rental Type" : "Event Type"}
-                value={
-                  isOfficeRental
-                    ? "Office Space Rental"
-                    : receipt.eventType || (booking as any).eventType || "Event Venue Rental"
-                }
-              />
-              <ReceiptLine
-                label="Venue Reserved"
-                value={receipt.venueReserved || receipt.venue || booking.venue || "N/A"}
-              />
-              <ReceiptLine
-                label={isOfficeRental ? "Reservation Date" : "Event Date"}
-                value={receipt.startDate || booking.date || "Not set"}
-              />
-              <ReceiptLine
-                label={isOfficeRental ? "Contract Term" : "Reservation Time"}
-                value={isOfficeRental ? contractTerm || "N/A" : getBookingTime(booking)}
-              />
-            </ReceiptSection>
-
-            <ReceiptDivider />
-
-            <ReceiptSection title="Payment Details">
-              <ReceiptLine label="Payment Method" value={paymentMethod} />
-              {booking.bankReferenceNumber && (
-                <ReceiptLine label="Bank Reference No." value={booking.bankReferenceNumber} />
-              )}
-              <ReceiptLine label="Payment Type" value={paymentType} />
-              <ReceiptLine label="Amount Paid" value={formatMoney(amountToShow)} highlight />
-              {!isOfficeRental && (
-                <ReceiptLine label="Remaining Balance" value={formatMoney(remainingBalance)} />
-              )}
-            </ReceiptSection>
-
-            <ReceiptDivider />
-
-            <ReceiptSection title="Payment Status">
-              <div className="flex items-center justify-between gap-4 rounded-xl bg-emerald-50 px-4 py-3">
-                <span className="text-xs font-black uppercase tracking-widest text-emerald-700">
-                  Status
-                </span>
-                <span className="text-right text-sm font-black text-emerald-700">
-                  {paymentStatus}
-                </span>
-              </div>
-            </ReceiptSection>
-
-            <ReceiptDivider />
-
-            <div className="rounded-xl bg-orange-50 p-4 text-center">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-700">
-                Important Notice
-              </p>
-              <p className="mt-2 text-xs font-semibold leading-5 text-orange-950 sm:text-sm">
-                {isOfficeRental
-                  ? "This receipt serves as proof that the slot reservation payment has been verified. This is not full payment, not monthly rental payment, and not cheque payment. Succeeding payments are settled onsite via check."
-                  : "This receipt serves as proof that the reservation payment has been verified by the administrator of One Estela Place."}
-              </p>
-            </div>
-
-            <p className="text-center text-xs font-bold text-slate-500">
-              Thank you for choosing One Estela Place.
-            </p>
-          </div>
+        </ReceiptSection>
+        <ReceiptDivider />
+        <div className="rounded-xl bg-orange-50 p-4 text-center">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-700">
+            Important Notice
+          </p>
+          <p className="mt-2 text-xs font-semibold leading-5 text-orange-950 sm:text-sm">
+            {isOfficeRental
+              ? "This receipt serves as proof that the slot reservation payment has been verified. This is not full payment, not monthly rental payment, and not cheque payment. Succeeding payments are settled onsite via check."
+              : "This receipt serves as proof that the reservation payment has been verified by the administrator of One Estela Place."}
+          </p>
         </div>
-      )}
+        <p className="text-center text-xs font-bold text-slate-500">
+          Thank you for choosing One Estela Place.
+        </p>
+      </div>
     </div>
   );
 }
@@ -1564,9 +1906,10 @@ function ReceiptLine({
     <div className="flex items-start justify-between gap-4 text-sm">
       <span className="shrink-0 font-semibold text-slate-500">{label}:</span>
       <span
-        className={`break-words text-right font-black ${
-          highlight ? "text-orange-600" : "text-slate-950"
-        }`}
+        className={cn(
+          "break-words text-right font-black",
+          highlight ? "text-orange-600" : "text-slate-950",
+        )}
       >
         {value || "N/A"}
       </span>
@@ -1578,37 +1921,19 @@ function ReceiptDivider() {
   return <div className="border-t border-dashed border-slate-200" />;
 }
 
-
 function getBookingTime(booking: any) {
   if (!booking) return "N/A";
-
   if (booking.time) return booking.time;
   if (booking.reservationTime) return booking.reservationTime;
-
   const startTime =
-    booking.startTime ||
-    booking.start_time ||
-    booking.start ||
-    booking.bookingStartTime ||
-    "";
-
+    booking.startTime || booking.start_time || booking.start || booking.bookingStartTime || "";
   const endTime =
-    booking.endTime ||
-    booking.end_time ||
-    booking.end ||
-    booking.bookingEndTime ||
-    "";
-
-  if (startTime && endTime) {
-    return `${startTime} - ${endTime}`;
-  }
-
+    booking.endTime || booking.end_time || booking.end || booking.bookingEndTime || "";
+  if (startTime && endTime) return `${startTime} - ${endTime}`;
   if (startTime) return startTime;
   if (endTime) return endTime;
-
   return "N/A";
 }
-
 
 export default function ClientTransactionsPageWrapper() {
   return (

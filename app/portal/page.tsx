@@ -1,22 +1,41 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { useAuth } from "@/src/modules/shared/auth/auth-context"
 import { Card, CardContent } from "@/src/modules/shared/components/ui/card"
 import { Badge } from "@/src/modules/shared/components/ui/badge"
 import { Button } from "@/src/modules/shared/components/ui/button"
 import { Calendar, Check, MapPin, ArrowRight, Clock, Plus, Receipt, ChevronRight } from "lucide-react"
 import Link from "next/link"
+import { getProfilePicture, subscribeProfilePictureUpdates } from "@/src/modules/shared/lib/profile-picture"
+import { UserAvatar } from "@/src/modules/shared/components/user-avatar"
 
 export default function ClientDashboardPage() {
   const { user } = useAuth()
+  const [profilePicture, setProfilePicture] = useState<string | null>(user?.profilePicture ?? null)
 
-  const nextEvent = { 
-    name: "Wedding Reception", 
-    date: "June 17, 2026", 
-    time: "10:00 AM - 10:00 PM", 
-    venue: "Grand Ballroom", 
-    status: "APPROVED", 
-    step: 3 
+  useEffect(() => {
+    if (!user?.id) {
+      setProfilePicture(null)
+      return
+    }
+    if (user.profilePicture) {
+      setProfilePicture(user.profilePicture)
+    } else {
+      setProfilePicture(getProfilePicture(user.id))
+    }
+    return subscribeProfilePictureUpdates(() => {
+      setProfilePicture(user.profilePicture || getProfilePicture(user.id))
+    })
+  }, [user?.id, user?.profilePicture])
+
+  const nextEvent = {
+    name: "Wedding Reception",
+    date: "June 17, 2026",
+    time: "10:00 AM - 10:00 PM",
+    venue: "Grand Ballroom",
+    status: "APPROVED",
+    step: 3
   }
 
   const otherBookings = [
@@ -35,9 +54,14 @@ export default function ClientDashboardPage() {
       
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-5">
-          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-orange-100 to-orange-200 text-orange-700 flex items-center justify-center text-2xl font-black uppercase shrink-0 ring-2 ring-white shadow-sm">
-            {user?.name?.charAt(0) || "C"}
-          </div>
+          <UserAvatar
+            name={user?.name}
+            picture={profilePicture}
+            className="h-14 w-14"
+            ringClassName="ring-2 ring-white"
+            fallbackClassName="bg-gradient-to-br from-orange-100 to-orange-200 text-orange-700"
+            textClassName="text-2xl font-black uppercase"
+          />
 
           <div>
             <p className="text-sm text-slate-500 font-semibold mb-1">
@@ -156,9 +180,9 @@ export default function ClientDashboardPage() {
               <Receipt className="w-5 h-5 text-orange-600 shrink-0 mt-0.5" />
               <div>
                 <h3 className="text-sm font-bold text-orange-900 tracking-tight mb-1">Need billing help?</h3>
-                <p className="text-orange-700 text-[11px] mb-3 leading-relaxed">Chat with our admins for billing and payment questions.</p>
+                <p className="text-orange-700 text-[11px] mb-3 leading-relaxed">Reach out to our support team for billing and payment questions.</p>
                 <Button className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs h-9 rounded-lg shadow-sm" asChild>
-                  <Link href="/portal/chat">Message Admin</Link>
+                  <Link href="/portal/chat">Contact Support</Link>
                 </Button>
               </div>
             </CardContent>
