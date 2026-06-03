@@ -32,7 +32,11 @@ const CLIENT_MENU = [
   { name: "Dashboard", href: "/portal", icon: LayoutDashboard, key: "dashboard" },
   { name: "My Bookings", href: "/portal/bookings", icon: Calendar, key: "bookings" },
   { name: "My Transactions", href: "/portal/payments", icon: FileText, key: "transactions" },
-  { name: CHAT_LABELS.chatSupport, href: "/portal/chat", icon: MessageSquare, key: "chat" },
+  { name: "Chat Support", href: "/portal/chat", icon: MessageSquare, key: "chat" },
+]
+
+const BOTTOM_MENU = [
+  { name: "Profile", href: "/portal/profile", icon: User, key: "profile" },
 ]
 
 export default function ClientLayout({
@@ -164,7 +168,7 @@ export default function ClientLayout({
         </div>
       </header>
 
-      <div className="relative flex flex-1 overflow-hidden">
+      <div className="relative flex min-w-0 flex-1 overflow-hidden">
         {isMobileMenuOpen && (
           <div
             className="absolute inset-0 z-40 bg-slate-900/50 backdrop-blur-sm lg:hidden"
@@ -173,27 +177,12 @@ export default function ClientLayout({
         )}
 
         <aside
-          className={`absolute inset-y-0 left-0 z-50 flex w-64 transform flex-col border-r border-slate-200 bg-white shadow-2xl transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 lg:shadow-none ${
+          className={`absolute inset-y-0 left-0 z-50 flex h-full w-64 flex-col border-r border-slate-200 bg-white shadow-2xl transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 lg:shadow-none ${
             isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >
-          <div className="flex items-center gap-3 border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white p-4">
-            <UserAvatar
-              name={user.name}
-              picture={profilePicture}
-              className="h-10 w-10"
-              fallbackClassName="bg-gradient-to-br from-orange-100 to-orange-200 text-orange-700"
-              ringClassName="ring-2 ring-white"
-            />
-            <div className="min-w-0">
-              <p className="truncate text-sm font-black text-slate-900">{user.name}</p>
-              <p className="truncate text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                Client
-              </p>
-            </div>
-          </div>
-
-          <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+          {/* Scrollable navigation */}
+          <nav className="flex-1 space-y-1 overflow-y-auto p-3 pt-6">
             {CLIENT_MENU.map((item) => {
               const isActive =
                 item.href === "/portal"
@@ -242,39 +231,52 @@ export default function ClientLayout({
             })}
           </nav>
 
-          <div className="flex flex-col gap-1 border-t border-slate-100 bg-slate-50/50 p-3">
-            <Link
-              href="/portal/profile"
-              className={cn(
-                "group relative flex items-center rounded-lg px-3 py-2.5 text-[14px] font-bold transition-all",
-                pathname === "/portal/profile"
-                  ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md shadow-orange-500/20"
-                  : "text-slate-600 hover:bg-orange-50/60 hover:text-orange-700",
-              )}
-            >
-              <User
-                className={cn(
-                  "mr-3 h-4 w-4",
-                  pathname === "/portal/profile" ? "text-white" : "text-slate-400 group-hover:text-orange-500",
-                )}
-              />
-              Profile
-            </Link>
+          {/* Fixed bottom section: Profile + Logout */}
+          <div className="shrink-0 border-t border-slate-100 p-3">
+            {BOTTOM_MENU.map((item) => {
+              const isActive =
+                item.href === "/portal"
+                  ? pathname === "/portal"
+                  : pathname.startsWith(item.href)
 
-            <Button
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={cn(
+                    "group relative flex items-center rounded-lg px-3 py-2.5 text-[14px] font-bold transition-all",
+                    isActive
+                      ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md shadow-orange-500/20"
+                      : "text-slate-600 hover:bg-orange-50/60 hover:text-orange-700",
+                  )}
+                >
+                  {isActive && (
+                    <span className="absolute -left-3 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r bg-orange-700" />
+                  )}
+                  <item.icon
+                    className={cn(
+                      "mr-3 h-4 w-4 transition-colors",
+                      isActive ? "text-white" : "text-slate-400 group-hover:text-orange-500",
+                    )}
+                  />
+                  {item.name}
+                </Link>
+              )
+            })}
+
+            <button
               type="button"
-              variant="ghost"
-              className="flex h-10 w-full items-center justify-start rounded-lg px-3 text-[14px] font-bold text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+              className="group relative flex w-full items-center rounded-lg px-3 py-2.5 text-[14px] font-bold text-rose-600 transition-all hover:bg-rose-50 hover:text-rose-700"
               onClick={() => setShowLogoutConfirm(true)}
             >
               <LogOut className="mr-3 h-4 w-4" />
               Logout
-            </Button>
+            </button>
           </div>
         </aside>
 
         <main
-          className={`flex-1 overflow-auto ${
+          className={`min-w-0 flex-1 overflow-x-hidden ${
             pathname === "/portal/chat" ? "p-0" : "p-4 md:p-6"
           }`}
         >

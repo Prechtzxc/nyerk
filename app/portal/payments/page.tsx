@@ -42,6 +42,10 @@ import {
 } from "@/src/modules/client/contexts/booking-context";
 import { useAuth } from "@/src/modules/shared/auth/auth-context";
 import { PAYMENT_LABELS, getPaymentMethodLabel } from "@/src/modules/shared/lib/labels";
+import {
+  ReceiptPaper,
+  type ReceiptPaperData,
+} from "@/src/modules/shared/components/receipt-paper";
 import { cn } from "@/src/modules/shared/lib/utils";
 
 const PAYMENT_WINDOW_HOURS = 24;
@@ -283,7 +287,7 @@ function CurrentTransactionCard({
   const isCashPending = booking.paymentMethod === "cash" && booking.paymentStatus === "cash_pending";
 
   return (
-    <div className="group flex w-full flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-orange-200 hover:shadow-md sm:flex-row sm:items-center sm:gap-4">
+    <div className="group flex w-full min-w-0 flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-orange-200 hover:shadow-md sm:flex-row sm:items-center sm:gap-4">
       <div className="flex shrink-0 items-center gap-3 sm:w-[260px]">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
           <Receipt className="h-5 w-5" />
@@ -301,24 +305,24 @@ function CurrentTransactionCard({
         </div>
       </div>
 
-      <div className="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-4">
-        <div>
+      <div className="grid min-w-0 flex-1 grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="min-w-0">
           <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Booking ID</p>
           <p className="mt-0.5 truncate text-xs font-black text-slate-800">{booking.id}</p>
         </div>
-        <div>
+        <div className="min-w-0">
           <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Method</p>
           <p className="mt-0.5 truncate text-xs font-bold text-slate-800">
             {getPaymentMethodLabel(booking.paymentMethod)}
           </p>
         </div>
-        <div>
+        <div className="min-w-0">
           <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Type</p>
           <p className="mt-0.5 truncate text-xs font-bold text-slate-800">
             {isOfficeRental ? "Slot Reservation" : (booking as any).paymentType === "downpayment" ? "Down Payment" : "Full Payment"}
           </p>
         </div>
-        <div>
+        <div className="min-w-0">
           <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Status</p>
           <div className="mt-1 flex flex-wrap gap-1">
             <span
@@ -339,7 +343,7 @@ function CurrentTransactionCard({
             Time left: {formatCountdown(remainingMs)}
           </p>
         )}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <Button
             variant="outline"
             onClick={() => onView(booking)}
@@ -403,14 +407,15 @@ function HistoryRow({
       <button
         type="button"
         onClick={onToggle}
-        className="grid w-full grid-cols-[1fr_auto] items-center gap-3 p-3 text-left transition hover:bg-slate-50 sm:grid-cols-[2fr_1fr_1fr_auto]"
+        className="grid w-full min-w-0 grid-cols-[1fr_auto] items-center gap-3 p-3 text-left transition hover:bg-slate-50 sm:grid-cols-[2fr_1fr_1fr_auto]"
       >
         <div className="min-w-0">
           <p className="truncate text-sm font-black text-slate-900">
             {booking.eventName || "Untitled"}
           </p>
           <p className="mt-0.5 truncate text-[11px] font-bold text-slate-500">
-            {booking.id} · {booking.venue || "N/A"}
+            {booking.id}
+            <span className="hidden sm:inline"> · {booking.venue || "N/A"}</span>
           </p>
         </div>
         <div className="hidden text-left sm:block">
@@ -551,6 +556,7 @@ function TransactionsContent() {
   const [dateTo, setDateTo] = useState("");
   const [showDateFilter, setShowDateFilter] = useState(false);
   const [historyPage, setHistoryPage] = useState(1);
+  const [showHistory, setShowHistory] = useState(false);
   const [expandedBookingId, setExpandedBookingId] = useState<string | null>(null);
   const [viewingReceipt, setViewingReceipt] = useState<Booking | null>(null);
 
@@ -649,17 +655,29 @@ function TransactionsContent() {
     return fields.some((f) => f && String(f).toLowerCase().includes(q));
   };
 
-  const currentTransaction = useMemo(
-    () => myTransactions.find(isCurrentTransaction) || null,
+  const currentTransactions = useMemo(
+    () => myTransactions.filter(isCurrentTransaction),
     [myTransactions],
   );
 
+  const currentTransaction = useMemo(
+    () => currentTransactions[0] || null,
+    [currentTransactions],
+  );
+
+  const otherActiveTransactions = useMemo(
+    () => currentTransactions.slice(1),
+    [currentTransactions],
+  );
+
   const historyTransactions = useMemo(
-    () =>
-      myTransactions.filter(
-        (b) => !currentTransaction || b.id !== currentTransaction.id,
-      ),
-    [myTransactions, currentTransaction],
+    () => myTransactions.filter((b) => !isCurrentTransaction(b)),
+    [myTransactions],
+  );
+
+  const hasHistoryRecords = useMemo(
+    () => historyTransactions.length > 0,
+    [historyTransactions],
   );
 
   const filteredHistory = useMemo(
@@ -1407,9 +1425,9 @@ function TransactionsContent() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-7xl animate-in fade-in space-y-6 p-4 duration-500 md:p-6">
+    <div className="mx-auto min-w-0 w-full max-w-7xl animate-in fade-in space-y-6 p-4 duration-500 md:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+        <div className="min-w-0">
           <h1 className="text-2xl font-black tracking-tight text-slate-900 md:text-3xl">
             My Transactions
           </h1>
@@ -1417,100 +1435,107 @@ function TransactionsContent() {
             Manage your payments and invoices.
           </p>
         </div>
-      </div>
-
-      {/* Search + Filter bar */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by booking ID, event, venue, method, or status..."
-              className="h-10 rounded-xl border-slate-200 pl-9 text-sm focus-visible:ring-2 focus-visible:ring-orange-500"
-            />
-          </div>
+        {hasHistoryRecords && (
           <Button
             variant="outline"
-            onClick={() => setShowDateFilter((v) => !v)}
-            className={cn(
-              "h-10 rounded-xl border-slate-200 px-3 text-xs font-bold text-slate-700 hover:bg-slate-50",
-              showDateFilter && "bg-orange-50 text-orange-700 border-orange-200",
-            )}
+            onClick={() => setShowHistory((v) => !v)}
+            className="h-11 whitespace-nowrap rounded-xl border-slate-200 px-4 text-xs font-bold text-slate-700 hover:bg-slate-50"
           >
-            <Filter className="mr-1.5 h-3.5 w-3.5" />
-            Date Filter
+            <Receipt className="mr-1.5 h-3.5 w-3.5" />
+            {showHistory ? "Back to Current Transactions" : "View Transaction History"}
           </Button>
-        </div>
-
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {FILTER_OPTIONS.map((opt) => {
-            const active = filter === opt.value;
-            return (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setFilter(opt.value)}
-                className={cn(
-                  "rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-wider transition",
-                  active
-                    ? "border-orange-300 bg-orange-100 text-orange-800"
-                    : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
-                )}
-              >
-                {opt.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {showDateFilter && (
-          <div className="mt-3 grid grid-cols-1 gap-2 rounded-xl border border-slate-100 bg-slate-50 p-3 sm:grid-cols-[1fr_1fr_auto]">
-            <div>
-              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                From
-              </Label>
-              <Input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className="mt-1 h-9 rounded-lg border-slate-200 text-xs"
-              />
-            </div>
-            <div>
-              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                To
-              </Label>
-              <Input
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                className="mt-1 h-9 rounded-lg border-slate-200 text-xs"
-              />
-            </div>
-            <div className="flex items-end">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setDateFrom("");
-                  setDateTo("");
-                }}
-                className="h-9 rounded-lg border-slate-200 px-3 text-xs font-bold"
-              >
-                <XCircle className="mr-1.5 h-3.5 w-3.5" />
-                Clear Dates
-              </Button>
-            </div>
-          </div>
         )}
       </div>
+
+      {/* Current Transactions (hidden when viewing history) */}
+      {!showHistory && (
+        <>
+          <section>
+            <SectionHeader
+              title="Current Transaction"
+              subtitle="Active payment"
+              icon={<CreditCard className="h-4 w-4" />}
+            />
+            {currentTransaction ? (
+              <div className="mt-3">
+                <CurrentTransactionCard
+                  booking={currentTransaction}
+                  onPay={(b) => setSelectedBookingToPay(b.id)}
+                  onSettle={(b) => setSelectedBookingToPay(b.id)}
+                  onView={(b) => setViewingReceipt(b)}
+                />
+              </div>
+            ) : (
+              <div className="mt-3 flex flex-col items-center rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
+                <Receipt className="mb-3 h-10 w-10 text-slate-300" />
+                <h3 className="text-sm font-black text-slate-900">No active transaction</h3>
+                <p className="mt-1 max-w-sm text-xs text-slate-500">
+                  You don&apos;t have any active payment right now. Settled payments will appear in
+                  your transaction history.
+                </p>
+              </div>
+            )}
+          </section>
+
+          {otherActiveTransactions.length > 0 && (
+            <section>
+              <SectionHeader
+                title="Other Current Transactions"
+                subtitle="Other active payment records."
+                icon={<Receipt className="h-4 w-4" />}
+              />
+              <div className="mt-3 space-y-2">
+                {otherActiveTransactions.map((booking) => (
+                  <div
+                    key={booking.id}
+                    className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-3 transition hover:border-orange-200 sm:gap-3"
+                  >
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-orange-50 text-orange-600">
+                      <Receipt className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="break-words text-sm font-black text-slate-900">
+                        {booking.eventName || "Untitled"}
+                      </p>
+                      <p className="text-[10px] font-semibold text-slate-500 sm:text-[11px]">
+                        {booking.id}
+                        <span className="hidden sm:inline">
+                          {" · "}{getPaymentMethodLabel(booking.paymentMethod)}{" · "}{booking.venue || "N/A"}
+                        </span>
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <span
+                        className={cn(
+                          "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest",
+                          getStatusBadgeClass(booking.paymentStatus),
+                        )}
+                      >
+                        {getStatusLabel(booking.paymentStatus, booking.status)}
+                      </span>
+                      <Button
+                        variant="outline"
+                        onClick={() => setViewingReceipt(booking)}
+                        className="h-8 rounded-lg border-slate-200 px-2.5 text-[10px] font-bold text-slate-700 hover:bg-slate-50"
+                      >
+                        View Details
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+        </>
+      )}
 
       <Dialog
         open={!!viewingReceipt}
         onOpenChange={(v) => !v && setViewingReceipt(null)}
       >
-        <DialogContent className="flex max-h-[92vh] w-[calc(100vw-2rem)] max-w-3xl flex-col gap-0 overflow-hidden rounded-2xl border-0 bg-white p-0 shadow-2xl">
+        <DialogContent
+          showCloseButton={false}
+          className="flex max-h-[92vh] w-[calc(100vw-2rem)] max-w-3xl flex-col gap-0 overflow-hidden rounded-2xl border-0 bg-white p-0 shadow-2xl">
           <div className="flex shrink-0 items-start justify-between gap-3 border-b border-slate-100 p-5">
             <div>
               <DialogTitle className="text-lg font-black text-slate-900">
@@ -1551,70 +1576,135 @@ function TransactionsContent() {
         </DialogContent>
       </Dialog>
 
-      <section>
-        <SectionHeader
-          title="Current Transaction"
-          subtitle="Active payment"
-          icon={<CreditCard className="h-4 w-4" />}
-        />
-        {currentTransaction ? (
-          <div className="mt-3">
-            <CurrentTransactionCard
-              booking={currentTransaction}
-              onPay={(b) => setSelectedBookingToPay(b.id)}
-              onSettle={(b) => setSelectedBookingToPay(b.id)}
-              onView={(b) => setViewingReceipt(b)}
-            />
-          </div>
-        ) : (
-          <div className="mt-3 flex flex-col items-center rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
-            <Receipt className="mb-3 h-10 w-10 text-slate-300" />
-            <h3 className="text-sm font-black text-slate-900">No active transaction</h3>
-            <p className="mt-1 max-w-sm text-xs text-slate-500">
-              You don&apos;t have any active payment right now. Settled payments will appear in
-              your transaction history.
-            </p>
-          </div>
-        )}
-      </section>
+      {/* Transaction History (hidden by default) */}
+      {showHistory && (
+        <>
+          {/* Search + Filter bar */}
+          <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <div className="relative min-w-0 flex-1">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by booking ID, event, venue, method, or status..."
+                  className="h-10 w-full rounded-xl border-slate-200 pl-9 text-sm focus-visible:ring-2 focus-visible:ring-orange-500"
+                />
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => setShowDateFilter((v) => !v)}
+                className={cn(
+                  "h-10 shrink-0 rounded-xl border-slate-200 px-3 text-xs font-bold text-slate-700 hover:bg-slate-50",
+                  showDateFilter && "bg-orange-50 text-orange-700 border-orange-200",
+                )}
+              >
+                <Filter className="mr-1.5 h-3.5 w-3.5" />
+                Date Filter
+              </Button>
+            </div>
 
-      <section>
-        <SectionHeader
-          title="Transaction History"
-          subtitle={`${filteredHistory.length} record${filteredHistory.length === 1 ? "" : "s"}`}
-          icon={<Receipt className="h-4 w-4" />}
-        />
-        {filteredHistory.length === 0 ? (
-          <div className="mt-3 flex flex-col items-center rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
-            <FileImage className="mb-3 h-10 w-10 text-slate-300" />
-            <h3 className="text-sm font-black text-slate-900">No matching transactions</h3>
-            <p className="mt-1 text-xs text-slate-500">
-              Try adjusting your search, filter, or date range.
-            </p>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {FILTER_OPTIONS.map((opt) => {
+                const active = filter === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setFilter(opt.value)}
+                    className={cn(
+                      "rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-wider transition",
+                      active
+                        ? "border-orange-300 bg-orange-100 text-orange-800"
+                        : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {showDateFilter && (
+              <div className="mt-3 grid grid-cols-1 gap-2 rounded-xl border border-slate-100 bg-slate-50 p-3 sm:grid-cols-[1fr_1fr_auto]">
+                <div>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    From
+                  </Label>
+                  <Input
+                    type="date"
+                    value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                    className="mt-1 h-9 rounded-lg border-slate-200 text-xs"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    To
+                  </Label>
+                  <Input
+                    type="date"
+                    value={dateTo}
+                    onChange={(e) => setDateTo(e.target.value)}
+                    className="mt-1 h-9 rounded-lg border-slate-200 text-xs"
+                  />
+                </div>
+                <div className="flex items-end">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setDateFrom("");
+                      setDateTo("");
+                    }}
+                    className="h-9 rounded-lg border-slate-200 px-3 text-xs font-bold"
+                  >
+                    <XCircle className="mr-1.5 h-3.5 w-3.5" />
+                    Clear Dates
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="mt-3 space-y-2">
-            {paginatedHistory.map((booking) => (
-              <HistoryRow
-                key={booking.id}
-                booking={booking}
-                expanded={expandedBookingId === booking.id}
-                onToggle={() =>
-                  setExpandedBookingId(
-                    expandedBookingId === booking.id ? null : booking.id,
-                  )
-                }
-                onView={(b) => setViewingReceipt(b)}
-              />
-            ))}
-            <Pagination
-              page={safeHistoryPage}
-              totalPages={totalHistoryPages}
-              onPageChange={setHistoryPage}
+
+          <section>
+            <SectionHeader
+              title="Transaction History"
+              subtitle={`${filteredHistory.length} record${filteredHistory.length === 1 ? "" : "s"}`}
+              icon={<Receipt className="h-4 w-4" />}
             />
-          </div>
-        )}
-      </section>
+            {filteredHistory.length === 0 ? (
+              <div className="mt-3 flex flex-col items-center rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
+                <FileImage className="mb-3 h-10 w-10 text-slate-300" />
+                <h3 className="text-sm font-black text-slate-900">No matching transactions</h3>
+                <p className="mt-1 text-xs text-slate-500">
+                  Try adjusting your search, filter, or date range.
+                </p>
+              </div>
+            ) : (
+              <div className="mt-3 space-y-2">
+                {paginatedHistory.map((booking) => (
+                  <HistoryRow
+                    key={booking.id}
+                    booking={booking}
+                    expanded={expandedBookingId === booking.id}
+                    onToggle={() =>
+                      setExpandedBookingId(
+                        expandedBookingId === booking.id ? null : booking.id,
+                      )
+                    }
+                    onView={(b) => setViewingReceipt(b)}
+                  />
+                ))}
+                <Pagination
+                  page={safeHistoryPage}
+                  totalPages={totalHistoryPages}
+                  onPageChange={setHistoryPage}
+                />
+              </div>
+            )}
+          </section>
+        </>
+      )}
     </div>
   );
 }
@@ -1705,19 +1795,6 @@ function OfficePaymentTracker({
   );
 }
 
-function formatReceiptDate(value?: string) {
-  if (!value) return "Not available";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString("en-PH", {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
 function ReceiptDetails({
   booking,
   isCancelled,
@@ -1729,29 +1806,6 @@ function ReceiptDetails({
 }) {
   const receipt = booking.receipt as any;
   const isOfficeRental = isOfficeRentalBooking(booking);
-  const amountToShow = Number(
-    receipt?.amountPaid ?? receipt?.paymentAmount ?? displayTotal ?? 0,
-  );
-  const remainingBalance = Number(
-    receipt?.remainingBalance ??
-      (booking as any).remainingBalance ??
-      Math.max(
-        Number((booking as any).totalPrice || displayTotal || 0) -
-          Number(amountToShow || 0),
-        0,
-      ),
-  );
-  const contractTerm =
-    receipt?.contractTerm || (booking as any).contractTerm || (booking as any).rentalTerm;
-  const paymentType = isOfficeRental
-    ? "Slot Reservation Only"
-    : receipt?.paymentType || receipt?.paymentPurpose || "Booking Payment";
-  const paymentMethod =
-    receipt?.paymentMethod || booking.paymentMethod || "Not specified";
-  const paymentStatus =
-    receipt?.paymentStatus || booking.paymentStatus || "Payment Verified";
-  const dateGenerated =
-    receipt?.dateGenerated || receipt?.dateIssued || new Date().toISOString();
 
   if (!receipt) {
     return (
@@ -1780,145 +1834,65 @@ function ReceiptDetails({
     );
   }
 
-  return (
-    <div className="mx-auto max-w-[680px] rounded-[1.1rem] border border-slate-200 bg-white shadow-sm">
-      <div className="relative border-b border-dashed border-slate-200 px-5 py-4 text-center">
-        <h2 className="text-xl font-black tracking-wide text-slate-950 sm:text-2xl">
-          ONE ESTELA PLACE
-        </h2>
-        <p className="mt-1 text-[10px] font-black uppercase tracking-[0.22em] text-orange-600">
-          System-Generated E-Receipt
-        </p>
-        <div className="mx-auto mt-3 grid max-w-xl gap-1 text-xs font-bold text-slate-600 sm:grid-cols-2 sm:text-left">
-          <p>
-            <span className="text-slate-400">Receipt No:</span>{" "}
-            <span className="text-slate-900">
-              {receipt.receiptNumber || receipt.receiptNo || "N/A"}
-            </span>
-          </p>
-          <p className="sm:text-right">
-            <span className="text-slate-400">Date Generated:</span>{" "}
-            <span className="text-slate-900">{formatReceiptDate(dateGenerated)}</span>
-          </p>
-        </div>
-      </div>
+  const totalAmount =
+    (booking as any).totalPrice ?? displayTotal ?? null;
+  const amountPaid =
+    receipt?.amountPaid ??
+    receipt?.paymentAmount ??
+    (booking as any).amountPaid ??
+    (booking as any).paymentAmount ??
+    (booking as any).downPayment ??
+    null;
+  const remainingBalance =
+    receipt?.remainingBalance ??
+    (booking as any).remainingBalance ??
+    (totalAmount != null && amountPaid != null
+      ? Math.max(0, Number(totalAmount) - Number(amountPaid))
+      : null);
+  const contractTerm =
+    receipt?.contractTerm || (booking as any).contractTerm || (booking as any).rentalTerm;
+  const paymentType = isOfficeRental
+    ? "Slot Reservation Only"
+    : receipt?.paymentType || receipt?.paymentPurpose || "Booking Payment";
+  const paymentMethod =
+    receipt?.paymentMethod || booking.paymentMethod || "Not specified";
+  const paymentStatus =
+    receipt?.paymentStatus || booking.paymentStatus || "Payment Verified";
+  const dateGenerated =
+    receipt?.dateGenerated || receipt?.dateIssued || new Date().toISOString();
+  const payStatus = String(paymentStatus).toLowerCase();
+  const isVerified =
+    payStatus === "verified" ||
+    payStatus === "paid" ||
+    payStatus === "slot_verified" ||
+    !isCancelled;
 
-      <div className="space-y-3 px-5 py-4">
-        <ReceiptSection title="Customer Information">
-          <ReceiptLine
-            label="Customer Name"
-            value={receipt.fullName || booking.userInfo?.name || "Client"}
-          />
-        </ReceiptSection>
-        <ReceiptDivider />
-        <ReceiptSection title="Booking Details">
-          <ReceiptLine label="Booking ID" value={receipt.bookingId || booking.id} />
-          <ReceiptLine
-            label={isOfficeRental ? "Rental Type" : "Event Type"}
-            value={
-              isOfficeRental
-                ? "Office Space Rental"
-                : receipt.eventType || (booking as any).eventType || "Event Venue Rental"
-            }
-          />
-          <ReceiptLine
-            label="Venue Reserved"
-            value={receipt.venueReserved || receipt.venue || booking.venue || "N/A"}
-          />
-          <ReceiptLine
-            label={isOfficeRental ? "Reservation Date" : "Event Date"}
-            value={receipt.startDate || booking.date || "Not set"}
-          />
-          <ReceiptLine
-            label={isOfficeRental ? "Contract Term" : "Reservation Time"}
-            value={isOfficeRental ? contractTerm || "N/A" : getBookingTime(booking)}
-          />
-        </ReceiptSection>
-        <ReceiptDivider />
-        <ReceiptSection title="Payment Details">
-          <ReceiptLine label="Payment Method" value={paymentMethod} />
-          {booking.bankReferenceNumber && (
-            <ReceiptLine label="Bank Reference No." value={booking.bankReferenceNumber} />
-          )}
-          <ReceiptLine label="Payment Type" value={paymentType} />
-          <ReceiptLine label="Amount Paid" value={formatMoney(amountToShow)} highlight />
-          {!isOfficeRental && (
-            <ReceiptLine label="Remaining Balance" value={formatMoney(remainingBalance)} />
-          )}
-        </ReceiptSection>
-        <ReceiptDivider />
-        <ReceiptSection title="Payment Status">
-          <div className="flex items-center justify-between gap-4 rounded-xl bg-emerald-50 px-4 py-3">
-            <span className="text-xs font-black uppercase tracking-widest text-emerald-700">
-              Status
-            </span>
-            <span className="text-right text-sm font-black text-emerald-700">
-              {paymentStatus}
-            </span>
-          </div>
-        </ReceiptSection>
-        <ReceiptDivider />
-        <div className="rounded-xl bg-orange-50 p-4 text-center">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-700">
-            Important Notice
-          </p>
-          <p className="mt-2 text-xs font-semibold leading-5 text-orange-950 sm:text-sm">
-            {isOfficeRental
-              ? "This receipt serves as proof that the slot reservation payment has been verified. This is not full payment, not monthly rental payment, and not cheque payment. Succeeding payments are settled onsite via check."
-              : "This receipt serves as proof that the reservation payment has been verified by the administrator of One Estela Place."}
-          </p>
-        </div>
-        <p className="text-center text-xs font-bold text-slate-500">
-          Thank you for choosing One Estela Place.
-        </p>
-      </div>
-    </div>
-  );
-}
+  const paperData: ReceiptPaperData = {
+    fullName: receipt.fullName || booking.userInfo?.name || "Client",
+    email: booking.userInfo?.email || null,
+    contactNumber: booking.userInfo?.phone || null,
+    receiptNo: receipt.receiptNumber || receipt.receiptNo || "N/A",
+    generatedAt: dateGenerated,
+    bookingId: receipt.bookingId || booking.id,
+    eventType: isOfficeRental
+      ? "Office Space Rental"
+      : receipt.eventType || (booking as any).eventType || "Event Venue Rental",
+    venue: receipt.venueReserved || receipt.venue || booking.venue || "N/A",
+    eventDate: receipt.startDate || booking.date || "Not set",
+    reservationTime: isOfficeRental ? "" : getBookingTime(booking),
+    paymentMethod: paymentMethod,
+    bankReference: booking.bankReferenceNumber || null,
+    paymentTypeLabel: paymentType,
+    totalAmount,
+    amountPaid,
+    remainingBalance,
+    paymentStatus,
+    isVerified,
+    isOfficeRental,
+    contractTerm: contractTerm || null,
+  };
 
-function ReceiptSection({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <h3 className="mb-2 text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">
-        {title}
-      </h3>
-      <div className="space-y-1.5">{children}</div>
-    </div>
-  );
-}
-
-function ReceiptLine({
-  label,
-  value,
-  highlight = false,
-}: {
-  label: string;
-  value: React.ReactNode;
-  highlight?: boolean;
-}) {
-  return (
-    <div className="flex items-start justify-between gap-4 text-sm">
-      <span className="shrink-0 font-semibold text-slate-500">{label}:</span>
-      <span
-        className={cn(
-          "break-words text-right font-black",
-          highlight ? "text-orange-600" : "text-slate-950",
-        )}
-      >
-        {value || "N/A"}
-      </span>
-    </div>
-  );
-}
-
-function ReceiptDivider() {
-  return <div className="border-t border-dashed border-slate-200" />;
+  return <ReceiptPaper {...paperData} />;
 }
 
 function getBookingTime(booking: any) {

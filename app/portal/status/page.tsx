@@ -351,11 +351,24 @@ function StatusCard({ booking }: { booking: StatusBooking }) {
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                 Cancellation Status
               </p>
-              <div className="mt-2 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3">
-                <Hourglass className="h-4 w-4 shrink-0 text-amber-600" />
-                <p className="text-[11px] font-bold text-amber-800">
-                  Cancellation request is under admin review.
+              <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-1">
+                <div className="flex items-center gap-2">
+                  <Hourglass className="h-4 w-4 shrink-0 text-amber-600" />
+                  <p className="text-[11px] font-bold text-amber-800">
+                    Cancellation Under Review
+                  </p>
+                </div>
+                <p className="text-[10px] font-semibold text-amber-700 pl-6">
+                  Cancellation Status: Under Review
                 </p>
+                <p className="text-[10px] font-semibold text-amber-700 pl-6">
+                  Refund Status: Pending Review
+                </p>
+                {booking.refundEligibilityNote && (
+                  <p className="text-[10px] font-semibold text-amber-700 pl-6">
+                    {booking.refundEligibilityNote}
+                  </p>
+                )}
               </div>
             </div>
           )}
@@ -365,16 +378,49 @@ function StatusCard({ booking }: { booking: StatusBooking }) {
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                 Cancellation Status
               </p>
-              <div className="mt-2 flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3">
-                <XCircle className="h-4 w-4 shrink-0 text-rose-600" />
-                <p className="text-[11px] font-bold text-rose-700">
-                  {getBookingStatusLabel(booking.status)}
+              <div className={cn(
+                "mt-2 rounded-xl border p-3 space-y-1",
+                booking.cancellationStatus === "Approved"
+                  ? refundStatus === "Refund Eligible" || refundStatus === "Refund Pending" || refundStatus === "Refund Ready for Claiming" || refundStatus === "Refund Claimed"
+                    ? "border-emerald-200 bg-emerald-50"
+                    : "border-rose-200 bg-rose-50"
+                  : "border-rose-200 bg-rose-50"
+              )}>
+                <div className="flex items-center gap-2">
+                  {booking.cancellationStatus === "Approved" ? (
+                    <CheckCircle2 className="h-4 w-4 shrink-0 text-rose-600" />
+                  ) : (
+                    <XCircle className="h-4 w-4 shrink-0 text-rose-600" />
+                  )}
+                  <p className="text-[11px] font-bold text-rose-700">
+                    Booking Status: Cancelled
+                  </p>
+                </div>
+                <p className="text-[10px] font-semibold text-rose-700 pl-6">
+                  Cancellation Status: {booking.cancellationStatus || "Approved"}
                 </p>
+                <p className="text-[10px] font-semibold text-rose-700 pl-6">
+                  Refund Status: {booking.refundStatus || "Not Applicable"}
+                </p>
+                {booking.refundClaimNote && (
+                  <p className="text-[10px] font-semibold pl-6 mt-1"
+                    style={{ color: (refundStatus === "Refund Eligible" || refundStatus === "Refund Ready for Claiming") ? '#059669' : '#e11d48' }}
+                  >
+                    {booking.refundClaimNote}
+                  </p>
+                )}
+                {booking.cancellationDeclineReason && (
+                  <div className="mt-2 pl-6 rounded-lg bg-rose-100 p-2">
+                    <p className="text-[10px] font-bold text-rose-800">
+                      Admin Decline Reason: {booking.cancellationDeclineReason}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           )}
 
-          {refundStatus && (
+          {refundStatus && !isCancelled && !isCancelReq && (
             <div>
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                 Refund Status

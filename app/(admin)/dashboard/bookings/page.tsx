@@ -38,6 +38,8 @@ import {
   type Booking,
   type BookingStatus,
   type OfficeRental,
+  calculateDaysBeforeEvent,
+  getRefundEligibilityNote,
 } from "@/src/modules/client/contexts/booking-context"
 
 const ALL_VALUE = "__all__"
@@ -250,11 +252,14 @@ function BookingDetailsModal({
   booking,
   open,
   onOpenChange,
+  onDeclineOpen,
+  onApproveOpen,
 }: {
   booking: Booking | null
   open: boolean
   onOpenChange: (open: boolean) => void
   onDeclineOpen?: (booking: Booking) => void
+  onApproveOpen?: (booking: Booking) => void
 }) {
   if (!booking) return null
 
@@ -382,18 +387,35 @@ function BookingDetailsModal({
           </div>
 
           <div className="space-y-5">
-            {booking.status === "cancellation_requested" && (
+            {(booking.status === "cancellation_requested" || booking.cancellationStatus === "Under Review") && (
               <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
                 <div className="flex gap-3">
                   <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
-                  <div>
+                  <div className="w-full">
                     <h3 className="font-black text-amber-900">Cancellation Under Review</h3>
                     <p className="mt-1 text-sm font-semibold leading-6 text-amber-800">
                       Reason: {booking.cancellationReason || "No reason provided"}
                     </p>
-                    <p className="mt-2 text-xs font-bold leading-5 text-amber-800">
-                      Cancellation/refund actions are reviewed separately. This modal is read-only.
-                    </p>
+                    <div className="mt-3 space-y-1 text-xs font-semibold text-amber-800">
+                      <p>Days before event: <span className="font-black">{booking.daysBeforeEventAtCancellation ?? calculateDaysBeforeEvent(booking.date)} days</span></p>
+                      <p>Refund eligibility: <span className="font-black">{booking.refundEligibilityNote || getRefundEligibilityNote(booking.date)}</span></p>
+                      <p>Payment status: <span className="font-black capitalize">{booking.paymentStatus || "N/A"}</span></p>
+                      <p>Current refund status: <span className="font-black">{booking.refundStatus || "Pending Review"}</span></p>
+                    </div>
+                    <div className="mt-4 flex gap-3">
+                      <Button
+                        onClick={() => onApproveOpen?.(booking)}
+                        className="h-10 flex-1 rounded-xl bg-emerald-600 text-xs font-black text-white hover:bg-emerald-700"
+                      >
+                        Approve Cancellation
+                      </Button>
+                      <Button
+                        onClick={() => onDeclineOpen?.(booking)}
+                        className="h-10 flex-1 rounded-xl bg-rose-600 text-xs font-black text-white hover:bg-rose-700"
+                      >
+                        Decline Cancellation
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -497,6 +519,65 @@ function DeclineCancellationModal({
             className="h-11 flex-1 rounded-xl bg-rose-600 font-black text-white hover:bg-rose-700 disabled:opacity-50"
           >
             Decline
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function ApproveCancellationModal({
+  booking,
+  open,
+  onOpenChange,
+}: {
+  booking: Booking | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  const { approveCancellation } = useBookings()
+
+  const handleApprove = () => {
+    if (!booking) return
+    approveCancellation(booking.id)
+    onOpenChange(false)
+  }
+
+  if (!booking) return null
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="w-[95vw] rounded-2xl border-slate-200 p-6 shadow-xl sm:max-w-md">
+        <DialogTitle className="text-xl font-black text-slate-950">
+          Approve Cancellation
+        </DialogTitle>
+
+        <p className="mt-1 text-sm font-semibold text-slate-500">
+          Are you sure you want to approve this cancellation request?
+        </p>
+
+        <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-2 text-sm font-semibold text-slate-600">
+          <p>Customer: <span className="font-black text-slate-900">{booking.userInfo?.name || "Client"}</span></p>
+          <p>Event: <span className="font-black text-slate-900">{booking.eventName}</span></p>
+          <p>Event Date: <span className="font-black text-slate-900">{booking.date}</span></p>
+          <p>Days Before Event: <span className="font-black text-slate-900">{calculateDaysBeforeEvent(booking.date)} days</span></p>
+          <p>Refund Eligibility: <span className="font-black text-slate-900">{getRefundEligibilityNote(booking.date)}</span></p>
+        </div>
+
+        <div className="mt-5 flex gap-3">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="h-11 flex-1 rounded-xl font-black"
+          >
+            Cancel
+          </Button>
+
+          <Button
+            onClick={handleApprove}
+            className="h-11 flex-1 rounded-xl bg-emerald-600 font-black text-white hover:bg-emerald-700"
+          >
+            Approve Cancellation
           </Button>
         </div>
       </DialogContent>
@@ -967,6 +1048,7 @@ function AdminBookingsContent() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
   const [declineTarget, setDeclineTarget] = useState<Booking | null>(null)
+  const [approveTarget, setApproveTarget] = useState<Booking | null>(null)
   const [isMaintenanceOpen, setIsMaintenanceOpen] = useState(false)
 
   const eventOptions = useMemo(() => {
@@ -1042,6 +1124,7 @@ function AdminBookingsContent() {
           if (!open) setSelectedBooking(null)
         }}
         onDeclineOpen={(booking) => setDeclineTarget(booking)}
+        onApproveOpen={(booking) => setApproveTarget(booking)}
       />
 
       <DeclineCancellationModal
@@ -1049,6 +1132,14 @@ function AdminBookingsContent() {
         open={!!declineTarget}
         onOpenChange={(open) => {
           if (!open) setDeclineTarget(null)
+        }}
+      />
+
+      <ApproveCancellationModal
+        booking={approveTarget}
+        open={!!approveTarget}
+        onOpenChange={(open) => {
+          if (!open) setApproveTarget(null)
         }}
       />
 

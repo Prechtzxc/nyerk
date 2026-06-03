@@ -439,6 +439,28 @@ export function getRefundStatusLabel(status?: RefundStatus) {
   return status;
 }
 
+export function canShowCancellationNotice(booking: Partial<Booking>): boolean {
+  if (!booking) return false;
+  if (booking.status === "cancelled" || booking.status === "completed") return false;
+  const paymentStatus = String(booking.paymentStatus || "").toLowerCase();
+  const isPaymentPending = paymentStatus === "unpaid" || paymentStatus === "pending" || !paymentStatus;
+  const isForVerification = paymentStatus === "for_review" || paymentStatus === "cash_pending" || paymentStatus === "slot_pending" || paymentStatus === "pending_verification";
+  const isRejected = paymentStatus === "rejected";
+  if (isPaymentPending || isForVerification || isRejected) return false;
+  if (!booking.isSlotSecured && !booking.verifiedByAdmin) return false;
+  return true;
+}
+
+export function canRequestCancellation(booking: Partial<Booking>): boolean {
+  if (!booking) return false;
+  if (booking.status === "cancelled" || booking.status === "completed") return false;
+  if (booking.status === "cancellation_requested") return false;
+  if (booking.cancellationStatus === "Under Review" || booking.cancellationStatus === "Approved") return false;
+  if (!canShowCancellationNotice(booking)) return false;
+  const daysBefore = calculateDaysBeforeEvent(booking.date);
+  return daysBefore > 0;
+}
+
 
 function getDisplayBookingStatus(booking: Partial<Booking>): BookingStatusLabel {
   if (booking.status === "completed") return "Completed"
@@ -463,7 +485,7 @@ function isBookingSlotSecured(booking: Partial<Booking>) {
   )
 }
 
-function getRefundEligibilityNote(eventDate?: string) {
+export function getRefundEligibilityNote(eventDate?: string) {
   const daysBefore = calculateDaysBeforeEvent(eventDate)
   if (daysBefore >= REFUND_ELIGIBLE_DAYS) return "May be eligible for refund"
   if (daysBefore <= CANCELLATION_CLOSED_DAYS) return "Non-refundable based on policy"

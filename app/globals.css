@@ -76,15 +76,31 @@
   * {
     @apply border-border outline-ring/50;
   }
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+  html {
+    overflow-x: hidden;
+    width: 100%;
+  }
   body {
     @apply bg-background text-foreground;
+    overflow-x: hidden;
+    width: 100%;
+    min-width: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  img,
+  video,
+  svg {
+    max-width: 100%;
+    height: auto;
   }
 }
 
-@tailwind components;
-@tailwind utilities;
-
-@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -95,4 +111,38 @@ nextjs-portal {
 
 [data-nextjs-toast] {
   display: none !important;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  body .receipt-print,
+  body .receipt-print * {
+    visibility: visible;
+  }
+  body .receipt-print {
+    position: fixed;
+    inset: 0;
+    margin: 0;
+    padding: 0;
+    background: #fff;
+    z-index: 9999;
+    overflow: auto;
+  }
+  body .receipt-print > div {
+    max-width: 100% !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    margin: 0 auto;
+    padding: 32px 24px !important;
+  }
+  body .receipt-print .no-print,
+  body .receipt-print button {
+    display: none !important;
+  }
+  body .receipt-print table {
+    page-break-inside: avoid;
+  }
 }
