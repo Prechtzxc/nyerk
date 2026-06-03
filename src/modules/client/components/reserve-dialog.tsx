@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/src/modules/shared/components/ui/label"
 import { Textarea } from "@/src/modules/shared/components/ui/textarea"
 import { Checkbox } from "@/src/modules/shared/components/ui/checkbox"
+import { cn } from "@/src/modules/shared/lib/utils"
 
 declare global { interface Window { pannellum?: any; } }
 
@@ -298,17 +299,17 @@ function BookingConfirmationDialog({
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onEdit()}>
-      <DialogContent className="w-[95vw] max-w-lg rounded-[1.5rem] border-slate-200 bg-white p-0 shadow-2xl [&>button]:hidden">
-        <div className="border-b border-slate-100 p-5">
-          <DialogTitle className="text-2xl font-black text-slate-950">
+      <DialogContent className="flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-1rem)] max-w-lg flex-col gap-0 overflow-hidden rounded-2xl border-slate-200 bg-white p-0 shadow-2xl [&>button]:hidden">
+        <div className="shrink-0 border-b border-slate-100 px-5 py-4">
+          <DialogTitle className="text-xl md:text-2xl font-black text-slate-950">
             Confirm Booking Details
           </DialogTitle>
-          <p className="mt-1 text-sm font-semibold leading-6 text-slate-500">
+          <p className="mt-1 text-xs md:text-sm font-semibold leading-5 md:leading-6 text-slate-500">
             Please double-check the selected details before submitting your booking request.
           </p>
         </div>
 
-        <div className="space-y-3 p-5">
+        <div className="flex-1 space-y-2 overflow-y-auto px-5 py-4">
           <ConfirmBookingLine label="Full Name" value={payload.userInfo?.name || "Client"} />
           <ConfirmBookingLine label={isOffice ? "Rental Type" : "Event Type"} value={isOffice ? "Office Space Rental" : payload.eventType} />
           <ConfirmBookingLine label="Selected Space" value={payload.venue} />
@@ -328,13 +329,13 @@ function BookingConfirmationDialog({
           />
         </div>
 
-        <div className="grid gap-3 border-t border-slate-100 p-5 sm:grid-cols-2">
+        <div className="shrink-0 flex flex-col gap-2 border-t border-slate-100 px-5 py-4 sm:flex-row sm:gap-3">
           <Button
             type="button"
             variant="outline"
             onClick={onEdit}
             disabled={isSubmitting}
-            className="h-11 rounded-xl border-slate-200 font-black text-slate-700"
+            className="h-12 w-full rounded-xl border-slate-200 font-black text-slate-700 sm:order-2 sm:w-1/2"
           >
             Go Back / Edit Details
           </Button>
@@ -343,7 +344,7 @@ function BookingConfirmationDialog({
             type="button"
             onClick={onConfirm}
             disabled={isSubmitting}
-            className="h-11 rounded-xl bg-orange-600 font-black text-white hover:bg-orange-700"
+            className="h-12 w-full rounded-xl bg-orange-600 font-black text-white hover:bg-orange-700 sm:order-1 sm:w-1/2"
           >
             {isSubmitting ? (
               <>
@@ -362,9 +363,9 @@ function BookingConfirmationDialog({
 
 function ConfirmBookingLine({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex items-start justify-between gap-4 rounded-xl bg-slate-50 px-4 py-3">
-      <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">{label}</p>
-      <p className="max-w-[58%] break-words text-right text-sm font-black text-slate-950">{value || "N/A"}</p>
+    <div className="flex items-start justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2.5 md:rounded-xl md:px-4 md:py-3">
+      <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 md:text-[10px]">{label}</p>
+      <p className="max-w-[55%] break-words text-right text-xs font-bold text-slate-900">{value}</p>
     </div>
   )
 }
@@ -859,22 +860,22 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
   }
 
   const renderCategory = () => (
-    <div className="flex-1 overflow-y-auto p-6 xl:p-8 flex flex-col justify-center bg-slate-50 min-h-0">
-      <div className="max-w-4xl xl:max-w-2xl mx-auto w-full pb-[env(safe-area-inset-bottom)]">
-        <div className="text-center mb-8 xl:mb-6">
-          <h2 className="text-3xl xl:text-2xl font-black text-slate-900 tracking-tight">Select Category</h2>
-          <p className="text-slate-500 mt-2 text-sm xl:text-xs">What type of space are you looking for?</p>
+    <div className="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col justify-center bg-slate-50 min-h-0">
+      <div className="max-w-lg mx-auto w-full pb-[env(safe-area-inset-bottom)]">
+        <div className="text-center mb-5 md:mb-6">
+          <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">Select Category</h2>
+          <p className="text-slate-500 mt-1 text-sm">What type of space are you looking for?</p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 xl:gap-4">
-          <button aria-label="Book Event Venue" onClick={() => { setCategory('venue'); setStep('list') }} className="bg-white border border-slate-200 rounded-[1.5rem] xl:rounded-2xl p-6 xl:p-6 text-left hover:border-[#ea580c] hover:shadow-md focus-visible:ring-2 focus-visible:ring-orange-300 outline-none transition-all duration-300 group">
-            <div className="w-14 h-14 xl:w-10 xl:h-10 bg-orange-50 rounded-xl flex items-center justify-center mb-4 xl:mb-4 text-[#ea580c] group-hover:scale-110 transition-transform"><Tent className="w-7 h-7 xl:w-5 xl:h-5" /></div>
-            <h4 className="text-xl xl:text-lg font-black text-slate-900">Event Venues</h4>
-            <p className="text-slate-500 mt-2 text-sm xl:text-xs leading-relaxed">Elegant spaces for weddings, birthdays, and corporate gatherings. Hourly rentals.</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <button aria-label="Book Event Venue" onClick={() => { setCategory('venue'); setStep('list') }} className="bg-white border-2 border-slate-200 rounded-2xl p-4 md:p-5 text-left hover:border-[#ea580c] hover:shadow-md focus-visible:border-[#ea580c] focus-visible:ring-2 focus-visible:ring-orange-300 outline-none transition-all duration-300 group active:scale-[0.98]">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-orange-50 rounded-xl flex items-center justify-center mb-3 text-[#ea580c] group-hover:scale-110 transition-transform"><Tent className="w-5 h-5 md:w-6 md:h-6" /></div>
+            <h4 className="text-base md:text-lg font-black text-slate-900">Event Venues</h4>
+            <p className="text-slate-500 mt-1 text-sm leading-relaxed">Elegant spaces for weddings, birthdays, and corporate gatherings. Hourly rentals.</p>
           </button>
-          <button aria-label="Book Office Space" onClick={() => { setCategory('office'); setStep('list') }} className="bg-white border border-slate-200 rounded-[1.5rem] xl:rounded-2xl p-6 xl:p-6 text-left hover:border-[#ea580c] hover:shadow-md focus-visible:ring-2 focus-visible:ring-orange-300 outline-none transition-all duration-300 group">
-            <div className="w-14 h-14 xl:w-10 xl:h-10 bg-orange-50 rounded-xl flex items-center justify-center mb-4 xl:mb-4 text-[#ea580c] group-hover:scale-110 transition-transform"><Building2 className="w-7 h-7 xl:w-5 xl:h-5" /></div>
-            <h4 className="text-xl xl:text-lg font-black text-slate-900">Office Spaces</h4>
-            <p className="text-slate-500 mt-2 text-sm xl:text-xs leading-relaxed">Private fully-furnished rooms for your business and team operations. Contract rentals.</p>
+          <button aria-label="Book Office Space" onClick={() => { setCategory('office'); setStep('list') }} className="bg-white border-2 border-slate-200 rounded-2xl p-4 md:p-5 text-left hover:border-[#ea580c] hover:shadow-md focus-visible:border-[#ea580c] focus-visible:ring-2 focus-visible:ring-orange-300 outline-none transition-all duration-300 group active:scale-[0.98]">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-orange-50 rounded-xl flex items-center justify-center mb-3 text-[#ea580c] group-hover:scale-110 transition-transform"><Building2 className="w-5 h-5 md:w-6 md:h-6" /></div>
+            <h4 className="text-base md:text-lg font-black text-slate-900">Office Spaces</h4>
+            <p className="text-slate-500 mt-1 text-sm leading-relaxed">Private fully-furnished rooms for your business and team operations. Contract rentals.</p>
           </button>
         </div>
       </div>
@@ -884,13 +885,13 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
   const renderList = () => {
     const items = category === 'venue' ? VENUES : OFFICE_BUILDINGS
     return (
-      <div className="flex-1 overflow-y-auto p-6 xl:p-8 bg-slate-50 min-h-0">
-        <div className="max-w-4xl xl:max-w-4xl mx-auto w-full pb-[env(safe-area-inset-bottom)] mt-6 md:mt-0">
-          <div className="mb-6 xl:mb-6 text-center md:text-left">
-            <h2 className="text-2xl md:text-3xl xl:text-xl font-black text-slate-900 tracking-tight">{category === 'venue' ? 'Our Venues' : 'Office Wings'}</h2>
-            <p className="text-slate-500 mt-1.5 xl:mt-1 text-sm xl:text-xs">Select a space to view its availability and 360 preview.</p>
+      <div className="flex-1 overflow-y-auto p-4 md:p-5 bg-slate-50 min-h-0">
+        <div className="max-w-4xl mx-auto w-full pb-[env(safe-area-inset-bottom)]">
+          <div className="mb-4 md:mb-5 text-center md:text-left">
+            <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">{category === 'venue' ? 'Our Venues' : 'Office Wings'}</h2>
+            <p className="text-slate-500 mt-1 text-sm">Select a space to view its availability and 360 preview.</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 xl:gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
             {items.map((item) => (
               <div key={item.id} className="bg-white rounded-[1.5rem] xl:rounded-[1rem] overflow-hidden shadow-sm border border-slate-200 hover:shadow-md transition-all duration-300 group flex flex-col">
                 <div className="relative aspect-[16/10] overflow-hidden bg-slate-100 min-h-0 cursor-pointer focus-within:ring-2 focus-within:ring-orange-300 outline-none" onClick={() => { setSelectedItem(item); setStep(category === 'office' ? 'room' : 'schedule') }}>
@@ -902,11 +903,11 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
                   <div className="absolute bottom-4 left-5 right-5 xl:bottom-4 xl:left-5"><h4 className="font-black text-white text-xl lg:text-lg leading-tight mb-1">{item.name}</h4><p className="text-white/80 text-xs xl:text-[10px] line-clamp-1">{item.description}</p></div>
                 </div>
                 
-                <div className="p-5 flex flex-col gap-4 bg-white shrink-0">
+                <div className="p-4 flex flex-col gap-3 bg-white shrink-0">
                   <div className="flex items-center justify-between">
                       <div>
                           <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-0.5">{category === 'venue' ? 'Starting at' : 'Per Month'}</p>
-                          <p className="text-lg md:text-xl font-black text-[#ea580c]">₱{item.price.toLocaleString()}</p>
+                          <p className="text-base md:text-lg font-black text-[#ea580c]">₱{item.price.toLocaleString()}</p>
                       </div>
                       
                       <VenueReviewsDialog venueName={item.name}>
@@ -920,7 +921,7 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
                       </VenueReviewsDialog>
                   </div>
                   
-                  <Button aria-label={`Select ${item.name}`} onClick={() => { setSelectedItem(item); setStep(category === 'office' ? 'room' : 'schedule') }} className="w-full rounded-full bg-slate-900 hover:bg-[#ea580c] text-white font-bold h-11 text-sm transition-colors shadow-sm">
+                  <Button aria-label={`Select ${item.name}`} onClick={() => { setSelectedItem(item); setStep(category === 'office' ? 'room' : 'schedule') }} className="w-full rounded-full bg-slate-900 hover:bg-[#ea580c] text-white font-bold h-10 text-sm transition-colors shadow-sm">
                       Select {category === 'venue' ? 'Venue' : 'Office'}
                   </Button>
                 </div>
@@ -1000,8 +1001,14 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
     return (
       <div className="flex flex-col lg:flex-row flex-1 overflow-hidden bg-white min-h-0 w-full h-full">
         
+        {/* Mobile: venue title & price (shows before 360 on mobile, hidden on desktop) */}
+        <div className="shrink-0 lg:hidden px-4 pt-4 pb-2 bg-white border-b border-slate-100">
+          <h2 className="text-xl font-black text-slate-900 tracking-tight leading-tight">{displayName}</h2>
+          <p className="text-[#ea580c] font-black text-lg leading-tight mt-0.5">₱{selectedItem?.price.toLocaleString()} <span className="text-slate-400 font-bold text-[9px] tracking-widest uppercase">/ {category === 'venue' ? 'Per 6 Hrs' : 'Per Month'}</span></p>
+        </div>
+
         {/* HERO: 360 VIEWER */}
-        <div className="w-full lg:w-[44%] 2xl:w-[45%] h-[34vh] sm:h-[40vh] lg:h-full bg-black shrink-0 relative shadow-md z-20 overflow-hidden">
+        <div className="w-full lg:w-[44%] 2xl:w-[45%] h-[200px] sm:h-[260px] lg:h-full bg-black shrink-0 relative shadow-md z-20 overflow-hidden">
           <div id="booking-panorama-viewer" className="h-full w-full touch-pan-x bg-black [&_.pnlm-controls-container]:hidden [&_.pnlm-fullscreen-toggle-button]:hidden [&_.pnlm-zoom-controls]:hidden"></div>
           {(!libLoaded || !isViewerReady) && (
             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/60 gap-3">
@@ -1033,20 +1040,20 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
         </div>
 
         {/* CONTENT: DETAILS SIDE */}
-        <div className="flex-1 lg:w-[56%] 2xl:w-[55%] flex flex-col h-full relative min-w-0 bg-white overflow-hidden pt-5 lg:pt-6 xl:pt-7">
+        <div className="flex-1 lg:w-[56%] 2xl:w-[55%] flex flex-col h-full relative min-w-0 bg-white overflow-hidden pt-0 lg:pt-4">
           
-          <div className="flex-1 flex flex-col min-h-0 px-4 sm:px-6 lg:px-6 2xl:px-8 pb-3 xl:pb-2 overflow-y-auto xl:overflow-hidden [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <div className="flex-1 flex flex-col min-h-0 px-4 sm:px-5 lg:px-6 pb-2 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             
-            <div className="shrink-0 mb-3 xl:mb-4 text-center lg:text-left mt-2 lg:mt-0">
+            <div className="hidden lg:block shrink-0 mb-2 text-left">
                 <h2 className="text-xl lg:text-2xl 2xl:text-[1.7rem] font-black text-slate-900 tracking-tight mb-0.5 leading-tight">{displayName}</h2>
                 <p className="text-[#ea580c] font-black text-lg lg:text-xl leading-tight">₱{selectedItem?.price.toLocaleString()} <span className="text-slate-400 font-bold text-[9px] tracking-widest uppercase">/ {category === 'venue' ? 'Per 6 Hrs' : 'Per Month'}</span></p>
             </div>
 
             <div className="flex-1 flex flex-col min-h-0">
-                <div className="grid grid-cols-1 xl:grid-cols-[minmax(270px,320px)_minmax(220px,1fr)] gap-3 2xl:gap-4 w-full pb-3 xl:pb-0 items-start">
+                <div className="grid grid-cols-1 xl:grid-cols-[minmax(240px,300px)_minmax(200px,1fr)] gap-2 xl:gap-3 w-full pb-0 items-start">
                     
                     {/* Calendar Column */}
-                    <div className="mx-auto w-full max-w-[360px] xl:max-w-none">
+                    <div className="mx-auto w-full xl:max-w-none">
                         <div className="mb-1.5 flex items-center justify-between gap-2">
                             <h3 className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-900">
                                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-950 text-[9px] text-white shadow-sm">1</span>
@@ -1202,14 +1209,14 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
                     </div>
 
                     {/* Time Column */}
-                    <div className="mx-auto w-full max-w-[360px] xl:max-w-none">
+                    <div className="mx-auto w-full xl:max-w-none">
                         <h3 className="text-[10px] font-black text-slate-900 tracking-widest uppercase mb-2 flex items-center gap-1.5">
                             <div className="w-5 h-5 rounded-full bg-slate-900 text-white flex items-center justify-center text-[9px]">2</div> Select {category === 'venue' ? 'Time' : 'Duration'}
                         </h3>
                         {!selectedDate ? (
                             <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-[1rem] h-[72px] xl:min-h-[250px] 2xl:min-h-[275px] flex items-center justify-center text-slate-400 font-bold text-[9px] uppercase tracking-wider p-2 text-center">Select a date first</div>
                         ) : (
-                            <div className="space-y-3 animate-in fade-in xl:rounded-[1rem] xl:border xl:border-slate-200 xl:bg-white xl:p-3 xl:shadow-sm">
+                            <div className="space-y-3 animate-in fade-in rounded-[1rem] border border-slate-200 bg-white p-3 shadow-sm">
                                 {category === 'venue' ? (
                                     <div className="flex flex-col gap-2">
                                         <Select value={selectedDuration || ""} onValueChange={setSelectedDuration}>
@@ -1268,8 +1275,8 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
             </div>
           </div>
 
-          <div className="shrink-0 pt-2 flex justify-center lg:justify-end mt-auto pb-3 px-4 sm:px-6 lg:px-6 2xl:px-8 bg-white border-t border-slate-100">
-            <Button disabled={!selectedDate || !selectedDuration} onClick={() => setStep('details')} className="w-full max-w-sm lg:max-w-[385px] bg-[#ea580c] hover:bg-[#c2410c] text-white rounded-full h-10 font-bold text-xs md:text-sm transition-transform active:scale-95 disabled:opacity-50">
+          <div className="shrink-0 pt-2 flex justify-center lg:justify-end mt-auto px-4 sm:px-6 lg:px-6 2xl:px-8 bg-white border-t border-slate-100 pb-4 pb-[env(safe-area-inset-bottom)] lg:pb-3">
+            <Button disabled={!selectedDate || !selectedDuration} onClick={() => setStep('details')} className="w-full lg:max-w-[385px] bg-[#ea580c] hover:bg-[#c2410c] text-white rounded-full h-10 font-bold text-xs md:text-sm transition-transform active:scale-95 disabled:opacity-50">
                Proceed to Details
             </Button>
           </div>
@@ -1284,35 +1291,35 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
         : (eventName && eventType && (eventType !== 'others' || customEventType) && guests && agreed && !isSubmitting);
 
     return (
-      <div className="flex-1 flex flex-col bg-white justify-center px-4 md:px-6 py-6 pt-16 md:pt-6 relative h-full">
+      <div className="flex-1 flex flex-col md:justify-center px-4 py-4 md:py-6 relative h-full overflow-y-auto">
         
-        <div className="max-w-[400px] mx-auto w-full flex flex-col justify-center h-full pb-4">
+        <div className="mx-auto w-full max-w-[520px] flex flex-col pb-4">
           
           <div className="shrink-0 mb-5 text-center">
             <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">Final Details</h2>
-            <p className="text-slate-500 mt-1 text-[11px] md:text-xs">Complete your {isOffice ? 'tenant' : 'event'} information to finalize your request.</p>
+            <p className="text-slate-500 mt-1 text-xs">Complete your {isOffice ? 'tenant' : 'event'} information to finalize your request.</p>
           </div>
 
           <form onSubmit={executeSubmit} className="flex flex-col gap-4">
-            <h3 className="shrink-0 text-xs font-black text-slate-900 mb-1 flex items-center gap-2">
+            <h3 className="shrink-0 text-xs font-black text-slate-900 flex items-center gap-2 mb-1">
               {isOffice ? <Briefcase className="w-4 h-4 text-[#ea580c]" /> : <PartyPopper className="w-4 h-4 text-[#ea580c]" />} 
               {isOffice ? 'Company / Tenant Information' : 'Event Information'}
             </h3>
             
-            <div className="space-y-1.5">
-                <label className="text-[9px] font-bold text-slate-700 uppercase tracking-widest">
+            <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">
                     {isOffice ? 'Company / Tenant Name *' : 'Event Name *'}
                 </label>
-                <Input required value={eventName} onChange={e => setEventName(e.target.value)} placeholder={isOffice ? "e.g. Acme Corp / Juan Dela Cruz" : "e.g. 18th Birthday Party"} className="h-10 rounded-xl bg-slate-50 border-slate-200 px-3 text-xs focus-visible:ring-2 focus-visible:ring-[#ea580c]" />
+                <Input required value={eventName} onChange={e => setEventName(e.target.value)} placeholder={isOffice ? "e.g. Acme Corp / Juan Dela Cruz" : "e.g. 18th Birthday Party"} className="h-10 w-full rounded-xl bg-slate-50 border border-slate-200 px-3 text-xs focus-visible:ring-2 focus-visible:ring-[#ea580c]" />
             </div>
 
             {isOffice ? (
-                <div className="space-y-1.5">
-                    <label className="text-[9px] font-bold text-slate-700 uppercase tracking-widest">
+                <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">
                         Nature of Business *
                     </label>
                     <Select value={eventType} onValueChange={setEventType} required>
-                        <SelectTrigger className="h-10 rounded-xl bg-slate-50 border-slate-200 px-3 text-xs focus:ring-2 focus:ring-[#ea580c]"><SelectValue placeholder="Select type" /></SelectTrigger>
+                        <SelectTrigger className="h-10 w-full rounded-xl bg-slate-50 border border-slate-200 px-3 text-xs focus:ring-2 focus:ring-[#ea580c]"><SelectValue placeholder="Select type" /></SelectTrigger>
                         <SelectContent className="rounded-xl border-slate-200 shadow-xl max-h-[200px]">
                             <SelectItem value="tech">Tech / IT</SelectItem>
                             <SelectItem value="freelance">Freelance / Consultant</SelectItem>
@@ -1323,18 +1330,18 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
                     </Select>
                     {eventType === 'others' && (
                         <div className="mt-2 animate-in slide-in-from-top-1">
-                            <Input required value={customEventType} onChange={e => setCustomEventType(e.target.value)} placeholder="Please specify business nature..." className="h-10 rounded-xl bg-slate-50 border-slate-200 px-3 text-xs focus-visible:ring-2 focus-visible:ring-[#ea580c]" />
+                            <Input required value={customEventType} onChange={e => setCustomEventType(e.target.value)} placeholder="Please specify business nature..." className="h-10 w-full rounded-xl bg-slate-50 border border-slate-200 px-3 text-xs focus-visible:ring-2 focus-visible:ring-[#ea580c]" />
                         </div>
                     )}
                 </div>
             ) : (
-                <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                        <label className="text-[9px] font-bold text-slate-700 uppercase tracking-widest">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">
                             Event Type *
                         </label>
                         <Select value={eventType} onValueChange={setEventType} required>
-                            <SelectTrigger className="h-10 rounded-xl bg-slate-50 border-slate-200 px-3 text-xs focus:ring-2 focus:ring-[#ea580c]"><SelectValue placeholder="Select type" /></SelectTrigger>
+                            <SelectTrigger className="h-10 w-full rounded-xl bg-slate-50 border border-slate-200 px-3 text-xs focus:ring-2 focus:ring-[#ea580c]"><SelectValue placeholder="Select type" /></SelectTrigger>
                             <SelectContent className="rounded-xl border-slate-200 shadow-xl max-h-[200px]">
                                 <SelectItem value="wedding">Wedding</SelectItem>
                                 <SelectItem value="birthday">Birthday</SelectItem>
@@ -1345,8 +1352,8 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
                         </Select>
                     </div>
                     
-                    <div className="space-y-1.5">
-                        <label className="text-[9px] font-bold text-slate-700 uppercase tracking-widest">
+                    <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">
                             Expected Guests *
                         </label>
                         <Input 
@@ -1362,24 +1369,29 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
                             setGuests(val || "");
                             }} 
                             placeholder={`Up to ${maxPax} pax`} 
-                            className="h-10 rounded-xl bg-slate-50 border-slate-200 px-3 text-xs focus-visible:ring-2 focus-visible:ring-[#ea580c]" 
+                            className="h-10 w-full rounded-xl bg-slate-50 border border-slate-200 px-3 text-xs focus-visible:ring-2 focus-visible:ring-[#ea580c]" 
                         />
                     </div>
 
                     {eventType === 'others' && (
-                        <div className="col-span-2 mt-0.5 animate-in slide-in-from-top-1">
-                            <Input required value={customEventType} onChange={e => setCustomEventType(e.target.value)} placeholder="Please specify event type..." className="h-10 rounded-xl bg-slate-50 border-slate-200 px-3 text-xs focus-visible:ring-2 focus-visible:ring-[#ea580c]" />
+                        <div className="col-span-1 sm:col-span-2 animate-in slide-in-from-top-1">
+                            <Input required value={customEventType} onChange={e => setCustomEventType(e.target.value)} placeholder="Please specify event type..." className="h-10 w-full rounded-xl bg-slate-50 border border-slate-200 px-3 text-xs focus-visible:ring-2 focus-visible:ring-[#ea580c]" />
                         </div>
                     )}
                 </div>
             )}
 
-            <div className="shrink-0 pt-4 mt-2 border-t border-slate-100">
-              <div className="flex items-start space-x-3 mb-5">
-                <Checkbox id="terms" checked={agreed} onCheckedChange={(c) => setAgreed(c as boolean)} className="mt-0.5 w-4 h-4 rounded-md data-[state=checked]:bg-[#ea580c] data-[state=checked]:border-[#ea580c]" />
-                <Label htmlFor="terms" className="text-xs text-slate-600 leading-relaxed cursor-pointer">
+            <div className="shrink-0 pt-4 border-t border-slate-100">
+              <div className="flex items-start gap-3 mb-4">
+                <Checkbox
+                  id="terms"
+                  checked={agreed}
+                  onCheckedChange={(c) => setAgreed(c as boolean)}
+                  className="mt-0.5 h-5 w-5 shrink-0 rounded-md data-[state=checked]:bg-[#ea580c] data-[state=checked]:border-[#ea580c]"
+                />
+                <Label htmlFor="terms" className="py-2.5 text-xs text-slate-600 leading-relaxed cursor-pointer select-none">
                     I agree to the{" "}
-                    <span 
+                    <span
                         onClick={(e) => { e.preventDefault(); setIsTermsOpen(true); }}
                         className="font-bold text-[#ea580c] hover:underline cursor-pointer"
                     >
@@ -1387,8 +1399,7 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
                     </span>.
                 </Label>
               </div>
-
-              <Button disabled={!isFormValid} type="submit" className="w-full bg-slate-900 hover:bg-slate-800 text-white rounded-full h-11 font-bold text-sm shadow-sm active:scale-95 transition-all disabled:opacity-50">
+              <Button disabled={!isFormValid} type="submit" className="w-full bg-slate-900 hover:bg-slate-800 text-white rounded-full h-12 font-bold text-sm shadow-sm active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none">
                  {isSubmitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin"/> Processing...</> : "Submit Reservation Request"}
               </Button>
             </div>
@@ -1488,7 +1499,13 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
     <Dialog open={isOpen} onOpenChange={(open) => { setIsOpen(open); if (!open) setTimeout(resetState, 300); }}>
       <DialogTrigger asChild>{children || <Button className="bg-[#ea580c] text-white">Book Now</Button>}</DialogTrigger>
       
-      <DialogContent className="!flex !flex-col !gap-0 !p-0 !max-w-[100vw] sm:!max-w-[96vw] xl:!max-w-[1320px] 2xl:!max-w-[1400px] w-full h-[100dvh] md:h-[calc(100vh-32px)] md:max-h-[760px] overflow-hidden bg-white rounded-none sm:rounded-[2rem] border-0 focus:outline-none [&>button]:hidden shadow-2xl transition-all duration-300 ease-in-out">
+      <DialogContent className={cn(
+        "!flex !flex-col !gap-0 !p-0 overflow-hidden bg-white rounded-none sm:rounded-[2rem] border-0 focus:outline-none [&>button]:hidden shadow-2xl transition-all duration-300 ease-in-out w-full h-[100dvh] md:h-[calc(100vh-32px)] md:max-h-[760px]",
+        step === 'category' && "!max-w-[100vw] sm:!max-w-[800px]",
+        (step === 'list' || step === 'room') && "!max-w-[100vw] sm:!max-w-[95vw] lg:!max-w-[960px]",
+        step === 'schedule' && "!max-w-[100vw] sm:!max-w-[95vw] lg:!max-w-[1100px]",
+        step === 'details' && "!max-w-[100vw] sm:!max-w-[660px]",
+      )}>
         
         <DialogTitle className="hidden">Reservation Modal</DialogTitle>
 
@@ -1496,13 +1513,47 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
             <>
                 {step !== 'category' && (
                     <div className="absolute top-5 left-5 z-50">
-                        <button aria-label="Go Back" onClick={handleBack} className="w-10 h-10 flex items-center justify-center rounded-full bg-white text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors border border-slate-200 shadow-sm"><ArrowLeft className="w-4 h-4 md:w-5 md:h-5" /></button>
+                        <button aria-label="Go Back" onClick={handleBack} className="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full bg-white text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors border border-slate-200 shadow-sm"><ArrowLeft className="w-3.5 h-3.5 md:w-5 md:h-5" /></button>
                     </div>
                 )}
                 <div className="absolute top-5 right-5 z-50">
-                    <button aria-label="Close" onClick={handleClose} className="w-10 h-10 flex items-center justify-center rounded-full bg-white text-slate-500 hover:bg-rose-100 hover:text-rose-500 transition-colors border border-slate-200 shadow-sm"><X className="w-4 h-4 md:w-5 md:h-5" /></button>
+                    <button aria-label="Close" onClick={handleClose} className="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full bg-white text-slate-500 hover:bg-rose-100 hover:text-rose-500 transition-colors border border-slate-200 shadow-sm"><X className="w-3.5 h-3.5 md:w-5 md:h-5" /></button>
                 </div>
             </>
+        )}
+
+        {step !== 'success' && (
+          <div className="shrink-0 px-3 pt-5 pb-1 bg-white border-b border-slate-100">
+            <div className="flex items-center justify-center gap-0">
+              {[
+                { key: 'category', label: 'Category' },
+                { key: 'list', label: 'Venue' },
+                { key: 'schedule', label: 'Schedule' },
+                { key: 'details', label: 'Details' },
+              ].map((s, i) => {
+                const stepRank = step === 'room' ? 'list' : step
+                const ordered = ['category', 'list', 'schedule', 'details']
+                const currentIdx = ordered.indexOf(stepRank)
+                const isActive = i <= currentIdx
+                const showConnector = i < ordered.length - 1
+                return (
+                  <React.Fragment key={s.key}>
+                    <div className="flex items-center gap-1.5">
+                      <div className={`flex h-6 w-6 md:h-7 md:w-7 items-center justify-center rounded-full text-[10px] md:text-[11px] font-black transition-colors ${isActive ? 'bg-[#ea580c] text-white' : 'bg-slate-100 text-slate-400'}`}>
+                        {i + 1}
+                      </div>
+                      <span className={`hidden sm:inline text-[8px] md:text-[9px] font-bold uppercase tracking-wider ${isActive ? 'text-slate-900' : 'text-slate-400'}`}>
+                        {s.label}
+                      </span>
+                    </div>
+                    {showConnector && (
+                      <div className={`h-px w-4 md:w-6 transition-colors ${i < currentIdx ? 'bg-[#ea580c]' : 'bg-slate-200'}`} />
+                    )}
+                  </React.Fragment>
+                )
+              })}
+            </div>
+          </div>
         )}
 
         <div className="flex-1 relative overflow-x-hidden bg-white flex flex-col min-w-0 w-full">
