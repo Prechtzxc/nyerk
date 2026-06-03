@@ -371,17 +371,17 @@ function ConfirmBookingLine({ label, value }: { label: string; value: React.Reac
 
 function TermsList({ items }: { items: string[] }) {
   return (
-    <ul className="space-y-3">
+    <ol className="space-y-2">
       {items.map((item, index) => (
         <li
           key={index}
-          className="flex gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm font-semibold leading-6 text-slate-700"
+          className="flex gap-3 text-sm leading-6 text-slate-700"
         >
-          <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#ea580c]" />
-          <span>{item}</span>
+          <span className="shrink-0 font-bold text-[#ea580c]">{index + 1}.</span>
+          <span className="font-semibold">{item}</span>
         </li>
       ))}
-    </ul>
+    </ol>
   )
 }
 
@@ -1397,7 +1397,7 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
 
         <Dialog open={isTermsOpen} onOpenChange={setIsTermsOpen}>
           <DialogContent className="w-[92vw] overflow-hidden rounded-[2rem] border-0 bg-white p-0 shadow-2xl sm:max-w-2xl [&>button]:hidden">
-            <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5 md:px-8">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-4 md:px-8">
               <div>
                 <DialogTitle className="flex items-center gap-2 text-xl font-black text-slate-900">
                   <FileText className="h-5 w-5 text-[#ea580c]" />
@@ -1418,14 +1418,12 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
               </button>
             </div>
 
-            <div className="max-h-[62vh] overflow-y-auto px-6 py-5 md:px-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <div className="max-h-[62vh] overflow-y-auto px-6 py-4 md:px-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               {isOffice ? (
-                <div className="space-y-4">
-                  <div className="rounded-2xl border border-orange-100 bg-orange-50 p-4">
-                    <h3 className="text-sm font-black uppercase tracking-[0.18em] text-orange-700">
-                      Office Space Rental Terms and Conditions
-                    </h3>
-                  </div>
+                <div className="space-y-3">
+                  <h3 className="text-sm font-black uppercase tracking-[0.18em] text-[#ea580c]">
+                    Office Space Rental Terms and Conditions
+                  </h3>
 
                   <TermsList
                     items={[
@@ -1445,12 +1443,10 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
                   />
                 </div>
               ) : (
-                <div className="space-y-4">
-                  <div className="rounded-2xl border border-orange-100 bg-orange-50 p-4">
-                    <h3 className="text-sm font-black uppercase tracking-[0.18em] text-orange-700">
-                      Event Venue Terms and Conditions
-                    </h3>
-                  </div>
+                <div className="space-y-3">
+                  <h3 className="text-sm font-black uppercase tracking-[0.18em] text-[#ea580c]">
+                    Event Venue Terms and Conditions
+                  </h3>
 
                   <TermsList
                     items={[
@@ -1475,7 +1471,7 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
             <div className="border-t border-slate-100 bg-white px-6 py-4 md:px-8">
               <Button
                 type="button"
-                onClick={() => setIsTermsOpen(false)}
+                onClick={() => { setAgreed(true); setIsTermsOpen(false); }}
                 className="h-11 w-full rounded-full bg-slate-900 font-bold text-white shadow-sm transition hover:bg-[#ea580c] active:scale-95"
               >
                 I Understand

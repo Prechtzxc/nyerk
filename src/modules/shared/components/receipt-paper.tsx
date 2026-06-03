@@ -37,11 +37,13 @@ function ReceiptPaperLine({
   highlight?: boolean
 }) {
   return (
-    <div className="flex items-start justify-between gap-4 text-sm">
-      <span className="shrink-0 font-semibold text-slate-500">{label}:</span>
+    <div className="flex gap-2 text-sm sm:gap-4">
+      <span className="min-w-[9rem] shrink-0 font-semibold text-slate-500">
+        {label}:
+      </span>
       <span
         className={cn(
-          "break-words text-right font-black",
+          "break-words font-black",
           highlight ? "text-orange-600" : "text-slate-950",
         )}
       >
@@ -119,28 +121,27 @@ export function ReceiptPaper({
 }: ReceiptPaperData) {
   return (
     <div className="receipt-print mx-auto max-w-[680px]">
-      <div className="rounded-[1.1rem] border border-slate-200 bg-white shadow-sm">
-        {/* ── HEADER ── */}
-        <div className="relative border-b border-dashed border-slate-200 px-5 py-4 text-center">
-          <h2 className="text-xl font-black tracking-wide text-slate-950 sm:text-2xl">
-            ONE ESTELA PLACE
-          </h2>
-          <p className="mt-1 text-[10px] font-black uppercase tracking-[0.22em] text-orange-600">
-            System-Generated E-Receipt
+      {/* ── HEADER ── */}
+      <div className="relative border-b border-dashed border-slate-200 px-5 py-4 text-center">
+        <h2 className="text-xl font-black tracking-wide text-slate-950 sm:text-2xl">
+          ONE ESTELA PLACE
+        </h2>
+        <p className="mt-1 text-[10px] font-black uppercase tracking-[0.22em] text-orange-600">
+          System-Generated E-Receipt
+        </p>
+        <div className="mx-auto mt-3 grid max-w-xl gap-1 text-xs font-bold text-slate-600 sm:grid-cols-2 sm:text-left">
+          <p>
+            <span className="text-slate-400">Receipt No:</span>{" "}
+            <span className="text-slate-900">{receiptNo || "—"}</span>
           </p>
-          <div className="mx-auto mt-3 grid max-w-xl gap-1 text-xs font-bold text-slate-600 sm:grid-cols-2 sm:text-left">
-            <p>
-              <span className="text-slate-400">Receipt No:</span>{" "}
-              <span className="text-slate-900">{receiptNo || "—"}</span>
-            </p>
-            <p className="sm:text-right">
-              <span className="text-slate-400">Date Generated:</span>{" "}
-              <span className="text-slate-900">
-                {formatReceiptDate(generatedAt)}
-              </span>
-            </p>
-          </div>
+          <p className="sm:text-right">
+            <span className="text-slate-400">Date Generated:</span>{" "}
+            <span className="text-slate-900">
+              {formatReceiptDate(generatedAt)}
+            </span>
+          </p>
         </div>
+      </div>
 
         {/* ── BODY ── */}
         <div className="space-y-3 px-5 py-4">
@@ -264,7 +265,6 @@ export function ReceiptPaper({
           <p className="text-center text-xs font-bold text-slate-500">
             Thank you for choosing One Estela Place.
           </p>
-        </div>
       </div>
     </div>
   )

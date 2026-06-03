@@ -311,49 +311,49 @@ function HorizontalBookingCard({
     : startDate
 
   return (
-    <div className="group flex w-full min-w-0 flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-orange-200 hover:shadow-md sm:flex-row sm:items-center sm:gap-4">
-      <div className="flex shrink-0 items-center gap-3 sm:w-[260px]">
+    <div className="group flex w-full max-w-full min-w-0 flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-orange-200 hover:shadow-md sm:flex-row sm:items-center sm:gap-4">
+      <div className="flex shrink-0 items-center gap-3 sm:w-[200px]">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
           {isOfficeRental ? <FileText className="h-5 w-5" /> : <Calendar className="h-5 w-5" />}
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
             {isOfficeRental ? "Rental" : "Event"}
           </p>
-          <p className="break-words text-sm font-black text-slate-900">
+          <p className="break-words whitespace-normal text-sm font-black text-slate-900">
             {booking.eventName || "Untitled"}
           </p>
-          <p className="break-words text-[11px] font-bold text-orange-600">
+          <p className="break-words whitespace-normal text-[11px] font-bold text-orange-600">
             {typeLabel}
           </p>
         </div>
       </div>
 
-      <div className="grid min-w-0 flex-1 grid-cols-2 gap-x-3 gap-y-1.5 sm:grid-cols-4">
-        <div className="min-w-0">
-          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Booking ID</p>
-          <p className="break-words text-xs font-black text-slate-800">{booking.id}</p>
+      <div className="grid min-w-0 flex-1 grid-cols-2 gap-x-2 gap-y-1.5 sm:grid-cols-4 sm:gap-x-3">
+        <div className="min-w-0 max-w-full">
+          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">Booking ID</p>
+          <p className="whitespace-normal break-words text-xs font-black text-slate-800">{booking.id}</p>
         </div>
-        <div className="min-w-0">
-          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Venue</p>
-          <p className="break-words text-xs font-bold text-slate-800">{booking.venue || "N/A"}</p>
+        <div className="min-w-0 max-w-full">
+          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">Venue</p>
+          <p className="whitespace-normal break-words text-xs font-bold text-slate-800">{booking.venue || "N/A"}</p>
         </div>
-        <div className="min-w-0">
-          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+        <div className="min-w-0 max-w-full">
+          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">
             {isOfficeRental ? "Start Date" : "Event Date"}
           </p>
-          <p className="break-words text-xs font-bold text-slate-800">{startDate}</p>
+          <p className="whitespace-normal break-words text-xs font-bold text-slate-800">{startDate}</p>
         </div>
-        <div className="min-w-0">
-          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">End Date</p>
-          <p className="break-words text-xs font-bold text-slate-800">{endDate}</p>
+        <div className="min-w-0 max-w-full">
+          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">End Date</p>
+          <p className="whitespace-normal break-words text-xs font-bold text-slate-800">{endDate}</p>
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-2 sm:flex-col sm:items-end">
+      <div className="flex shrink-0 items-center justify-between gap-2 sm:flex-col sm:items-end sm:gap-1">
         <span
           className={cn(
-            "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest",
+            "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest whitespace-nowrap",
             getStatusBadgeClass(booking.status),
           )}
         >
@@ -362,7 +362,7 @@ function HorizontalBookingCard({
         <Button
           variant="outline"
           onClick={() => onView(booking)}
-          className="h-8 rounded-lg border-slate-200 px-2.5 text-[10px] font-bold text-slate-700 hover:bg-slate-50"
+          className="h-8 shrink-0 whitespace-nowrap rounded-lg border-slate-200 px-2.5 text-[10px] font-bold text-slate-700 hover:bg-slate-50"
         >
           View Details
         </Button>
@@ -412,7 +412,7 @@ function HistoryRow({
         <Button
           variant="outline"
           onClick={() => onView(booking)}
-          className="h-8 rounded-lg border-slate-200 px-2.5 text-[10px] font-bold text-slate-700 hover:bg-slate-50"
+          className="h-8 shrink-0 whitespace-nowrap rounded-lg border-slate-200 px-2.5 text-[10px] font-bold text-slate-700 hover:bg-slate-50"
         >
           View Details
         </Button>
@@ -492,7 +492,7 @@ function PaymentSummaryCard({
   const remaining = hasTotal && hasPaid ? Math.max(0, totalPrice - amountPaid) : null
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4">
+    <div className="p-4">
       <div className="mb-3 flex items-center gap-2">
         <div className="h-1.5 w-1.5 rounded-full bg-orange-500" />
         <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
@@ -685,7 +685,7 @@ function BookingDetailsModal({
               )}
           </div>
 
-          <div className="mb-6 rounded-xl border border-slate-200 bg-white p-4">
+          <div className="mb-6 p-4">
             <div className="mb-3 flex items-center gap-2">
               <div className="h-1.5 w-1.5 rounded-full bg-slate-400" />
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
@@ -721,7 +721,7 @@ function BookingDetailsModal({
           <PaymentSummaryCard booking={booking} bankRef={bankRef} />
 
           {booking.specialRequests && (
-            <div className="mt-5 rounded-xl border border-slate-200 bg-white p-4">
+            <div className="mt-5 p-4">
               <div className="mb-2 flex items-center gap-2">
                 <div className="h-1.5 w-1.5 rounded-full bg-slate-400" />
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
@@ -735,7 +735,7 @@ function BookingDetailsModal({
           )}
 
           {showNotice && (
-            <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
+            <div className="mt-5 bg-amber-50 p-4">
               <div className="flex gap-3">
                 <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
                 <div className="text-xs font-semibold leading-5 text-amber-800">
@@ -763,7 +763,7 @@ function BookingDetailsModal({
 
           {booking.cancellationStatus &&
             booking.cancellationStatus !== "None" && (
-              <div className="mt-5 rounded-xl border border-slate-200 bg-white p-4">
+              <div className="mt-5 p-4">
                 <div className="mb-3 flex items-center gap-2">
                   <div className="h-1.5 w-1.5 rounded-full bg-rose-400" />
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
@@ -973,19 +973,8 @@ function ReceiptModal({
           </DialogClose>
         </div>
 
-        <div className="flex-1 overflow-y-auto bg-slate-50 px-4 py-5 sm:px-6">
+        <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6">
           <ReceiptPaper {...paperData} />
-        </div>
-
-        <div className="no-print flex shrink-0 items-center justify-end gap-2 border-t border-slate-100 bg-white px-6 py-4">
-          <Button
-            variant="outline"
-            onClick={() => window.print()}
-            className="h-10 rounded-lg border-slate-200 px-4 text-xs font-bold text-slate-700 hover:bg-slate-100"
-          >
-            <Receipt className="mr-1.5 h-3.5 w-3.5" />
-            Print Receipt
-          </Button>
         </div>
       </DialogContent>
     </Dialog>
@@ -1195,7 +1184,7 @@ const CancellationDialog = ({
         </div>
 
         <div className="flex-1 space-y-4 overflow-y-auto px-6 py-5">
-          <div className="rounded-xl border border-slate-200 bg-white p-4">
+          <div className="p-4">
             <p className="text-sm font-black text-slate-900">{booking.eventName || "Untitled"}</p>
             <div className="mt-2 space-y-1.5">
               <div className="flex items-center justify-between text-xs">
@@ -1219,7 +1208,7 @@ const CancellationDialog = ({
             </div>
           </div>
 
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <div className="bg-amber-50 p-4">
             <div className="flex gap-3">
               <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
               <div className="text-xs font-semibold leading-5 text-amber-800">
@@ -1237,12 +1226,12 @@ const CancellationDialog = ({
 
           <div
             className={cn(
-              "rounded-xl border p-4",
+              "p-4",
               allowed
                 ? refundEligible
-                  ? "border-emerald-200 bg-emerald-50"
-                  : "border-orange-200 bg-orange-50"
-                : "border-rose-200 bg-rose-50",
+                  ? "bg-emerald-50"
+                  : "bg-orange-50"
+                : "bg-rose-50",
             )}
           >
             <div className="flex gap-3">
@@ -1577,8 +1566,10 @@ export default function MyBookingsPage() {
         receipt={receiptToView}
         open={!!receiptToView}
         onClose={() => {
+          const prevBooking = receiptBooking
           setReceiptToView(null)
           setReceiptBooking(null)
+          if (prevBooking) setViewingBooking(prevBooking)
         }}
         booking={receiptBooking}
       />
@@ -1679,14 +1670,8 @@ export default function MyBookingsPage() {
 
       {/* Booking History (hidden by default) */}
       {showHistory && (
-        <section>
-          <SectionHeader
-            title="Booking History"
-            subtitle={`${filteredHistory.length} record${filteredHistory.length === 1 ? "" : "s"}`}
-            icon={<Receipt className="h-4 w-4" />}
-          />
-
-          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+        <>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <div className="relative flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <Input
@@ -1747,6 +1732,13 @@ export default function MyBookingsPage() {
             </div>
           )}
 
+          <section>
+            <SectionHeader
+              title="Booking History"
+              subtitle={`${filteredHistory.length} record${filteredHistory.length === 1 ? "" : "s"}`}
+              icon={<Receipt className="h-4 w-4" />}
+            />
+
           {historyEmpty ? (
             <div className="mt-3 flex flex-col items-center rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
               <FileText className="mb-3 h-10 w-10 text-slate-300" />
@@ -1771,7 +1763,8 @@ export default function MyBookingsPage() {
               />
             </div>
           )}
-        </section>
+          </section>
+        </>
       )}
     </div>
   )
