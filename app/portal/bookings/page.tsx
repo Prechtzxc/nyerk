@@ -4,11 +4,15 @@ import React, { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import {
   AlertCircle,
+  ArrowLeft,
   Calendar,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  Clock,
   CreditCard,
   FileText,
+  Pencil,
   Plus,
   Receipt,
   Search,
@@ -18,8 +22,10 @@ import {
   Filter,
   XCircle,
   ListChecks,
+  PartyPopper,
 } from "lucide-react"
 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/src/modules/shared/components/ui/select"
 import { useAuth } from "@/src/modules/shared/auth/auth-context"
 import {
   type Booking,
@@ -568,6 +574,7 @@ function BookingDetailsModal({
   onPay,
   onCancel,
   onViewReceipt,
+  onEdit,
 }: {
   booking: Booking | null
   open: boolean
@@ -575,6 +582,7 @@ function BookingDetailsModal({
   onPay?: (b: Booking) => void
   onCancel?: (b: Booking) => void
   onViewReceipt?: (b: Booking) => void
+  onEdit?: (b: Booking) => void
 }) {
   if (!booking) return null
   const isOfficeRental = isOfficeBooking(booking)
@@ -603,8 +611,14 @@ function BookingDetailsModal({
     booking.status !== "completed" &&
     booking.status !== "cancelled" &&
     booking.cancellationStatus !== "Under Review" &&
-    booking.cancellationStatus !== "Approved" &&
-    (payStatus === "verified" || (booking as any).isSlotSecured)
+    booking.cancellationStatus !== "Approved"
+
+  const showModify =
+    booking.status !== "completed" &&
+    booking.status !== "cancelled" &&
+    booking.modificationStatus !== "Under Review" &&
+    booking.cancellationStatus !== "Under Review" &&
+    booking.cancellationStatus !== "Approved"
 
   const hasReceipt = !!(
     booking.receipt || getStoredReceiptByBookingId(booking.id)
@@ -625,7 +639,7 @@ function BookingDetailsModal({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent
         showCloseButton={false}
-        className="flex max-h-[calc(100vh-32px)] max-h-[calc(100dvh-32px)] w-[calc(100vw-2rem)] max-w-[800px] flex-col gap-0 overflow-hidden rounded-2xl border-0 bg-white p-0 shadow-xl"
+        className="flex max-h-[calc(100vh-32px)] max-h-[calc(100dvh-32px)] w-[calc(100vw-2rem)] max-w-[950px] flex-col gap-0 overflow-hidden rounded-2xl border-0 bg-white p-0 shadow-xl"
       >
         <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-100 bg-white px-6 pt-6 pb-4">
           <div className="min-w-0">
@@ -652,8 +666,8 @@ function BookingDetailsModal({
           </DialogClose>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5 pb-20">
-          <div className="mb-6 flex flex-wrap items-center gap-2">
+        <div className="flex-1 overflow-y-auto px-4 py-4 pb-4 sm:px-6 sm:py-5 sm:pb-6">
+          <div className="mb-5 flex flex-wrap items-center gap-2">
             <span
               className={cn(
                 "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
@@ -685,40 +699,44 @@ function BookingDetailsModal({
               )}
           </div>
 
-          <div className="mb-6 p-4">
-            <div className="mb-3 flex items-center gap-2">
-              <div className="h-1.5 w-1.5 rounded-full bg-slate-400" />
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                Booking Information
-              </p>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
+            <div className="rounded-xl border border-slate-100 p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  Booking Information
+                </p>
+              </div>
+              <div className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+                <DetailItem
+                  label="Booking Date"
+                  value={formatDate(booking.createdAt) || "—"}
+                />
+                <DetailItem
+                  label={isOfficeRental ? "Start Date" : "Event Date"}
+                  value={startDate || "—"}
+                />
+                <DetailItem label="End Date" value={endDate || "—"} />
+                <DetailItem
+                  label="Venue / Office"
+                  value={booking.venue || "—"}
+                />
+                <DetailItem
+                  label="Guests"
+                  value={
+                    booking.guestCount ? `${booking.guestCount} pax` : "—"
+                  }
+                />
+                <DetailItem label="Time" value={timeValue} />
+                <DetailItem label="Booking ID" value={`#${booking.id}`} />
+                <DetailItem label="Event Type" value={typeLabel} />
+              </div>
             </div>
-            <div className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-              <DetailItem
-                label="Booking Date"
-                value={formatDate(booking.createdAt) || "—"}
-              />
-              <DetailItem
-                label={isOfficeRental ? "Start Date" : "Event Date"}
-                value={startDate || "—"}
-              />
-              <DetailItem label="End Date" value={endDate || "—"} />
-              <DetailItem
-                label="Venue / Office"
-                value={booking.venue || "—"}
-              />
-              <DetailItem
-                label="Guests"
-                value={
-                  booking.guestCount ? `${booking.guestCount} pax` : "—"
-                }
-              />
-              <DetailItem label="Time" value={timeValue} />
-              <DetailItem label="Booking ID" value={`#${booking.id}`} />
-              <DetailItem label="Event Type" value={typeLabel} />
+
+            <div className="rounded-xl border border-slate-100">
+              <PaymentSummaryCard booking={booking} bankRef={bankRef} />
             </div>
           </div>
-
-          <PaymentSummaryCard booking={booking} bankRef={bankRef} />
 
           {booking.specialRequests && (
             <div className="mt-5 p-4">
@@ -816,7 +834,50 @@ function BookingDetailsModal({
             )}
         </div>
 
-        <div className="flex shrink-0 items-center justify-end gap-2 border-t border-slate-100 bg-white px-6 py-4">
+        <div className="space-y-3 border-t border-slate-100 bg-white px-4 py-3 sm:px-6 sm:py-4">
+          {(showModify || showReceipt || showPay) && (
+            <div className="grid grid-cols-2 gap-3">
+              {showModify && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (onEdit) {
+                      onEdit(booking)
+                      onClose()
+                    }
+                  }}
+                  className="h-10 rounded-lg border-slate-200 px-4 text-xs font-bold text-slate-700 hover:bg-slate-100"
+                >
+                  <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                  Modify Booking
+                </Button>
+              )}
+              {showReceipt ? (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    onViewReceipt(booking)
+                    onClose()
+                  }}
+                  className="h-10 rounded-lg border-slate-200 px-4 text-xs font-bold text-slate-700 hover:bg-slate-100"
+                >
+                  <Receipt className="mr-1.5 h-3.5 w-3.5" />
+                  View Receipt
+                </Button>
+              ) : showPay ? (
+                <Button
+                  onClick={() => {
+                    onPay(booking)
+                    onClose()
+                  }}
+                  className="h-10 rounded-lg bg-[#ea580c] hover:bg-[#c2410c] px-5 text-xs font-bold text-white shadow-sm"
+                >
+                  <CreditCard className="mr-1.5 h-3.5 w-3.5" />
+                  Pay Now
+                </Button>
+              ) : null}
+            </div>
+          )}
           {showCancelAction && (
             <Button
               variant="outline"
@@ -824,35 +885,10 @@ function BookingDetailsModal({
                 onCancel(booking)
                 onClose()
               }}
-              className="h-10 rounded-lg border-rose-200 px-4 text-xs font-bold text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+              className="w-full h-10 rounded-lg border-rose-200 px-4 text-xs font-bold text-rose-600 hover:bg-rose-50 hover:text-rose-700"
             >
               <X className="mr-1.5 h-3.5 w-3.5" />
               Cancel Booking
-            </Button>
-          )}
-          {showReceipt && (
-            <Button
-              variant="outline"
-              onClick={() => {
-                onViewReceipt(booking)
-                onClose()
-              }}
-              className="h-10 rounded-lg border-slate-200 px-4 text-xs font-bold text-slate-700 hover:bg-slate-100"
-            >
-              <Receipt className="mr-1.5 h-3.5 w-3.5" />
-              View Receipt
-            </Button>
-          )}
-          {showPay && (
-            <Button
-              onClick={() => {
-                onPay(booking)
-                onClose()
-              }}
-              className="h-10 rounded-lg bg-orange-600 px-5 text-xs font-bold text-white shadow-sm hover:bg-orange-700"
-            >
-              <CreditCard className="mr-1.5 h-3.5 w-3.5" />
-              Pay Now
             </Button>
           )}
         </div>
@@ -1306,16 +1342,591 @@ const CancellationDialog = ({
   )
 }
 
+function ModifyBookingFlowModal({
+  booking,
+  open,
+  onClose,
+  onSubmitChanges,
+}: {
+  booking: Booking | null
+  open: boolean
+  onClose: () => void
+  onSubmitChanges: (changes: Record<string, unknown>, reason: string) => void
+}) {
+  const { bookings, maintenanceDates } = useBookings()
+
+  const [step, setStep] = useState<"schedule" | "details">("schedule")
+  const [eventName, setEventName] = useState("")
+  const [eventType, setEventType] = useState("")
+  const [guestCount, setGuestCount] = useState("")
+  const [notes, setNotes] = useState("")
+  const [reason, setReason] = useState("")
+  const [reasonError, setReasonError] = useState(false)
+
+  // Calendar state (matching New Booking Step 3)
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const d = new Date()
+    return new Date(d.getFullYear(), d.getMonth(), 1)
+  })
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [selectedDuration, setSelectedDuration] = useState<string | null>(null)
+
+  // Venue lookup
+  const venueInfo = useMemo(() => {
+    if (!booking) return null
+    const VENUES = [
+      { id: 'v1', name: 'The Milestone Event', price: 15000, type: 'venue' },
+      { id: 'v2', name: 'The Moment Event', price: 10000, type: 'venue' },
+      { id: 'v3', name: 'Conference Room', price: 3000, type: 'venue' },
+      { id: 'v4', name: 'Business Room', price: 5000, type: 'venue' },
+      { id: 'office-a', name: 'Office A', price: 15000, type: 'office' },
+      { id: 'office-b', name: 'Office B', price: 15000, type: 'office' },
+    ]
+    return VENUES.find(v => v.id === booking.venueId) || null
+  }, [booking])
+
+  const isOffice = venueInfo?.type === 'office'
+
+  // Calendar calculations (replicating New Booking Step 3)
+  const minBookableDate = useMemo(() => {
+    const d = new Date()
+    d.setHours(0, 0, 0, 0)
+    d.setMonth(d.getMonth() + 1)
+    return d
+  }, [])
+
+  const year = calendarMonth.getFullYear()
+  const month = calendarMonth.getMonth()
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const firstDay = new Date(year, month, 1).getDay()
+  const emptySlots = Array.from({ length: firstDay }).map((_, i) => null)
+  const days = Array.from({ length: daysInMonth }).map((_, i) => i + 1)
+
+  // Venue time slots (same as New Booking)
+  const venueSlots = [
+    { start: 8, end: 14, startTimeLabel: "8:00 AM", label: "8:00 AM - 2:00 PM" },
+    { start: 9, end: 15, startTimeLabel: "9:00 AM", label: "9:00 AM - 3:00 PM" },
+    { start: 10, end: 16, startTimeLabel: "10:00 AM", label: "10:00 AM - 4:00 PM" },
+    { start: 11, end: 17, startTimeLabel: "11:00 AM", label: "11:00 AM - 5:00 PM" },
+    { start: 12, end: 18, startTimeLabel: "12:00 PM", label: "12:00 PM - 6:00 PM" },
+    { start: 13, end: 19, startTimeLabel: "1:00 PM", label: "1:00 PM - 7:00 PM" },
+    { start: 14, end: 20, startTimeLabel: "2:00 PM", label: "2:00 PM - 8:00 PM" },
+    { start: 15, end: 21, startTimeLabel: "3:00 PM", label: "3:00 PM - 9:00 PM" },
+    { start: 16, end: 22, startTimeLabel: "4:00 PM", label: "4:00 PM - 10:00 PM" },
+  ]
+
+  const getParsedTime = (timeStr: string) => venueSlots.find(s => s.label === timeStr)
+
+  const isMaintenanceBlocked = (dateKey: string) => {
+    if (!dateKey || !maintenanceDates?.length || !booking) return false
+    const venueId = booking.venueId || ""
+    return maintenanceDates.some((storedValue) => {
+      const stored = String(storedValue || "").trim()
+      if (!stored) return false
+      if (stored === dateKey) return true
+      const [storedVenueKey, storedDateKey] = stored.split("|")
+      return storedDateKey === dateKey && storedVenueKey === venueId
+    })
+  }
+
+  // Available time slots for selected date
+  const availableVenueSlots = useMemo(() => {
+    if (!selectedDate || !booking) return venueSlots
+    const existingBookings = (bookings || []).filter(b =>
+      b.date === selectedDate &&
+      b.venueId === booking.venueId &&
+      b.id !== booking.id &&
+      b.status !== 'cancelled' &&
+      b.status !== 'declined'
+    )
+    return venueSlots.filter(slot =>
+      !existingBookings.some(b => {
+        if (!b.time) return false
+        const bParsed = getParsedTime(b.time)
+        if (!bParsed) return false
+        return slot.start <= bParsed.end && slot.end >= bParsed.start
+      })
+    )
+  }, [selectedDate, bookings, booking])
+
+  // Pre-fill from booking data
+  useEffect(() => {
+    if (open && booking) {
+      setStep("schedule")
+      setEventName(booking.eventName || "")
+      setEventType(booking.eventType || "")
+      setGuestCount(String(booking.guestCount || ""))
+      setNotes(booking.specialRequests || "")
+      setReason("")
+      setReasonError(false)
+
+      const d = new Date()
+      setCalendarMonth(new Date(d.getFullYear(), d.getMonth(), 1))
+      setSelectedDate(booking.date || null)
+      setSelectedDuration(booking.time || null)
+    }
+  }, [open, booking])
+
+  if (!booking) return null
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!reason.trim()) {
+      setReasonError(true)
+      return
+    }
+    const changes: Record<string, unknown> = {}
+    if (eventName !== booking.eventName) changes.eventName = eventName
+    if (eventType !== booking.eventType) changes.eventType = eventType
+    if (String(guestCount) !== String(booking.guestCount)) changes.guestCount = Number(guestCount) || booking.guestCount
+    if ((notes || "") !== (booking.specialRequests || "")) changes.specialRequests = notes
+    if (selectedDate !== booking.date) changes.date = selectedDate
+    if (selectedDuration !== booking.time) {
+      changes.time = selectedDuration
+      if (selectedDuration) {
+        const parsed = getParsedTime(selectedDuration)
+        if (parsed) {
+          changes.startTime = parsed.startTimeLabel
+          changes.endTime = `${parsed.end > 12 ? parsed.end - 12 : parsed.end}:00 ${parsed.end >= 12 ? 'PM' : 'AM'}`
+        }
+      }
+    }
+    onSubmitChanges(changes, reason.trim())
+    onClose()
+  }
+
+  const currentStepIdx = step === "schedule" ? 0 : 1
+  const steps = ["Schedule", "Details"]
+
+  const renderDay = (day: number) => {
+    const iterDate = new Date(year, month, day)
+    const iterDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    const isSelected = selectedDate === iterDateStr
+    const isBeforeAllowedWindow = iterDate < minBookableDate
+    const isMaintenance = isMaintenanceBlocked(iterDateStr)
+
+    let statusClass = "border-slate-200 bg-white text-slate-700 hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700"
+    let isDisabled = false
+
+    if (isBeforeAllowedWindow) {
+      statusClass = "cursor-not-allowed border-slate-100 bg-slate-100 text-slate-300 opacity-60"
+      isDisabled = true
+    } else if (isMaintenance) {
+      statusClass = "cursor-not-allowed border-slate-900 bg-slate-900 text-slate-400"
+      isDisabled = true
+    } else {
+      const dayBookings = (bookings || []).filter(b =>
+        b.date === iterDateStr &&
+        b.venueId === booking?.venueId &&
+        b.id !== booking?.id &&
+        b.status !== 'cancelled' &&
+        b.status !== 'declined'
+      )
+      const available = venueSlots.filter(slot =>
+        !dayBookings.some(b => {
+          if (!b.time) return false
+          const bParsed = getParsedTime(b.time)
+          if (!bParsed) return false
+          return slot.start <= bParsed.end && slot.end >= bParsed.start
+        })
+      )
+      if (available.length === 0) {
+        statusClass = "cursor-not-allowed border-rose-100 bg-rose-50 text-rose-300"
+        isDisabled = true
+      } else if (available.length < venueSlots.length) {
+        statusClass = "border-amber-200 bg-amber-50 text-amber-700 hover:border-amber-300 hover:bg-amber-100"
+      }
+    }
+
+    if (isSelected && !isDisabled) {
+      statusClass = "border-orange-600 bg-orange-600 text-white shadow-md shadow-orange-200 scale-105"
+    }
+
+    return (
+      <button
+        key={day}
+        type="button"
+        disabled={isDisabled}
+        onClick={() => {
+          setSelectedDate(iterDateStr)
+          setSelectedDuration(null)
+        }}
+        className={`flex h-7 w-7 2xl:h-8 2xl:w-8 items-center justify-center rounded-full border text-[10px] xl:text-[11px] font-black outline-none transition-all focus-visible:ring-2 focus-visible:ring-orange-300 ${statusClass}`}
+      >
+        {day}
+      </button>
+    )
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent
+        showCloseButton={false}
+        className={cn(
+          "!flex !flex-col !gap-0 !p-0 overflow-hidden bg-white rounded-none sm:rounded-[2rem] border-0 focus:outline-none [&>button]:hidden shadow-2xl w-full h-[100vh] h-[100dvh] md:h-[calc(100vh-32px)] md:max-h-[760px] !max-w-[100vw]",
+          step === "schedule" && "sm:!max-w-[95vw] lg:!max-w-[1000px]",
+          step === "details" && "sm:!max-w-[660px]",
+        )}
+      >
+        <DialogTitle className="sr-only">Modify Booking</DialogTitle>
+
+        {/* Close button */}
+        <div className="absolute top-5 right-5 z-50">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full bg-white text-slate-500 hover:bg-rose-100 hover:text-rose-500 transition-colors border border-slate-200 shadow-sm"
+            aria-label="Close"
+          >
+            <X className="w-3.5 h-3.5 md:w-5 md:h-5" />
+          </button>
+        </div>
+
+        {/* Back button */}
+        {step === "details" && (
+          <div className="absolute top-5 left-5 z-50">
+            <button
+              type="button"
+              onClick={() => setStep("schedule")}
+              className="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full bg-white text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors border border-slate-200 shadow-sm"
+              aria-label="Go Back"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 md:w-5 md:h-5" />
+            </button>
+          </div>
+        )}
+
+        {/* Step indicator */}
+        <div className="shrink-0 px-3 pt-5 pb-1 bg-white border-b border-slate-100">
+          <div className="flex items-center justify-center gap-0">
+            {steps.map((label, i) => (
+              <React.Fragment key={label}>
+                {i > 0 && (
+                  <div className={`h-px w-4 md:w-6 transition-colors ${i <= currentStepIdx ? 'bg-[#ea580c]' : 'bg-slate-200'}`} />
+                )}
+                <div className="flex items-center gap-1.5">
+                  <div className={`flex h-6 w-6 md:h-7 md:w-7 items-center justify-center rounded-full text-[10px] md:text-[11px] font-black transition-colors ${i <= currentStepIdx ? 'bg-[#ea580c] text-white' : 'bg-slate-100 text-slate-400'}`}>
+                    {i + 1}
+                  </div>
+                  <span className={`hidden sm:inline text-[8px] md:text-[9px] font-bold uppercase tracking-wider ${i <= currentStepIdx ? 'text-slate-900' : 'text-slate-400'}`}>
+                    {label}
+                  </span>
+                </div>
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
+
+        {/* Schedule Step - replicating New Booking Step 3 */}
+        {step === "schedule" ? (
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 overflow-y-auto px-4 py-5 md:px-6 md:py-6">
+              <div className="mx-auto w-full max-w-[680px] space-y-6">
+                {/* Venue info header (like New Booking Step 3) */}
+                <div>
+                  <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
+                    {venueInfo?.name || booking.venue}
+                  </h2>
+                  {venueInfo && (
+                    <p className="text-[#ea580c] font-black text-lg leading-tight">
+                      ₱{venueInfo.price.toLocaleString()}
+                      <span className="text-slate-400 font-bold text-[9px] tracking-widest uppercase ml-1">
+                        / {isOffice ? 'Per Month' : 'Per 6 Hrs'}
+                      </span>
+                    </p>
+                  )}
+                  <p className="text-slate-500 mt-2 text-xs">
+                    Update your preferred date and time for this booking.
+                  </p>
+                </div>
+
+                {/* Two-column layout: Calendar + Time (like New Booking) */}
+                <div className="grid grid-cols-1 xl:grid-cols-[minmax(240px,300px)_minmax(200px,1fr)] gap-4 xl:gap-6 w-full items-start">
+                  {/* Calendar column */}
+                  <div>
+                    <h3 className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-900 mb-3">
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-950 text-[9px] text-white shadow-sm">1</span>
+                      Select Date
+                    </h3>
+                    <div className="overflow-hidden rounded-[1rem] border border-slate-200 bg-white shadow-sm">
+                      {/* Calendar header */}
+                      <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-2.5 py-2">
+                        <button
+                          type="button"
+                          aria-label="Previous month"
+                          onClick={() => setCalendarMonth(new Date(year, month - 1, 1))}
+                          className="flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600"
+                        >
+                          <ChevronLeft className="h-3.5 w-3.5" />
+                        </button>
+                        <div className="text-center">
+                          <h5 className="text-[13px] font-black leading-none text-slate-950 md:text-sm">
+                            {calendarMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                          </h5>
+                          <p className="mt-0.5 text-[7px] font-bold uppercase tracking-[0.12em] text-slate-400">
+                            Choose an available day
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          aria-label="Next month"
+                          onClick={() => setCalendarMonth(new Date(year, month + 1, 1))}
+                          className="flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600"
+                        >
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                      {/* Day-of-week headers */}
+                      <div className="mt-3 mb-1.5 grid grid-cols-7 text-center px-2">
+                        {["Su","Mo","Tu","We","Th","Fr","Sa"].map(dayLabel => (
+                          <div key={dayLabel} className="text-[7px] font-black uppercase tracking-[0.1em] text-slate-400">
+                            {dayLabel}
+                          </div>
+                        ))}
+                      </div>
+                      {/* Days grid */}
+                      <div className="grid grid-cols-7 justify-items-center gap-0.5 px-2 pb-3">
+                        {emptySlots.map((_, i) => <div key={`e-${i}`} />)}
+                        {days.map(renderDay)}
+                      </div>
+                      {/* Legend */}
+                      <div className="mx-2 mb-2 grid grid-cols-3 gap-1 border-t border-slate-100 pt-2">
+                        <div className="flex items-center justify-center gap-1.5 rounded-full bg-rose-50 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] text-rose-500">
+                          <span className="h-1.5 w-1.5 rounded-full bg-rose-200" /> Full
+                        </div>
+                        <div className="flex items-center justify-center gap-1.5 rounded-full bg-amber-50 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] text-amber-600">
+                          <span className="h-1.5 w-1.5 rounded-full bg-amber-300" /> Few
+                        </div>
+                        <div className="flex items-center justify-center gap-1.5 rounded-full bg-slate-100 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] text-slate-500">
+                          <span className="h-1.5 w-1.5 rounded-full bg-slate-900" /> Maint.
+                        </div>
+                      </div>
+                    </div>
+                    {/* Earliest bookable date info */}
+                    <div className="mt-3 rounded-2xl border border-orange-100 bg-orange-50 px-2.5 py-2">
+                      <p className="text-[8px] font-black uppercase tracking-[0.12em] text-orange-700">
+                        Earliest bookable date
+                      </p>
+                      <p className="mt-0.5 text-[10px] font-bold leading-3 text-orange-900">
+                        {minBookableDate.toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })}
+                        . Gray dates are not available for booking.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Time / Duration column */}
+                  <div>
+                    <h3 className="text-[10px] font-black text-slate-900 tracking-widest uppercase mb-2 flex items-center gap-1.5">
+                      <div className="w-5 h-5 rounded-full bg-slate-900 text-white flex items-center justify-center text-[9px]">2</div>
+                      Select {isOffice ? 'Duration' : 'Time'}
+                    </h3>
+                    {!selectedDate ? (
+                      <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-[1rem] min-h-[120px] flex items-center justify-center text-slate-400 font-bold text-[9px] uppercase tracking-wider p-2 text-center">
+                        Select a date first
+                      </div>
+                    ) : (
+                      <div className="space-y-3 animate-in fade-in rounded-[1rem] border border-slate-200 bg-white p-3 shadow-sm">
+                        {isOffice ? (
+                          ["6 Months", "1 Year", "2 Years"].map((slot) => (
+                            <button
+                              key={slot}
+                              type="button"
+                              onClick={() => setSelectedDuration(slot)}
+                              className={`w-full flex items-center justify-between p-3 min-h-[44px] rounded-lg border-2 transition-all focus-visible:ring-2 focus-visible:ring-orange-200 outline-none ${
+                                selectedDuration === slot
+                                  ? 'border-[#ea580c] bg-orange-50 shadow-sm ring-2 ring-orange-50'
+                                  : 'border-slate-100 bg-white hover:border-[#ea580c]'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <Calendar className={`w-4 h-4 ${selectedDuration === slot ? 'text-[#ea580c]' : 'text-slate-400'}`} />
+                                <span className={`font-bold text-xs ${selectedDuration === slot ? 'text-orange-900' : 'text-slate-700'}`}>{slot}</span>
+                              </div>
+                              <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                                selectedDuration === slot ? 'border-[#ea580c] bg-[#ea580c]' : 'border-slate-200'
+                              }`}>
+                                {selectedDuration === slot && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                              </div>
+                            </button>
+                          ))
+                        ) : (
+                          <>
+                            <Select value={selectedDuration || ""} onValueChange={setSelectedDuration}>
+                              <SelectTrigger className="w-full h-10 md:h-11 rounded-lg bg-white border-2 border-slate-200 px-3 font-bold text-xs text-slate-700 focus-visible:ring-2 focus-visible:ring-[#ea580c] transition-all data-[state=open]:border-[#ea580c]">
+                                <SelectValue placeholder="Select Start Time" />
+                              </SelectTrigger>
+                              <SelectContent className="rounded-xl border-slate-200 shadow-xl max-h-[150px] md:max-h-[180px]">
+                                {availableVenueSlots.length > 0 ? (
+                                  availableVenueSlots.map(slot => (
+                                    <SelectItem key={slot.label} value={slot.label} className="font-bold text-xs text-slate-700 py-2 cursor-pointer focus:bg-orange-50 focus:text-[#ea580c]">
+                                      <div className="flex items-center gap-2">
+                                        <Clock className="w-3 h-3 text-[#ea580c]" />
+                                        {slot.startTimeLabel}
+                                      </div>
+                                    </SelectItem>
+                                  ))
+                                ) : (
+                                  <div className="p-2 text-center text-[9px] font-bold text-slate-400 bg-slate-50 m-1 rounded-md">
+                                    Fully Booked for this date
+                                  </div>
+                                )}
+                              </SelectContent>
+                            </Select>
+                            {/* Selected time confirmation card */}
+                            {selectedDuration && availableVenueSlots.some(s => s.label === selectedDuration) && (
+                              <div className="p-3 bg-orange-50 border border-orange-100 rounded-lg flex items-start gap-2 animate-in fade-in">
+                                <CheckCircle2 className="w-4 h-4 text-[#ea580c] shrink-0 mt-0.5" />
+                                <div>
+                                  <p className="text-[8px] font-bold text-orange-900 uppercase tracking-widest leading-relaxed">
+                                    6-Hour Slot Confirmed
+                                  </p>
+                                  <p className="text-[10px] font-black text-[#ea580c]">
+                                    {selectedDuration}
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom bar */}
+            <div className="shrink-0 px-4 py-3 border-t border-slate-100 bg-white">
+              <Button
+                disabled={!selectedDate || !selectedDuration}
+                onClick={() => setStep("details")}
+                className="w-full lg:max-w-[385px] mx-auto block bg-[#ea580c] hover:bg-[#c2410c] text-white rounded-full h-10 font-bold text-xs md:text-sm transition-transform active:scale-95 disabled:opacity-50"
+              >
+                Proceed to Details
+              </Button>
+            </div>
+          </div>
+        ) : (
+          /* Details Step - replicating New Booking Step 4 */
+          <div className="flex-1 flex flex-col overflow-y-auto">
+            <div className="flex-1 flex flex-col md:justify-center px-4 py-4 md:py-6">
+              <div className="mx-auto w-full max-w-[520px] flex flex-col">
+                <div className="shrink-0 mb-5 text-center">
+                  <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
+                    Final Details
+                  </h2>
+                  <p className="text-slate-500 mt-1 text-xs">
+                    Update your event information.
+                  </p>
+                </div>
+
+                <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                  <h3 className="shrink-0 text-xs font-black text-slate-900 flex items-center gap-2 mb-1">
+                    <PartyPopper className="w-4 h-4 text-[#ea580c]" />
+                    Event Information
+                  </h3>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">
+                      Event Name <span className="text-rose-500">*</span>
+                    </label>
+                    <Input
+                      value={eventName}
+                      onChange={(e) => setEventName(e.target.value)}
+                      placeholder="e.g. 18th Birthday Party"
+                      className="h-10 w-full rounded-xl bg-slate-50 border border-slate-200 px-3 text-xs focus-visible:ring-2 focus-visible:ring-[#ea580c]"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">
+                        Event Type <span className="text-rose-500">*</span>
+                      </label>
+                      <Select value={eventType} onValueChange={setEventType}>
+                        <SelectTrigger className="h-10 w-full rounded-xl bg-slate-50 border border-slate-200 px-3 text-xs focus:ring-2 focus:ring-[#ea580c]">
+                          <SelectValue placeholder="Choose Event Type" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl border-slate-200 shadow-xl max-h-[200px]">
+                          <SelectItem value="wedding" className="font-bold text-xs text-slate-700 py-2 cursor-pointer focus:bg-orange-50 focus:text-[#ea580c]">Wedding</SelectItem>
+                          <SelectItem value="birthday" className="font-bold text-xs text-slate-700 py-2 cursor-pointer focus:bg-orange-50 focus:text-[#ea580c]">Birthday / Debut</SelectItem>
+                          <SelectItem value="corporate" className="font-bold text-xs text-slate-700 py-2 cursor-pointer focus:bg-orange-50 focus:text-[#ea580c]">Corporate Event</SelectItem>
+                          <SelectItem value="seminar" className="font-bold text-xs text-slate-700 py-2 cursor-pointer focus:bg-orange-50 focus:text-[#ea580c]">Seminar / Workshop</SelectItem>
+                          <SelectItem value="other" className="font-bold text-xs text-slate-700 py-2 cursor-pointer focus:bg-orange-50 focus:text-[#ea580c]">Other Event</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">
+                        Estimated Guests <span className="text-rose-500">*</span>
+                      </label>
+                      <Input
+                        type="number"
+                        min={1}
+                        value={guestCount}
+                        onChange={(e) => setGuestCount(e.target.value)}
+                        placeholder="Max 250"
+                        className="h-10 w-full rounded-xl bg-slate-50 border border-slate-200 px-3 text-xs focus-visible:ring-2 focus-visible:ring-[#ea580c]"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Reason for Modification */}
+                  <div className="space-y-1.5 pt-3 border-t border-slate-100">
+                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">
+                      Reason for Modification <span className="text-rose-500">*</span>
+                    </label>
+                    <Textarea
+                      value={reason}
+                      onChange={(e) => {
+                        setReason(e.target.value)
+                        if (reasonError && e.target.value.trim()) setReasonError(false)
+                      }}
+                      placeholder="Type your reason for requesting this modification..."
+                      className={cn(
+                        "min-h-[80px] w-full rounded-xl bg-slate-50 border px-3 py-2 text-xs focus-visible:ring-2 focus-visible:ring-[#ea580c] resize-none",
+                        reasonError ? "border-rose-300" : "border-slate-200",
+                      )}
+                    />
+                    {reasonError && (
+                      <p className="text-[11px] font-semibold text-rose-600">
+                        Please provide a reason for modification.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* No Terms & Conditions */}
+
+                  {/* Submit */}
+                  <div className="pt-1">
+                    <Button
+                      type="submit"
+                      className="w-full bg-slate-900 hover:bg-slate-800 text-white rounded-full h-12 font-bold text-sm shadow-sm active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
+                    >
+                      Submit Modification Request
+                    </Button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export default function MyBookingsPage() {
   const router = useRouter()
   const { user } = useAuth()
-  const { getUserBookings, requestCancellation, issueReceipt } =
+  const { getUserBookings, requestCancellation, issueReceipt, requestModification } =
     useBookings()
   const { toast } = useToast()
 
   const [myBookings, setMyBookings] = useState<Booking[]>([])
   const [bookingToCancel, setBookingToCancel] = useState<Booking | null>(null)
   const [cancelReason, setCancelReason] = useState("")
+  const [modifyTarget, setModifyTarget] = useState<Booking | null>(null)
   const [reviews, setReviews] = useState<ReviewRecord[]>([])
   const [reviewTarget, setReviewTarget] = useState<Booking | null>(null)
   const [paymentTarget, setPaymentTarget] = useState<Booking | null>(null)
@@ -1458,6 +2069,10 @@ export default function MyBookingsPage() {
     setViewingBooking(booking)
   }
 
+  const handleEdit = (booking: Booking) => {
+    setModifyTarget(booking)
+  }
+
   const handleViewReceipt = (booking: Booking) => {
     const existing =
       booking.receipt || getStoredReceiptByBookingId(booking.id)
@@ -1533,7 +2148,7 @@ export default function MyBookingsPage() {
   const hasOtherActive = otherActiveBookings.length > 0
 
   return (
-    <div className="mx-auto min-w-0 w-full max-w-7xl animate-in fade-in space-y-6 p-4 duration-500 md:p-6">
+    <div className="mx-auto min-w-0 w-full max-w-7xl animate-in fade-in space-y-6 p-4 pb-24 duration-500 md:p-6 md:pb-28">
       <WriteReviewModal
         open={!!reviewTarget}
         booking={reviewTarget}
@@ -1553,6 +2168,23 @@ export default function MyBookingsPage() {
         onSubmit={submitCancellation}
       />
 
+      <ModifyBookingFlowModal
+        booking={modifyTarget}
+        open={!!modifyTarget}
+        onClose={() => setModifyTarget(null)}
+        onSubmitChanges={(changes, reason) => {
+          if (modifyTarget) {
+            requestModification(modifyTarget.id, changes, reason)
+            toast({
+              title: "Modification Requested",
+              description: "Your modification request is under review.",
+              className: "bg-slate-900 text-white border-none",
+            })
+            setModifyTarget(null)
+          }
+        }}
+      />
+
       <BookingDetailsModal
         booking={viewingBooking}
         open={!!viewingBooking}
@@ -1560,6 +2192,7 @@ export default function MyBookingsPage() {
         onPay={handlePay}
         onCancel={handleCancel}
         onViewReceipt={handleViewReceipt}
+        onEdit={handleEdit}
       />
 
       <ReceiptModal
@@ -1574,7 +2207,7 @@ export default function MyBookingsPage() {
         booking={receiptBooking}
       />
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <div className="min-w-0">
           <h1 className="text-2xl font-black tracking-tight text-slate-900 md:text-3xl">
             My Bookings

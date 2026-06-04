@@ -50,6 +50,7 @@ const STATUS_OPTIONS: { value: BookingStatus | typeof ALL_VALUE; label: string }
   { value: "verifying", label: "Verifying" },
   { value: "confirmed", label: "Confirmed" },
   { value: "cancellation_requested", label: "Cancel Requests" },
+  { value: "modification_under_review", label: "Modification Requests" },
   { value: "completed", label: "Completed" },
   { value: "cancelled", label: "Cancelled" },
   { value: "declined", label: "Declined" },
@@ -93,6 +94,7 @@ function getStatusLabel(status?: string) {
   if (!status) return "Unknown"
 
   if (status === "cancellation_requested") return "Cancel Request"
+  if (status === "modification_under_review") return "Modification Requests"
 
   return status
     .split("_")
@@ -108,6 +110,7 @@ function getStatusClass(status?: string) {
   if (key === "confirmed") return "border-emerald-200 bg-emerald-50 text-emerald-700"
   if (key === "completed") return "border-blue-200 bg-blue-50 text-blue-700"
   if (key === "cancellation_requested") return "border-amber-200 bg-amber-50 text-amber-700"
+  if (key === "modification_under_review") return "border-indigo-200 bg-indigo-50 text-indigo-700"
   if (key === "cancelled" || key === "declined") return "border-rose-200 bg-rose-50 text-rose-700"
   if (key === "paid" || key === "verified" || key === "partial") return "border-emerald-200 bg-emerald-50 text-emerald-700"
   if (key === "for_review" || key === "cash_pending") return "border-amber-200 bg-amber-50 text-amber-700"
@@ -254,12 +257,16 @@ function BookingDetailsModal({
   onOpenChange,
   onDeclineOpen,
   onApproveOpen,
+  onModDeclineOpen,
+  onModApproveOpen,
 }: {
   booking: Booking | null
   open: boolean
   onOpenChange: (open: boolean) => void
   onDeclineOpen?: (booking: Booking) => void
   onApproveOpen?: (booking: Booking) => void
+  onModDeclineOpen?: (booking: Booking) => void
+  onModApproveOpen?: (booking: Booking) => void
 }) {
   if (!booking) return null
 
@@ -433,6 +440,90 @@ function BookingDetailsModal({
               </div>
             )}
 
+            {booking.modificationStatus === "Under Review" && (
+              <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-5">
+                <div className="flex gap-3">
+                  <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />
+                  <div className="w-full">
+                    <h3 className="font-black text-indigo-900">Modification Under Review</h3>
+                    <p className="mt-1 text-sm font-semibold leading-6 text-indigo-800">
+                      Reason: {booking.modificationReason || "No reason provided"}
+                    </p>
+                    {booking.requestedChanges && (
+                      <div className="mt-3 rounded-xl bg-white p-3 space-y-1.5 text-xs font-semibold text-indigo-800">
+                        <p className="font-black uppercase tracking-wider text-indigo-600 mb-2">Requested Changes:</p>
+                        {Object.entries(booking.requestedChanges).map(([key, value]) => {
+                          const original = (booking.originalBookingSnapshot as Record<string, unknown>)?.[key]
+                          if (String(value) === String(original)) return null
+                          return (
+                            <div key={key} className="flex justify-between gap-2">
+                              <span className="capitalize text-slate-500">{key.replace(/([A-Z])/g, " $1")}:</span>
+                              <span className="font-bold text-slate-900 truncate max-w-[180px]">
+                                {String(original || "N/A")} → {String(value)}
+                              </span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                    <div className="mt-3 space-y-1 text-xs font-semibold text-indigo-800">
+                      <p>Requested: <span className="font-black">{formatDate(booking.modificationRequestedAt || "")}</span></p>
+                      <p>Payment status: <span className="font-black capitalize">{booking.paymentStatus || "N/A"}</span></p>
+                    </div>
+                    <div className="mt-4 flex gap-3">
+                      <Button
+                        onClick={() => onModApproveOpen?.(booking)}
+                        className="h-10 flex-1 rounded-xl bg-emerald-600 text-xs font-black text-white hover:bg-emerald-700"
+                      >
+                        Approve Modification
+                      </Button>
+                      <Button
+                        onClick={() => onModDeclineOpen?.(booking)}
+                        className="h-10 flex-1 rounded-xl bg-rose-600 text-xs font-black text-white hover:bg-rose-700"
+                      >
+                        Decline Modification
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {booking.modificationStatus === "Approved" && (
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+                <div className="flex gap-3">
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+                  <div>
+                    <h3 className="font-black text-emerald-900">Modification Approved</h3>
+                    <p className="mt-1 text-xs font-semibold text-emerald-700">
+                      {booking.modificationReviewedAt ? `Reviewed on ${formatDate(booking.modificationReviewedAt)}` : ""}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {booking.modificationStatus === "Declined" && (
+              <div className="rounded-2xl border border-rose-200 bg-rose-50 p-5">
+                <div className="flex gap-3">
+                  <X className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" />
+                  <div>
+                    <h3 className="font-black text-rose-900">Modification Declined</h3>
+                    {booking.modificationDeclineReason && (
+                      <p className="mt-1 text-xs font-semibold text-rose-700">
+                        Reason: {booking.modificationDeclineReason}
+                      </p>
+                    )}
+                    {booking.modificationReviewedAt && (
+                      <p className="mt-1 text-xs font-semibold text-rose-700">
+                        Reviewed on {formatDate(booking.modificationReviewedAt)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {booking.adminLogs && booking.adminLogs.length > 0 && (
               <div className="rounded-2xl border border-slate-200 bg-white p-5">
                 <p className="mb-3 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
@@ -578,6 +669,123 @@ function ApproveCancellationModal({
             className="h-11 flex-1 rounded-xl bg-emerald-600 font-black text-white hover:bg-emerald-700"
           >
             Approve Cancellation
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function ApproveModificationModal({
+  booking,
+  open,
+  onOpenChange,
+}: {
+  booking: Booking | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  const { approveModification } = useBookings()
+
+  const handleApprove = () => {
+    if (!booking) return
+    approveModification(booking.id)
+    onOpenChange(false)
+  }
+
+  if (!booking) return null
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="w-[95vw] rounded-2xl border-slate-200 p-6 shadow-xl sm:max-w-md">
+        <DialogTitle className="text-xl font-black text-slate-950">
+          Approve Modification
+        </DialogTitle>
+
+        <p className="mt-1 text-sm font-semibold text-slate-500">
+          Are you sure you want to approve this modification request? The requested changes will be applied to the booking.
+        </p>
+
+        <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-2 text-sm font-semibold text-slate-600">
+          <p>Customer: <span className="font-black text-slate-900">{booking.userInfo?.name || "Client"}</span></p>
+          <p>Booking: <span className="font-black text-slate-900">{booking.id}</span></p>
+          <p>Event: <span className="font-black text-slate-900">{booking.eventName}</span></p>
+          <p>Reason: <span className="font-black text-slate-900">{booking.modificationReason || "N/A"}</span></p>
+        </div>
+
+        <div className="mt-5 flex gap-3">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="h-11 flex-1 rounded-xl font-black"
+          >
+            Cancel
+          </Button>
+
+          <Button
+            onClick={handleApprove}
+            className="h-11 flex-1 rounded-xl bg-emerald-600 font-black text-white hover:bg-emerald-700"
+          >
+            Approve Modification
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function DeclineModificationModal({
+  booking,
+  open,
+  onOpenChange,
+}: {
+  booking: Booking | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  const { declineModification } = useBookings()
+  const [reason, setReason] = useState("")
+
+  const handleDecline = () => {
+    if (!booking || !reason.trim()) return
+    declineModification(booking.id, reason.trim())
+    setReason("")
+    onOpenChange(false)
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="w-[95vw] rounded-2xl border-slate-200 p-6 shadow-xl sm:max-w-md">
+        <DialogTitle className="text-xl font-black text-slate-950">
+          Decline Modification
+        </DialogTitle>
+
+        <p className="mt-1 text-sm font-semibold text-slate-500">
+          Please provide a reason. This will be visible to the client.
+        </p>
+
+        <Textarea
+          value={reason}
+          onChange={(event) => setReason(event.target.value)}
+          placeholder="Type decline reason..."
+          className="mt-5 min-h-[130px] resize-none rounded-xl border-slate-200 bg-slate-50"
+        />
+
+        <div className="mt-5 flex gap-3">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="h-11 flex-1 rounded-xl font-black"
+          >
+            Cancel
+          </Button>
+
+          <Button
+            disabled={!reason.trim()}
+            onClick={handleDecline}
+            className="h-11 flex-1 rounded-xl bg-rose-600 font-black text-white hover:bg-rose-700 disabled:opacity-50"
+          >
+            Decline Modification
           </Button>
         </div>
       </DialogContent>
@@ -1049,6 +1257,8 @@ function AdminBookingsContent() {
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
   const [declineTarget, setDeclineTarget] = useState<Booking | null>(null)
   const [approveTarget, setApproveTarget] = useState<Booking | null>(null)
+  const [modDeclineTarget, setModDeclineTarget] = useState<Booking | null>(null)
+  const [modApproveTarget, setModApproveTarget] = useState<Booking | null>(null)
   const [isMaintenanceOpen, setIsMaintenanceOpen] = useState(false)
 
   const eventOptions = useMemo(() => {
@@ -1125,6 +1335,8 @@ function AdminBookingsContent() {
         }}
         onDeclineOpen={(booking) => setDeclineTarget(booking)}
         onApproveOpen={(booking) => setApproveTarget(booking)}
+        onModDeclineOpen={(booking) => setModDeclineTarget(booking)}
+        onModApproveOpen={(booking) => setModApproveTarget(booking)}
       />
 
       <DeclineCancellationModal
@@ -1140,6 +1352,22 @@ function AdminBookingsContent() {
         open={!!approveTarget}
         onOpenChange={(open) => {
           if (!open) setApproveTarget(null)
+        }}
+      />
+
+      <ApproveModificationModal
+        booking={modApproveTarget}
+        open={!!modApproveTarget}
+        onOpenChange={(open) => {
+          if (!open) setModApproveTarget(null)
+        }}
+      />
+
+      <DeclineModificationModal
+        booking={modDeclineTarget}
+        open={!!modDeclineTarget}
+        onOpenChange={(open) => {
+          if (!open) setModDeclineTarget(null)
         }}
       />
 

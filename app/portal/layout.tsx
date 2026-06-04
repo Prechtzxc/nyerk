@@ -276,7 +276,7 @@ export default function ClientLayout({
         </aside>
 
         <main
-          className={`min-w-0 flex-1 overflow-x-hidden ${
+          className={`min-w-0 flex-1 overflow-y-auto ${
             pathname === "/portal/chat" ? "p-0" : "p-4 md:p-6"
           }`}
         >

@@ -11,7 +11,14 @@ export type BookingStatus =
   | "cancelled"
   | "declined"
   | "cancellation_requested"
-  | "reservation_secured";
+  | "reservation_secured"
+  | "modification_under_review";
+
+export type ModificationStatus =
+  | "None"
+  | "Under Review"
+  | "Approved"
+  | "Declined";
 
 export type PaymentStatus =
   | "unpaid"
@@ -54,6 +61,7 @@ export type BookingStatusLabel =
   | "Confirmed"
   | "Slot Secured"
   | "Cancellation Under Review"
+  | "Modification Under Review"
   | "Cancelled"
   | "Completed";
 
@@ -158,6 +166,18 @@ export interface Booking {
   previousStatus?: BookingStatus;
   previousBookingStatus?: BookingStatus;
   previousPaymentStatus?: PaymentStatus;
+
+  modificationRequested?: boolean;
+  modificationStatus?: ModificationStatus;
+  modificationReason?: string;
+  modificationRequestedAt?: string;
+  modificationReviewedAt?: string;
+  modificationDeclineReason?: string;
+  modificationReviewedBy?: string;
+  requestedChanges?: Record<string, unknown>;
+  originalBookingSnapshot?: Record<string, unknown>;
+  modificationPreviousStatus?: BookingStatus;
+  modificationPreviousBookingStatus?: BookingStatusLabel;
 
   refundEligible?: boolean;
   refundMethod?: "Cash";
@@ -265,6 +285,9 @@ interface BookingContextType {
   approveCancellation: (id: string) => void;
   declineCancellation: (id: string, reason: string) => void;
   rejectCancellation: (id: string, reason?: string) => void;
+  requestModification: (id: string, changes: Record<string, unknown>, reason: string) => void;
+  approveModification: (id: string) => void;
+  declineModification: (id: string, reason: string) => void;
   markRefundReady: (id: string) => void;
   markRefundClaimed: (id: string) => void;
 
@@ -466,6 +489,7 @@ function getDisplayBookingStatus(booking: Partial<Booking>): BookingStatusLabel 
   if (booking.status === "completed") return "Completed"
   if (booking.status === "cancelled") return "Cancelled"
   if (booking.status === "cancellation_requested") return "Cancellation Under Review"
+  if (booking.status === "modification_under_review") return "Modification Under Review"
   if (booking.status === "reservation_secured") return "Slot Secured"
   if (booking.status === "confirmed") return isOfficeBooking(booking as Booking) ? "Slot Secured" : "Confirmed"
   return "Pending Verification"
@@ -753,6 +777,8 @@ function normalizeBookingForNewFields(booking: Booking): Booking {
     bookingStatus: booking.bookingStatus || getDisplayBookingStatus(booking),
     isSlotSecured: booking.isSlotSecured ?? isBookingSlotSecured(booking),
     cancellationStatus: booking.cancellationStatus || "None",
+    modificationRequested: booking.modificationRequested ?? false,
+    modificationStatus: booking.modificationStatus || "None",
     refundStatus: booking.refundStatus || "Not Applicable",
     refundEligibilityNote:
       booking.refundEligibilityNote ||
@@ -1186,6 +1212,132 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
 
   const rejectCancellation = (id: string, reason?: string) => {
     declineCancellation(id, reason || "");
+  };
+
+  const requestModification = (id: string, changes: Record<string, unknown>, reason: string) => {
+    const targetBooking = bookings.find((booking) => booking.id === id);
+    if (!targetBooking) return;
+
+    const updatedBookings = bookings.map((booking) => {
+      if (booking.id !== id) return booking;
+
+      return {
+        ...booking,
+        modificationPreviousStatus: booking.status,
+        modificationPreviousBookingStatus: booking.bookingStatus,
+        status: "modification_under_review" as BookingStatus,
+        bookingStatus: "Modification Under Review",
+        modificationRequested: true,
+        modificationStatus: "Under Review" as ModificationStatus,
+        modificationReason: reason.trim(),
+        modificationRequestedAt: new Date().toISOString(),
+        requestedChanges: changes,
+        originalBookingSnapshot: {
+          eventName: booking.eventName,
+          eventType: booking.eventType,
+          guestCount: booking.guestCount,
+          date: booking.date,
+          startTime: booking.startTime,
+          endTime: booking.endTime,
+          time: booking.time,
+          venue: booking.venue,
+          venueId: booking.venueId,
+          specialRequests: booking.specialRequests,
+        },
+        updatedAt: new Date().toISOString(),
+        adminLogs: makeAdminLog(
+          booking,
+          "REQUEST_MODIFICATION",
+          `Client requested modification. Reason: ${reason.trim()}. Changes requested: ${JSON.stringify(changes)}`,
+        ),
+      };
+    });
+
+    saveBookings(updatedBookings as Booking[]);
+  };
+
+  const approveModification = (id: string) => {
+    const updatedBookings = bookings.map((booking) => {
+      if (booking.id !== id) return booking;
+
+      const changes = booking.requestedChanges as Record<string, unknown> | undefined;
+      if (!changes) return booking;
+
+      const previousStatus = booking.modificationPreviousStatus || "pending";
+      const paymentVerified =
+        booking.paymentStatus === "verified" ||
+        booking.paymentStatus === "paid" ||
+        booking.paymentStatus === "slot_verified";
+
+      const restoredStatus: BookingStatus =
+        previousStatus === "modification_under_review"
+          ? paymentVerified
+            ? "confirmed"
+            : "pending"
+          : (previousStatus as BookingStatus);
+
+      return {
+        ...booking,
+        ...changes,
+        status: restoredStatus,
+        bookingStatus: getDisplayBookingStatus({ ...booking, ...changes, status: restoredStatus }),
+        modificationRequested: false,
+        modificationStatus: "Approved" as ModificationStatus,
+        modificationReviewedAt: new Date().toISOString(),
+        modificationPreviousStatus: undefined,
+        modificationPreviousBookingStatus: undefined,
+        requestedChanges: undefined,
+        originalBookingSnapshot: undefined,
+        updatedAt: new Date().toISOString(),
+        adminLogs: makeAdminLog(
+          booking,
+          "APPROVE_MODIFICATION",
+          "Admin approved modification request. Changes have been applied.",
+        ),
+      };
+    });
+
+    saveBookings(updatedBookings as Booking[]);
+  };
+
+  const declineModification = (id: string, reason: string) => {
+    if (!reason.trim()) {
+      toast({
+        title: "Decline Reason Required",
+        description: "Please provide a reason before declining the modification request.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const updatedBookings = bookings.map((booking) => {
+      if (booking.id !== id) return booking;
+
+      const previousStatus = booking.modificationPreviousStatus || "pending";
+      const previousBookingStatus = booking.modificationPreviousBookingStatus;
+
+      return {
+        ...booking,
+        status: previousStatus,
+        bookingStatus: previousBookingStatus || getDisplayBookingStatus({ ...booking, status: previousStatus }),
+        modificationRequested: false,
+        modificationStatus: "Declined" as ModificationStatus,
+        modificationDeclineReason: reason.trim(),
+        modificationReviewedAt: new Date().toISOString(),
+        modificationPreviousStatus: undefined,
+        modificationPreviousBookingStatus: undefined,
+        requestedChanges: undefined,
+        originalBookingSnapshot: undefined,
+        updatedAt: new Date().toISOString(),
+        adminLogs: makeAdminLog(
+          booking,
+          "DECLINE_MODIFICATION_REQUEST",
+          `Modification request declined. Reason: ${reason.trim()}`,
+        ),
+      };
+    });
+
+    saveBookings(updatedBookings as Booking[]);
   };
 
   const markRefundReady = (id: string) => {
@@ -2074,6 +2226,9 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         approveCancellation,
         declineCancellation,
         rejectCancellation,
+        requestModification,
+        approveModification,
+        declineModification,
         markRefundReady,
         markRefundClaimed,
         markContractSigned,
