@@ -170,7 +170,7 @@ export function MainLayout({ children }: MainLayoutProps) {
             isMobileMenuOpen && "translate-x-0"
           )}
         >
-          <nav className="flex h-[calc(100vh-4rem)] flex-col gap-1 overflow-y-auto p-4">
+          <nav className="flex h-[calc(100vh-4rem)] h-[calc(100dvh-4rem)] flex-col gap-1 overflow-y-auto p-4">
             <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
               Admin Menu
             </p>

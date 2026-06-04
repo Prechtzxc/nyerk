@@ -299,7 +299,7 @@ function BookingConfirmationDialog({
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onEdit()}>
-      <DialogContent className="flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-1rem)] max-w-lg flex-col gap-0 overflow-hidden rounded-2xl border-slate-200 bg-white p-0 shadow-2xl [&>button]:hidden">
+      <DialogContent className="flex max-h-[calc(100vh-2rem)] max-h-[calc(100dvh-2rem)] w-[calc(100vw-1rem)] max-w-lg flex-col gap-0 overflow-hidden rounded-2xl border-slate-200 bg-white p-0 shadow-2xl [&>button]:hidden">
         <div className="shrink-0 border-b border-slate-100 px-5 py-4">
           <DialogTitle className="text-xl md:text-2xl font-black text-slate-950">
             Confirm Booking Details
@@ -861,7 +861,7 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
 
   const renderCategory = () => (
     <div className="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col justify-center bg-slate-50 min-h-0">
-      <div className="max-w-lg mx-auto w-full pb-[env(safe-area-inset-bottom)]">
+      <div className="max-w-lg mx-auto w-full pb-4 pb-[env(safe-area-inset-bottom)]">
         <div className="text-center mb-5 md:mb-6">
           <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">Select Category</h2>
           <p className="text-slate-500 mt-1 text-sm">What type of space are you looking for?</p>
@@ -886,7 +886,7 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
     const items = category === 'venue' ? VENUES : OFFICE_BUILDINGS
     return (
       <div className="flex-1 overflow-y-auto p-4 md:p-5 bg-slate-50 min-h-0">
-        <div className="max-w-4xl mx-auto w-full pb-[env(safe-area-inset-bottom)]">
+        <div className="max-w-4xl mx-auto w-full pb-5 pb-[env(safe-area-inset-bottom)]">
           <div className="mb-4 md:mb-5 text-center md:text-left">
             <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">{category === 'venue' ? 'Our Venues' : 'Office Wings'}</h2>
             <p className="text-slate-500 mt-1 text-sm">Select a space to view its availability and 360 preview.</p>
@@ -935,7 +935,7 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
 
   const renderRoomSelect = () => (
     <div className="flex-1 overflow-y-auto p-6 xl:p-8 flex flex-col justify-center bg-slate-50 min-h-0">
-      <div className="max-w-3xl xl:max-w-3xl mx-auto w-full text-center pb-[env(safe-area-inset-bottom)]">
+      <div className="max-w-3xl xl:max-w-3xl mx-auto w-full text-center pb-8 pb-[env(safe-area-inset-bottom)]">
         <div className="w-16 h-16 xl:w-12 xl:h-12 bg-orange-50 text-[#ea580c] rounded-full flex items-center justify-center mx-auto mb-6 xl:mb-4"><DoorOpen className="w-8 h-8 xl:w-6 xl:h-6" /></div>
         <h2 className="text-2xl md:text-3xl xl:text-2xl font-black text-slate-900 tracking-tight mb-3 xl:mb-2">{selectedItem?.name} Rooms</h2>
         <p className="text-slate-500 mb-8 xl:mb-6 text-sm xl:text-xs max-w-xl mx-auto">Choose an available private room in this wing. All rooms share the same layout and premium amenities.</p>
@@ -1500,7 +1500,7 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
       <DialogTrigger asChild>{children || <Button className="bg-[#ea580c] text-white">Book Now</Button>}</DialogTrigger>
       
       <DialogContent className={cn(
-        "!flex !flex-col !gap-0 !p-0 overflow-hidden bg-white rounded-none sm:rounded-[2rem] border-0 focus:outline-none [&>button]:hidden shadow-2xl transition-all duration-300 ease-in-out w-full h-[100dvh] md:h-[calc(100vh-32px)] md:max-h-[760px]",
+        "!flex !flex-col !gap-0 !p-0 overflow-hidden bg-white rounded-none sm:rounded-[2rem] border-0 focus:outline-none [&>button]:hidden shadow-2xl transition-all duration-300 ease-in-out w-full h-[100vh] h-[100dvh] md:h-[calc(100vh-32px)] md:max-h-[760px]",
         step === 'category' && "!max-w-[100vw] sm:!max-w-[800px]",
         (step === 'list' || step === 'room') && "!max-w-[100vw] sm:!max-w-[95vw] lg:!max-w-[960px]",
         step === 'schedule' && "!max-w-[100vw] sm:!max-w-[95vw] lg:!max-w-[1100px]",

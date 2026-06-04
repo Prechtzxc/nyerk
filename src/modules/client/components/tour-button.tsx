@@ -279,11 +279,11 @@ export function TourButton({ children, className, size = "lg" }: TourButtonProps
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="h-[92dvh] w-[calc(100vw-24px)] overflow-hidden rounded-[1.4rem] border-0 bg-black p-0 shadow-2xl sm:h-[88dvh] sm:rounded-[1.75rem] md:w-[calc(100vw-48px)] xl:!max-w-[1180px] [&>button]:hidden">
+      <DialogContent className="h-[92vh] h-[92dvh] w-[calc(100vw-24px)] overflow-hidden rounded-[1.4rem] border-0 bg-black p-0 shadow-2xl sm:h-[88vh] sm:h-[88dvh] sm:rounded-[1.75rem] md:w-[calc(100vw-48px)] xl:!max-w-[1180px] [&>button]:hidden">
         <DialogTitle className="sr-only">360 Tour</DialogTitle>
 
         <div className="flex h-full min-w-0 flex-col overflow-hidden bg-black xl:grid xl:grid-cols-[0.95fr_1.05fr]">
-          <div className="relative h-[38dvh] min-h-[240px] shrink-0 overflow-hidden bg-slate-950 sm:h-[44dvh] sm:min-h-[320px] xl:h-full xl:min-h-0">
+          <div className="relative h-[38vh] h-[38dvh] min-h-[240px] shrink-0 overflow-hidden bg-slate-950 sm:h-[44vh] sm:h-[44dvh] sm:min-h-[320px] xl:h-full xl:min-h-0">
             <button
               type="button"
               onClick={() => setOpen(false)}

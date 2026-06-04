@@ -463,7 +463,7 @@ export default function AdminPaymentsPage() {
           open={!!selectedPayment}
           onOpenChange={(open) => !open && setSelectedPayment(null)}
         >
-          <DialogContent className="h-[calc(100svh-32px)] max-h-[calc(100svh-32px)] w-[calc(100vw-32px)] !max-w-[900px] overflow-hidden rounded-[1.75rem] border-0 bg-white p-0 shadow-2xl [&>button]:hidden">
+          <DialogContent className="h-[calc(100vh-32px)] h-[calc(100svh-32px)] max-h-[calc(100vh-32px)] max-h-[calc(100svh-32px)] w-[calc(100vw-32px)] !max-w-[900px] overflow-hidden rounded-[1.75rem] border-0 bg-white p-0 shadow-2xl [&>button]:hidden">
             {selectedPayment && (
               <PaymentReviewModal
                 payment={selectedPayment}

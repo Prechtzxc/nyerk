@@ -267,8 +267,8 @@ function BookingDetailsModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] w-[95vw] overflow-y-auto rounded-3xl border-slate-200 p-0 shadow-xl sm:max-w-4xl [&>button]:hidden">
-        <div className="sticky top-0 z-10 flex items-start justify-between border-b border-slate-200 bg-white p-5">
+      <DialogContent className="max-h-[92vh] max-h-[92dvh] w-[95vw] overflow-y-auto rounded-3xl border-slate-200 p-0 shadow-xl sm:max-w-4xl [&>button]:hidden">
+        <div className="sticky top-0 z-10 flex items-start justify-between border-b border-slate-200 bg-white p-5 safari-sticky">
           <div>
             <DialogTitle className="text-2xl font-black text-slate-950">
               Booking Details

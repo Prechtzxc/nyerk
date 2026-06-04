@@ -104,7 +104,71 @@
 @tailwind components;
 @tailwind utilities;
 
-/* NUCLEAR OPTION: Patayin ang epal na letrang N sa gilid! 😂 */
+/* ── BROWSER COMPATIBILITY FALLBACKS ── */
+
+/* dvh fallback: browsers that don't support dvh use vh instead */
+[style*="dvh"] {
+  /* this is overridden by the @supports block below */
+}
+@supports (height: 100dvh) {
+  [style*="dvh"] {
+    /* browser supports dvh natively, no override needed */
+  }
+}
+
+/* dvh/svh utility fallbacks for Tailwind arbitrary values */
+@supports not (height: 100dvh) {
+  .h-dvh-fallback {
+    height: 100vh;
+  }
+  .min-h-dvh-fallback {
+    min-height: 100vh;
+  }
+  .max-h-dvh-fallback {
+    max-height: 100vh;
+  }
+}
+
+/* Sticky positioning fix for Safari (needs explicit z-index + position context) */
+.safari-sticky {
+  position: -webkit-sticky;
+}
+
+/* Scroll container fix for Safari iOS */
+.safari-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Button appearance consistency across browsers */
+input[type="button"],
+input[type="submit"],
+input[type="reset"],
+button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Select/input consistency */
+select,
+textarea,
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+input[type="number"],
+input[type="tel"],
+input[type="url"] {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Safari mobile tap highlight */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* NUCLEAR OPTION: Patayin ang epal na letrang N sa gilid! */
 nextjs-portal {
   display: none !important;
 }
@@ -144,5 +208,11 @@ nextjs-portal {
   }
   body .receipt-print table {
     page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  /* Prevent page break inside receipt sections */
+  body .receipt-print .space-y-3 > div {
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
 }
