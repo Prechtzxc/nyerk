@@ -709,22 +709,22 @@ export default function CMSPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1400px] p-5 md:p-8 xl:p-10">
-      <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <p className="mb-2 text-xs font-black uppercase tracking-[0.35em] text-orange-600">
-            Admin Content Management
+    <div className="mx-auto w-full max-w-[1180px] px-3 py-4 sm:px-5 lg:px-6">
+      <div className="border-b border-slate-200 pb-5 mb-5">
+        <div className="min-w-0">
+          <p className="text-[11px] font-black uppercase tracking-[0.22em] text-orange-600">
+            Admin CMS Settings
           </p>
-
-          <h1 className="text-4xl font-black tracking-tight text-slate-950 md:text-5xl">
+          <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
             CMS Settings
           </h1>
-
-          <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-500">
+          <p className="mt-1 text-xs leading-5 text-slate-500 sm:text-sm">
             Manage landing page content, spaces, 360 tour images, and real past client booking photos.
           </p>
         </div>
+      </div>
 
+      <div className="mb-5">
         <div className="inline-flex overflow-x-auto rounded-full border border-slate-200 bg-white p-1 shadow-sm">
           {TABS.map((tab) => (
             <button

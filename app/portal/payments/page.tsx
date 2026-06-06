@@ -1420,27 +1420,33 @@ function TransactionsContent() {
   }
 
   return (
-    <div className="mx-auto min-w-0 w-full max-w-7xl animate-in fade-in space-y-6 p-4 duration-500 md:p-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-black tracking-tight text-slate-900 md:text-3xl">
-            My Transactions
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Manage your payments and invoices.
-          </p>
-        </div>
-        {hasHistoryRecords && (
-          <Button
-            variant="outline"
-            onClick={() => setShowHistory((v) => !v)}
-            className="h-11 whitespace-nowrap rounded-xl border-slate-200 px-4 text-xs font-bold text-slate-700 hover:bg-slate-50"
-          >
-            <Receipt className="mr-1.5 h-3.5 w-3.5" />
-            {showHistory ? "Hide Transaction History" : "View Transaction History"}
-          </Button>
-        )}
-      </div>
+    <div className="w-full min-w-0 max-w-full overflow-x-hidden">
+      <div className="mx-auto w-full max-w-[1180px] px-3 py-4 sm:px-5 lg:px-6 animate-in fade-in duration-500">
+        <section className="border-b border-slate-200 pb-5 mb-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-[11px] font-black uppercase tracking-[0.24em] text-orange-600">
+                Payments
+              </p>
+              <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
+                My Transactions
+              </h1>
+              <p className="mt-1 text-sm text-slate-500">
+                Manage your payments and invoices.
+              </p>
+            </div>
+            {hasHistoryRecords && (
+              <Button
+                variant="outline"
+                onClick={() => setShowHistory((v) => !v)}
+                className="h-11 whitespace-nowrap rounded-xl border-slate-200 px-4 text-xs font-bold text-slate-700 hover:bg-slate-50"
+              >
+                <Receipt className="mr-1.5 h-3.5 w-3.5" />
+                {showHistory ? "Hide Transaction History" : "View Transaction History"}
+              </Button>
+            )}
+          </div>
+        </section>
 
       {/* Current Transactions (hidden when viewing history) */}
       {!showHistory && (
@@ -1676,6 +1682,7 @@ function TransactionsContent() {
           </section>
         </>
       )}
+      </div>
     </div>
   );
 }
@@ -1690,19 +1697,19 @@ function SectionHeader({
   icon: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-100 text-orange-600">
+    <div className="flex items-center gap-2">
+      {icon && (
+        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-orange-50 text-orange-600">
           {icon}
         </div>
-        <div>
-          <h2 className="text-base font-black tracking-tight text-slate-900">
-            {title}
-          </h2>
-          {subtitle && (
-            <p className="text-[11px] font-semibold text-slate-500">{subtitle}</p>
-          )}
-        </div>
+      )}
+      <div className="min-w-0">
+        <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+          {title}
+        </h2>
+        {subtitle && (
+          <p className="text-xs font-semibold text-slate-400">{subtitle}</p>
+        )}
       </div>
     </div>
   );

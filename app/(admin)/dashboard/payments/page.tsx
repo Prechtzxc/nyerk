@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   Eye,
   FileImage,
+  FileText,
   Filter,
   Inbox,
   Receipt,
@@ -64,6 +65,7 @@ export default function AdminPaymentsPage() {
   const [selectedPayment, setSelectedPayment] = useState<BookingRecord | null>(null)
   const [pendingAction, setPendingAction] = useState<PendingPaymentAction>(null)
   const [actionNote, setActionNote] = useState("")
+  const [contractSigningTarget, setContractSigningTarget] = useState<BookingRecord | null>(null)
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
@@ -238,9 +240,55 @@ export default function AdminPaymentsPage() {
     }
   }
 
+  const handleMarkContractSigned = () => {
+    if (!contractSigningTarget) return
+
+    const bookingId = contractSigningTarget.id
+    const signedBy = "Administrator"
+    const baseBookings = readStoredBookings()
+    const sourceBookings = baseBookings.length > 0 ? baseBookings : bookings
+
+    const nextBookings = sourceBookings.map((booking) => {
+      if (booking.id !== bookingId) return booking
+
+      return {
+        ...booking,
+        contractSigningRequired: true,
+        contractSigned: true,
+        contractSignedDate: new Date().toISOString(),
+        contractSignedBy: signedBy,
+        contractSigningMethod: "Face-to-face",
+        contractStatus: "Signed",
+        updatedAt: new Date().toISOString(),
+        adminLogs: appendAdminLog(
+          booking,
+          "MARK_CONTRACT_SIGNED",
+          `Admin marked contract as signed at One Estela Place office. Signed by: ${signedBy}. Method: Face-to-face.`,
+        ),
+      }
+    })
+
+    persistBookings(nextBookings)
+
+    const updatedBooking = nextBookings.find((booking) => booking.id === bookingId)
+    setSelectedPayment(updatedBooking || null)
+    setContractSigningTarget(null)
+
+    toast({
+      title: "Contract Marked as Signed",
+      description: `Booking ${bookingId} contract has been marked as signed.`,
+      className: "border-none bg-emerald-500 text-white",
+    })
+  }
+
   return (
     <div className="w-full min-w-0 max-w-full overflow-x-hidden">
       <div className="mx-auto w-full max-w-[1180px] px-3 py-4 sm:px-5 lg:px-6">
+        <ContractSigningConfirmModal
+          booking={contractSigningTarget}
+          onCancel={() => setContractSigningTarget(null)}
+          onConfirm={handleMarkContractSigned}
+        />
         <PaymentActionConfirmModal
           pendingAction={pendingAction}
           note={actionNote}
@@ -252,15 +300,15 @@ export default function AdminPaymentsPage() {
         <section className="border-b border-slate-200 pb-5">
           <div className="flex flex-col gap-4">
             <div className="min-w-0">
-              <p className="text-[11px] font-black uppercase tracking-[0.24em] text-orange-600">
-                Admin Payments
+              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-orange-600">
+                Admin Payment Verification
               </p>
 
-              <h1 className="mt-1 text-3xl font-black leading-tight tracking-tight text-slate-950 sm:text-4xl lg:whitespace-nowrap">
+              <h1 className="mt-1 text-2xl font-black leading-tight tracking-tight text-slate-950 md:text-3xl">
                 Payment Verification
               </h1>
 
-              <p className="mt-2 max-w-xl text-sm text-slate-500">
+              <p className="mt-1 text-xs leading-5 text-slate-500 sm:text-sm">
                 Review client payment submissions. All payment actions require confirmation before updating LocalStorage.
               </p>
             </div>
@@ -340,123 +388,22 @@ export default function AdminPaymentsPage() {
           </div>
         </section>
 
-        <section className="mt-4">
-          <div className="border-t border-slate-200 md:hidden">
-            {filteredPayments.length === 0 ? (
-              <EmptyState />
-            ) : (
-              filteredPayments.map((payment) => (
-                <MobilePaymentRow
+        <section className="mt-4 space-y-3">
+          {filteredPayments.length === 0 ? (
+            <EmptyState />
+          ) : (
+            filteredPayments.map((payment) => {
+              const amountPaid = getAmountPaid(payment)
+              return (
+                <PaymentCard
                   key={payment.id}
                   payment={payment}
+                  amountPaid={amountPaid}
                   onView={() => setSelectedPayment(payment)}
                 />
-              ))
-            )}
-          </div>
-
-          <div className="hidden overflow-x-auto border-t border-slate-200 md:block">
-            <table className="w-full min-w-[920px] border-collapse text-left">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/70 text-[10px] uppercase tracking-widest text-slate-500">
-                  <th className="p-4 pl-0 font-black">Transaction</th>
-                  <th className="p-4 font-black">Client</th>
-                  <th className="p-4 font-black">Payment Method</th>
-                  <th className="p-4 text-right font-black">Amount Submitted</th>
-                  <th className="p-4 font-black">Status</th>
-                  <th className="p-4 pr-0 text-right font-black">Action</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {filteredPayments.length === 0 ? (
-                  <tr>
-                    <td colSpan={6}>
-                      <EmptyState />
-                    </td>
-                  </tr>
-                ) : (
-                  filteredPayments.map((payment) => {
-                    const amountPaid = getAmountPaid(payment)
-
-                    return (
-                      <tr
-                        key={payment.id}
-                        className="border-b border-slate-200/80 transition-colors hover:bg-slate-50/70"
-                      >
-                        <td className="p-4 pl-0 align-top">
-                          <div className="flex gap-3">
-                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500">
-                              <Receipt className="h-5 w-5" />
-                            </div>
-
-                            <div className="min-w-0">
-                              <p className="max-w-[260px] break-words text-sm font-black leading-tight text-slate-900">
-                                {payment.eventName || "Untitled Event"}
-                              </p>
-
-                              <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                                ID: {payment.id || "No ID"}
-                              </p>
-
-                              <p className="mt-1 max-w-[260px] break-words text-xs text-slate-500">
-                                {payment.venue || "No venue selected"}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-
-                        <td className="p-4 align-top">
-                          <p className="max-w-[220px] break-words text-sm font-bold text-slate-900">
-                            {payment.userInfo?.name || "No Name"}
-                          </p>
-
-                          <p className="mt-0.5 max-w-[220px] break-all text-xs text-slate-500">
-                            {payment.userInfo?.email || "No email"}
-                          </p>
-                        </td>
-
-                        <td className="p-4 align-top">
-                          <PaymentMethodLabel payment={payment} />
-
-                          <p className="mt-1.5 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                            {getPaymentTypeLabel(payment.paymentType)}
-                          </p>
-                        </td>
-
-                        <td className="p-4 text-right align-top">
-                          <p className="text-base font-black text-slate-950">
-                            {formatCurrency(amountPaid)}
-                          </p>
-
-                          {payment.paymentType === "downpayment" && (
-                            <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-amber-600">
-                              Partial
-                            </p>
-                          )}
-                        </td>
-
-                        <td className="p-4 align-top">
-                          <PaymentBadge payment={payment} />
-                        </td>
-
-                        <td className="p-4 pr-0 text-right align-top">
-                          <Button
-                            onClick={() => setSelectedPayment(payment)}
-                            variant="outline"
-                            className="h-9 rounded-xl border-slate-200 px-4 text-xs font-black text-slate-700 hover:border-orange-600 hover:bg-orange-600 hover:text-white"
-                          >
-                            <Eye className="mr-1.5 h-4 w-4" />
-                            Review
-                          </Button>
-                        </td>
-                      </tr>
-                    )
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+              )
+            })
+          )}
         </section>
 
         <Dialog
@@ -469,6 +416,7 @@ export default function AdminPaymentsPage() {
                 payment={selectedPayment}
                 onClose={() => setSelectedPayment(null)}
                 onAction={(type) => openActionModal(selectedPayment, type)}
+                onMarkContractSigned={(payment) => setContractSigningTarget(payment)}
               />
             )}
           </DialogContent>
@@ -617,6 +565,137 @@ function ConfirmLine({ label, value }: { label: string; value: string }) {
   )
 }
 
+function ContractSigningConfirmModal({
+  booking,
+  onCancel,
+  onConfirm,
+}: {
+  booking: BookingRecord
+  onCancel: () => void
+  onConfirm: () => void
+}) {
+  const getContractStatusLabel = (b: BookingRecord) => {
+    if (b.contractStatus === "Signed") return "Signed"
+    if (b.contractStatus === "Pending Signature" || b.contractSigned) return "Pending Signature"
+    return "Not Available"
+  }
+
+  return (
+    <Dialog open={!!booking} onOpenChange={(open) => !open && onCancel()}>
+      <DialogContent className="w-[calc(100vw-28px)] max-w-[520px] rounded-[1.75rem] border-0 bg-white p-0 shadow-2xl [&>button]:hidden">
+        <div className="p-6 sm:p-7">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+            <FileText className="h-8 w-8" />
+          </div>
+
+          <DialogTitle className="text-2xl font-black text-slate-950">
+            Mark Contract as Signed?
+          </DialogTitle>
+
+          <p className="mt-2 text-sm leading-6 text-slate-500">
+            Are you sure you want to mark this contract as signed? This should only be done after
+            the customer has signed the official contract at the One Estela Place office.
+          </p>
+
+          {booking && (
+            <div className="mt-5 space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left">
+              <ConfirmLine label="Booking ID" value={booking.id || "No ID"} />
+              <ConfirmLine label="Customer" value={booking.userInfo?.name || "No Name"} />
+              <ConfirmLine label="Event" value={booking.eventName || "Untitled"} />
+              <ConfirmLine label="Contract Status" value={getContractStatusLabel(booking)} />
+            </div>
+          )}
+
+          <div className="mt-6 grid grid-cols-2 gap-3">
+            <Button
+              variant="outline"
+              onClick={onCancel}
+              className="h-11 rounded-xl border-slate-200 text-sm font-black text-slate-700"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={onConfirm}
+              className="h-11 rounded-xl bg-blue-600 text-sm font-black text-white hover:bg-blue-700"
+            >
+              Yes, Mark as Signed
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function PaymentCard({
+  payment,
+  amountPaid,
+  onView,
+}: {
+  payment: BookingRecord
+  amountPaid: number
+  onView: () => void
+}) {
+  return (
+    <div className="group flex w-full max-w-full min-w-0 flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-orange-200 hover:shadow-md sm:flex-row sm:items-center sm:gap-4">
+      <div className="flex shrink-0 items-center gap-3 sm:w-[200px]">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
+          <Receipt className="h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+            Payment
+          </p>
+          <p className="break-words whitespace-normal text-sm font-black text-slate-900">
+            {payment.eventName || "Untitled"}
+          </p>
+          <p className="break-words whitespace-normal text-[11px] font-bold text-orange-600">
+            {payment.id}
+          </p>
+        </div>
+      </div>
+
+      <div className="grid min-w-0 flex-1 grid-cols-2 gap-x-2 gap-y-1.5 sm:grid-cols-4 sm:gap-x-3">
+        <div className="min-w-0 max-w-full">
+          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">Customer</p>
+          <p className="whitespace-normal break-words text-xs font-black text-slate-800">{payment.userInfo?.name || "—"}</p>
+          <p className="whitespace-normal break-words text-[10px] font-bold text-slate-500">{payment.userInfo?.email || "—"}</p>
+        </div>
+        <div className="min-w-0 max-w-full">
+          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">Payment Method</p>
+          <p className="whitespace-normal break-words text-xs font-bold text-slate-800">
+            <PaymentMethodLabel payment={payment} />
+          </p>
+          <p className="whitespace-normal break-words text-[10px] font-bold text-slate-500">{getPaymentTypeLabel(payment.paymentType)}</p>
+        </div>
+        <div className="min-w-0 max-w-full">
+          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">Amount</p>
+          <p className="whitespace-normal break-words text-xs font-bold text-slate-800">{formatCurrency(amountPaid)}</p>
+          {payment.paymentType === "downpayment" && (
+            <p className="whitespace-normal break-words text-[10px] font-black uppercase tracking-widest text-amber-600">Partial</p>
+          )}
+        </div>
+        <div className="min-w-0 max-w-full">
+          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">Venue</p>
+          <p className="whitespace-normal break-words text-xs font-bold text-slate-800">{payment.venue || "N/A"}</p>
+        </div>
+      </div>
+
+      <div className="flex shrink-0 items-center justify-between gap-2 sm:flex-col sm:items-end sm:gap-1">
+        <PaymentBadge payment={payment} />
+        <Button
+          variant="outline"
+          onClick={onView}
+          className="h-8 shrink-0 whitespace-nowrap rounded-lg border-slate-200 px-2.5 text-[10px] font-bold text-slate-700 hover:bg-slate-50"
+        >
+          <Eye className="mr-1 h-3 w-3" />
+          Review
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 function PaymentTabButton({
   label,
   count,
@@ -652,74 +731,60 @@ function PaymentTabButton({
   )
 }
 
-function MobilePaymentRow({
-  payment,
-  onView,
-}: {
-  payment: BookingRecord
-  onView: () => void
-}) {
+function getContractStatusBadge(b: BookingRecord) {
+  const status = b.contractStatus
+  const baseClass =
+    "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest"
+
+  if (status === "Signed") {
+    return (
+      <span className={`${baseClass} border-emerald-100 bg-emerald-50 text-emerald-600`}>
+        <CheckCircle2 className="h-3 w-3" />
+        Signed
+      </span>
+    )
+  }
+
+  if (status === "Pending Signature" || b.contractSigned) {
+    return (
+      <span className={`${baseClass} border-amber-100 bg-amber-50 text-amber-600`}>
+        <FileText className="h-3 w-3" />
+        Pending Signature
+      </span>
+    )
+  }
+
   return (
-    <div className="border-b border-slate-200 py-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-            ID: {payment.id || "No ID"}
-          </p>
-
-          <h3 className="mt-1 break-words text-base font-black leading-snug text-slate-900">
-            {payment.eventName || "Untitled Event"}
-          </h3>
-
-          <p className="mt-1 break-words text-sm font-medium text-slate-500">
-            {payment.venue || "No venue selected"}
-          </p>
-        </div>
-
-        <div className="shrink-0">
-          <PaymentBadge payment={payment} />
-        </div>
-      </div>
-
-      <div className="mt-3 space-y-2 text-sm">
-        <p className="text-slate-700">
-          <span className="font-black text-slate-900">Client:</span>{" "}
-          {payment.userInfo?.name || "No Name"}
-        </p>
-
-        <p className="text-slate-700">
-          <span className="font-black text-slate-900">Method:</span>{" "}
-          {getPaymentMethodLabel(payment.paymentMethod)}
-        </p>
-
-        <p className="text-orange-600">
-          <span className="font-black">Amount:</span>{" "}
-          {formatCurrency(getAmountPaid(payment))}
-        </p>
-      </div>
-
-      <div className="mt-4">
-        <Button
-          onClick={onView}
-          variant="outline"
-          className="h-10 w-full rounded-xl border-slate-200 text-xs font-black hover:border-orange-600 hover:bg-orange-600 hover:text-white"
-        >
-          <Eye className="mr-1.5 h-4 w-4" />
-          Review Payment
-        </Button>
-      </div>
-    </div>
+    <span className={`${baseClass} border-slate-200 bg-slate-50 text-slate-500`}>
+      <FileText className="h-3 w-3" />
+      Not Available
+    </span>
   )
+}
+
+function formatContractDate(date?: string) {
+  if (!date) return ""
+  try {
+    return new Intl.DateTimeFormat("en-PH", {
+      month: "short",
+      day: "2-digit",
+      year: "numeric",
+    }).format(new Date(date))
+  } catch {
+    return date
+  }
 }
 
 function PaymentReviewModal({
   payment,
   onClose,
   onAction,
+  onMarkContractSigned,
 }: {
   payment: BookingRecord
   onClose: () => void
   onAction: (type: PaymentAction) => void
+  onMarkContractSigned?: (payment: BookingRecord) => void
 }) {
   const totalAmount = getSafePrice(payment.totalPrice)
   const amountPaid = getAmountPaid(payment)
@@ -865,6 +930,25 @@ function PaymentReviewModal({
                 <InfoLine label="Status" value={getPaymentStatusText(payment)} />
               </div>
             </ModalSection>
+
+            <ModalSection title="Contract Status">
+              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                <div className="flex items-center gap-2">
+                  {getContractStatusBadge(payment)}
+                </div>
+                {payment.contractSignedDate && (
+                  <p className="mt-2 text-[10px] font-semibold text-slate-500">
+                    Signed on {formatContractDate(payment.contractSignedDate)}
+                    {payment.contractSignedBy ? ` by ${payment.contractSignedBy}` : ""}
+                  </p>
+                )}
+                {payment.contractStatus !== "Signed" && isVerifiedPayment(payment) && (
+                  <p className="mt-2 text-[10px] font-semibold text-amber-600">
+                    Customer must visit the office to sign the contract.
+                  </p>
+                )}
+              </div>
+            </ModalSection>
           </div>
         </div>
       </div>
@@ -919,6 +1003,18 @@ function PaymentReviewModal({
           >
             Close Window
           </Button>
+        )}
+        {!isActionable && isVerifiedPayment(payment) && payment.contractStatus !== "Signed" &&
+          !["cancelled", "completed", "declined"].includes(String(payment?.status || "").toLowerCase()) && (
+          <div className="mt-3">
+            <Button
+              onClick={() => onMarkContractSigned?.(payment)}
+              className="h-11 w-full rounded-xl bg-blue-600 text-sm font-black text-white hover:bg-blue-700"
+            >
+              <FileText className="mr-1.5 h-4 w-4" />
+              Mark Contract as Signed
+            </Button>
+          </div>
         )}
       </div>
     </div>
@@ -1176,7 +1272,7 @@ function isVerifiedPayment(booking: BookingRecord) {
 
   return (
     ["confirmed", "completed", "reservation_secured", "slot_secured"].includes(status) ||
-    ["verified", "paid", "slot_verified", "reservation secured"].includes(paymentStatus)
+    ["verified", "paid", "partial", "slot_verified", "reservation secured"].includes(paymentStatus)
   )
 }
 
@@ -1254,6 +1350,7 @@ function buildVerifiedPaymentBooking(booking: BookingRecord) {
     paymentStatus,
     isSlotSecured: true,
     amountPaid,
+    contractStatus: "Pending Signature",
     verifiedAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     adminLogs: appendAdminLog(

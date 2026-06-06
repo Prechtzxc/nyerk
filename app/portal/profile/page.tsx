@@ -114,17 +114,18 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-5 p-4 pb-10 animate-in fade-in duration-500 md:p-6">
-      <div>
-        <h1 className="text-2xl font-black tracking-tight text-slate-900 md:text-3xl">
-          My Profile
-        </h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Manage your account settings and personal information.
-        </p>
-      </div>
+    <div className="w-full min-w-0 max-w-full overflow-x-hidden">
+      <div className="mx-auto w-full max-w-[1180px] px-3 py-4 sm:px-5 lg:px-6 animate-in fade-in duration-500">
+        <section className="border-b border-slate-200 pb-5 mb-6">
+          <h1 className="text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
+            My Profile
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Manage your account settings and personal information.
+          </p>
+        </section>
 
-      <Card className="overflow-hidden rounded-3xl border-slate-200 bg-white shadow-sm">
+        <Card className="overflow-hidden rounded-2xl border-slate-200 bg-white shadow-sm">
         <CardContent className="p-0">
           <div className="border-b border-slate-100 bg-white p-5 sm:p-6">
             <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-center sm:justify-between">
@@ -318,6 +319,7 @@ export default function ProfilePage() {
           </Tabs>
         </CardContent>
       </Card>
+      </div>
     </div>
   )
 }

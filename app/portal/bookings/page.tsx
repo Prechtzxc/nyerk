@@ -39,6 +39,7 @@ import {
 } from "@/src/modules/client/contexts/booking-context"
 import { Button } from "@/src/modules/shared/components/ui/button"
 import { ReserveDialog } from "@/src/modules/client/components/reserve-dialog"
+import { ContractPreviewModal } from "@/src/modules/client/components/contract-preview-modal"
 import { useToast } from "@/src/modules/shared/hooks/use-toast"
 import {
   Dialog,
@@ -584,7 +585,18 @@ function BookingDetailsModal({
   onViewReceipt?: (b: Booking) => void
   onEdit?: (b: Booking) => void
 }) {
+  const [showContractPreview, setShowContractPreview] = useState(false)
   if (!booking) return null
+  const isPaymentVerified = (() => {
+    const ps = String(booking.paymentStatus || "").toLowerCase()
+    return (
+      ps === "verified" ||
+      ps === "paid" ||
+      ps === "partial" ||
+      ps === "slot_verified" ||
+      booking.isSlotSecured === true
+    )
+  })()
   const isOfficeRental = isOfficeBooking(booking)
   const typeLabel = isOfficeRental
     ? "Office Space Rental"
@@ -698,6 +710,57 @@ function BookingDetailsModal({
                 </>
               )}
           </div>
+
+          {isPaymentVerified && (
+            <div className="mb-5 rounded-xl border border-slate-200 bg-white p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <FileText className="h-4 w-4 text-slate-500" />
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  Contract
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <span
+                  className={cn(
+                    "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
+                    booking.contractStatus === "Signed"
+                      ? "border-emerald-100 bg-emerald-50 text-emerald-700"
+                      : "border-orange-100 bg-orange-50 text-orange-700",
+                  )}
+                >
+                  {booking.contractStatus === "Signed" ? "Signed" : "Pending Signature"}
+                </span>
+              </div>
+              {booking.contractStatus === "Signed" ? (
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-emerald-700">
+                    {booking.contractSignedDate
+                      ? `Signed on ${formatDate(booking.contractSignedDate)}`
+                      : "Contract has been signed."}
+                  </p>
+                  <p className="text-[11px] font-semibold text-slate-500">
+                    Your contract has been marked as signed by the administrator.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold text-orange-700">
+                    Contract signing must be completed onsite at the One Estela Place office.
+                  </p>
+                  <p className="text-[11px] font-semibold text-slate-500">
+                    Please visit the One Estela Place office to personally sign the official contract. This preview is for review purposes only and does not replace onsite contract signing.
+                  </p>
+                  <Button
+                    onClick={() => setShowContractPreview(true)}
+                    className="h-9 rounded-lg bg-emerald-600 px-4 text-[11px] font-bold text-white shadow-sm hover:bg-emerald-700 sm:w-auto w-full"
+                  >
+                    <FileText className="mr-1.5 h-3.5 w-3.5" />
+                    Preview Contract
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
             <div className="rounded-xl border border-slate-100 p-4">
@@ -893,6 +956,12 @@ function BookingDetailsModal({
           )}
         </div>
       </DialogContent>
+
+      <ContractPreviewModal
+        booking={booking}
+        open={showContractPreview}
+        onClose={() => setShowContractPreview(false)}
+      />
     </Dialog>
   )
 }
@@ -2148,93 +2217,99 @@ export default function MyBookingsPage() {
   const hasOtherActive = otherActiveBookings.length > 0
 
   return (
-    <div className="mx-auto min-w-0 w-full max-w-7xl animate-in fade-in space-y-6 p-4 pb-24 duration-500 md:p-6 md:pb-28">
-      <WriteReviewModal
-        open={!!reviewTarget}
-        booking={reviewTarget}
-        reviews={reviews}
-        onClose={() => setReviewTarget(null)}
-        onSaved={setReviews}
-      />
+    <div className="w-full min-w-0 max-w-full overflow-x-hidden">
+      <div className="mx-auto w-full max-w-[1180px] px-3 py-4 sm:px-5 lg:px-6 animate-in fade-in duration-500">
+        <WriteReviewModal
+          open={!!reviewTarget}
+          booking={reviewTarget}
+          reviews={reviews}
+          onClose={() => setReviewTarget(null)}
+          onSaved={setReviews}
+        />
 
-      <CancellationDialog
-        booking={bookingToCancel}
-        reason={cancelReason}
-        setReason={setCancelReason}
-        onClose={() => {
-          setBookingToCancel(null)
-          setCancelReason("")
-        }}
-        onSubmit={submitCancellation}
-      />
+        <CancellationDialog
+          booking={bookingToCancel}
+          reason={cancelReason}
+          setReason={setCancelReason}
+          onClose={() => {
+            setBookingToCancel(null)
+            setCancelReason("")
+          }}
+          onSubmit={submitCancellation}
+        />
 
-      <ModifyBookingFlowModal
-        booking={modifyTarget}
-        open={!!modifyTarget}
-        onClose={() => setModifyTarget(null)}
-        onSubmitChanges={(changes, reason) => {
-          if (modifyTarget) {
-            requestModification(modifyTarget.id, changes, reason)
-            toast({
-              title: "Modification Requested",
-              description: "Your modification request is under review.",
-              className: "bg-slate-900 text-white border-none",
-            })
-            setModifyTarget(null)
-          }
-        }}
-      />
+        <ModifyBookingFlowModal
+          booking={modifyTarget}
+          open={!!modifyTarget}
+          onClose={() => setModifyTarget(null)}
+          onSubmitChanges={(changes, reason) => {
+            if (modifyTarget) {
+              requestModification(modifyTarget.id, changes, reason)
+              toast({
+                title: "Modification Requested",
+                description: "Your modification request is under review.",
+                className: "bg-slate-900 text-white border-none",
+              })
+              setModifyTarget(null)
+            }
+          }}
+        />
 
-      <BookingDetailsModal
-        booking={viewingBooking}
-        open={!!viewingBooking}
-        onClose={() => setViewingBooking(null)}
-        onPay={handlePay}
-        onCancel={handleCancel}
-        onViewReceipt={handleViewReceipt}
-        onEdit={handleEdit}
-      />
+        <BookingDetailsModal
+          booking={viewingBooking}
+          open={!!viewingBooking}
+          onClose={() => setViewingBooking(null)}
+          onPay={handlePay}
+          onCancel={handleCancel}
+          onViewReceipt={handleViewReceipt}
+          onEdit={handleEdit}
+        />
 
-      <ReceiptModal
-        receipt={receiptToView}
-        open={!!receiptToView}
-        onClose={() => {
-          const prevBooking = receiptBooking
-          setReceiptToView(null)
-          setReceiptBooking(null)
-          if (prevBooking) setViewingBooking(prevBooking)
-        }}
-        booking={receiptBooking}
-      />
+        <ReceiptModal
+          receipt={receiptToView}
+          open={!!receiptToView}
+          onClose={() => {
+            const prevBooking = receiptBooking
+            setReceiptToView(null)
+            setReceiptBooking(null)
+            if (prevBooking) setViewingBooking(prevBooking)
+          }}
+          booking={receiptBooking}
+        />
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-black tracking-tight text-slate-900 md:text-3xl">
-            My Bookings
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Track and manage your space reservations.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <ReserveDialog>
-            <Button className="flex h-11 items-center justify-center gap-2 rounded-xl bg-orange-600 px-5 font-bold text-white shadow-sm transition-all hover:bg-orange-700">
-              <Plus className="h-4 w-4" />
-              New Booking
-            </Button>
-          </ReserveDialog>
-          {hasHistoryRecords && (
-            <Button
-              variant="outline"
-              onClick={() => setShowHistory((v) => !v)}
-              className="h-11 whitespace-nowrap rounded-xl border-slate-200 px-4 text-xs font-bold text-slate-700 hover:bg-slate-50"
-            >
-              <Receipt className="mr-1.5 h-3.5 w-3.5" />
-              {showHistory ? "Hide Booking History" : "View Booking History"}
-            </Button>
-          )}
-        </div>
-      </div>
+        <section className="border-b border-slate-200 pb-5 mb-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-[11px] font-black uppercase tracking-[0.24em] text-orange-600">
+                Reservations
+              </p>
+              <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
+                My Bookings
+              </h1>
+              <p className="mt-1 text-sm text-slate-500">
+                Track and manage your space reservations.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <ReserveDialog>
+                <Button className="flex h-11 items-center justify-center gap-2 rounded-xl bg-orange-600 px-5 font-bold text-white shadow-sm transition-all hover:bg-orange-700">
+                  <Plus className="h-4 w-4" />
+                  New Booking
+                </Button>
+              </ReserveDialog>
+              {hasHistoryRecords && (
+                <Button
+                  variant="outline"
+                  onClick={() => setShowHistory((v) => !v)}
+                  className="h-11 whitespace-nowrap rounded-xl border-slate-200 px-4 text-xs font-bold text-slate-700 hover:bg-slate-50"
+                >
+                  <Receipt className="mr-1.5 h-3.5 w-3.5" />
+                  {showHistory ? "Hide Booking History" : "View Booking History"}
+                </Button>
+              )}
+            </div>
+          </div>
+        </section>
 
       {/* Current Booking */}
       {!showHistory && (
@@ -2399,6 +2474,7 @@ export default function MyBookingsPage() {
           </section>
         </>
       )}
+      </div>
     </div>
   )
 }
@@ -2413,19 +2489,19 @@ function SectionHeader({
   icon: React.ReactNode
 }) {
   return (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-100 text-orange-600">
+    <div className="flex items-center gap-2">
+      {icon && (
+        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-orange-50 text-orange-600">
           {icon}
         </div>
-        <div>
-          <h2 className="text-base font-black tracking-tight text-slate-900">
-            {title}
-          </h2>
-          {subtitle && (
-            <p className="text-[11px] font-semibold text-slate-500">{subtitle}</p>
-          )}
-        </div>
+      )}
+      <div className="min-w-0">
+        <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+          {title}
+        </h2>
+        {subtitle && (
+          <p className="text-xs font-semibold text-slate-400">{subtitle}</p>
+        )}
       </div>
     </div>
   )

@@ -215,31 +215,29 @@ export default function UsersPage() {
   }, [customers, searchTerm, statusFilter])
 
   return (
-    <div className="mx-auto w-full max-w-[1450px] animate-in fade-in duration-500 p-5 md:p-8 xl:p-10">
-      <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <p className="mb-2 text-xs font-black uppercase tracking-[0.35em] text-orange-600">
-            ADMIN USERS
+    <div className="mx-auto w-full max-w-[1180px] px-3 py-4 sm:px-5 lg:px-6">
+      <div className="border-b border-slate-200 pb-5 mb-5">
+        <div className="min-w-0">
+          <p className="text-[11px] font-black uppercase tracking-[0.22em] text-orange-600">
+            Admin Users Information
           </p>
-
-          <h1 className="text-4xl font-black tracking-tight text-slate-950 md:text-5xl">
+          <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
             User Information
           </h1>
-
-          <p className="mt-2 max-w-2xl text-sm font-medium text-slate-500">
+          <p className="mt-1 text-xs leading-5 text-slate-500 sm:text-sm">
             Read-only view of registered customer accounts and contact details.
           </p>
         </div>
       </div>
 
-      <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
         <div className="relative">
-          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
           <Input
             placeholder="Search user..."
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
-            className="h-11 rounded-full border-slate-200 bg-white pl-10 pr-4 text-sm font-bold shadow-sm sm:w-[300px]"
+            className="h-10 rounded-xl border-slate-200 bg-white pl-9 text-xs focus-visible:ring-orange-600 sm:w-[300px]"
           />
         </div>
 
@@ -247,14 +245,14 @@ export default function UsersPage() {
           value={statusFilter}
           onValueChange={(value) => setStatusFilter(value as "all" | CustomerStatus)}
         >
-          <SelectTrigger className="h-11 rounded-full bg-white text-sm font-bold shadow-sm sm:w-[170px]">
+          <SelectTrigger className="h-10 w-full rounded-xl border-slate-200 bg-white text-xs font-bold text-slate-700 focus:ring-orange-600 sm:w-[170px]">
             <SelectValue placeholder="All Status" />
           </SelectTrigger>
 
           <SelectContent className="rounded-xl shadow-xl">
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="Active">Active</SelectItem>
-            <SelectItem value="Inactive">Inactive</SelectItem>
+            <SelectItem value="all" className="font-bold">All Status</SelectItem>
+            <SelectItem value="Active" className="font-bold">Active</SelectItem>
+            <SelectItem value="Inactive" className="font-bold">Inactive</SelectItem>
           </SelectContent>
         </Select>
 
@@ -265,92 +263,73 @@ export default function UsersPage() {
               setSearchTerm("")
               setStatusFilter("all")
             }}
-            className="h-11 rounded-full px-5 font-bold"
+            className="h-10 rounded-xl border-slate-200 px-4 text-xs font-bold text-slate-700 hover:bg-slate-50"
           >
             Clear
           </Button>
         )}
       </div>
 
-      <div className="mb-4 flex flex-col gap-1">
-        <h2 className="text-2xl font-black tracking-tight text-slate-950">
-          Customer Directory
-        </h2>
-        <p className="text-sm font-semibold text-slate-500">
-          Showing {filteredCustomers.length} of {customers.length} customer
-          {customers.length === 1 ? "" : "s"}.
-        </p>
-      </div>
-
       {filteredCustomers.length > 0 ? (
-        <div className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm">
-          <div className="hidden border-b border-slate-200 bg-slate-50/80 px-6 py-4 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400 lg:grid lg:grid-cols-[1.5fr_1.7fr_1.2fr_1fr_.8fr] lg:items-center lg:gap-4">
-            <div>Customer Name</div>
-            <div>Email Address</div>
-            <div>Phone Number</div>
-            <div>Registered</div>
-            <div className="text-right">Status</div>
-          </div>
-
-          <div className="divide-y divide-slate-100">
-            {filteredCustomers.map((customer) => (
-              <div
-                key={customer.id}
-                className="grid gap-4 px-6 py-5 transition-colors hover:bg-orange-50/30 lg:grid-cols-[1.5fr_1.7fr_1.2fr_1fr_.8fr] lg:items-center"
-              >
-                <div className="min-w-0">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-orange-100 text-sm font-black uppercase text-orange-700">
-                      {getInitials(customer.name)}
-                    </div>
-
-                    <div className="min-w-0">
-                      <p className="truncate text-lg font-black text-slate-950">
-                        {customer.name}
-                      </p>
-                      <p className="text-xs font-semibold text-slate-500">
-                        Customer Account
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex min-w-0 items-center gap-2 text-sm font-semibold text-slate-600">
-                  <Mail className="h-4 w-4 flex-shrink-0 text-orange-600" />
-                  <span className="truncate">{customer.email}</span>
-                </div>
-
-                <div className="flex min-w-0 items-center gap-2 text-sm font-semibold text-slate-600">
-                  <Phone className="h-4 w-4 flex-shrink-0 text-slate-400" />
-                  <span className="truncate">{customer.phone}</span>
-                </div>
-
-                <div className="flex min-w-0 items-center gap-2 text-sm font-bold text-slate-700">
-                  <UserRound className="h-4 w-4 flex-shrink-0 text-orange-600 lg:hidden" />
-                  <span className="truncate">{formatDate(customer.createdAt)}</span>
-                </div>
-
-                <div className="lg:text-right">
-                  <span
-                    className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] ${getStatusBadgeClass(
-                      customer.status
-                    )}`}
-                  >
-                    {customer.status}
+        <div className="space-y-3">
+          {filteredCustomers.map((customer) => (
+            <div
+              key={customer.id}
+              className="group flex w-full max-w-full min-w-0 flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-orange-200 hover:shadow-md sm:flex-row sm:items-center sm:gap-4"
+            >
+              <div className="flex shrink-0 items-center gap-3 sm:w-[200px]">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
+                  <span className="text-sm font-black uppercase">
+                    {getInitials(customer.name)}
                   </span>
                 </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    Customer
+                  </p>
+                  <p className="break-words whitespace-normal text-sm font-black text-slate-900">
+                    {customer.name}
+                  </p>
+                  <p className="break-words whitespace-normal text-[11px] font-bold text-slate-500">
+                    Customer Account
+                  </p>
+                </div>
               </div>
-            ))}
-          </div>
+
+              <div className="grid min-w-0 flex-1 grid-cols-2 gap-x-2 gap-y-1.5 sm:grid-cols-3 sm:gap-x-3">
+                <div className="min-w-0 max-w-full">
+                  <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">Email</p>
+                  <p className="whitespace-normal break-words text-xs font-black text-slate-800">{customer.email}</p>
+                </div>
+                <div className="min-w-0 max-w-full">
+                  <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">Phone</p>
+                  <p className="whitespace-normal break-words text-xs font-bold text-slate-800">{customer.phone}</p>
+                </div>
+                <div className="min-w-0 max-w-full">
+                  <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">Registered</p>
+                  <p className="whitespace-normal break-words text-xs font-bold text-slate-800">{formatDate(customer.createdAt)}</p>
+                </div>
+              </div>
+
+              <div className="flex shrink-0 items-center justify-between gap-2 sm:flex-col sm:items-end sm:gap-1">
+                <span
+                  className={`inline-flex rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest whitespace-nowrap ${getStatusBadgeClass(
+                    customer.status
+                  )}`}
+                >
+                  {customer.status}
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
-        <div className="rounded-[1.75rem] border border-dashed border-slate-300 bg-slate-50 p-14 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-slate-400 shadow-sm">
-            <Users className="h-8 w-8" />
+        <div className="flex min-h-[230px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
+          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-white text-slate-400 shadow-sm">
+            <Users className="h-6 w-6" />
           </div>
-
-          <h3 className="text-xl font-black text-slate-700">No users found</h3>
-          <p className="mt-1 text-sm font-semibold text-slate-500">
+          <h3 className="text-sm font-black text-slate-700">No users found</h3>
+          <p className="mt-1 max-w-sm text-xs leading-5 text-slate-500">
             {searchTerm || statusFilter !== "all"
               ? "Try clearing your filters or search keyword."
               : "Registered customers will appear here once available."}

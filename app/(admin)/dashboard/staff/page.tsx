@@ -421,18 +421,18 @@ export default function StaffManagementPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1450px] animate-in fade-in duration-500 p-5 md:p-8 xl:p-10">
-      <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <p className="mb-2 text-xs font-black uppercase tracking-[0.35em] text-orange-600">
-            ADMIN STAFF
+    <div className="mx-auto w-full max-w-[1180px] px-3 py-4 sm:px-5 lg:px-6">
+      <div className="border-b border-slate-200 pb-5 mb-5 flex flex-col gap-4">
+        <div className="min-w-0">
+          <p className="text-[11px] font-black uppercase tracking-[0.22em] text-orange-600">
+            Admin Staff Management
           </p>
 
-          <h1 className="text-4xl font-black tracking-tight text-slate-950 md:text-5xl">
+          <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
             Staff Management
           </h1>
 
-          <p className="mt-2 max-w-2xl text-sm font-medium text-slate-500">
+          <p className="mt-1 text-xs leading-5 text-slate-500 sm:text-sm">
             Add, edit, activate, and deactivate staff accounts for One Estela Place.
           </p>
         </div>
@@ -482,14 +482,14 @@ export default function StaffManagementPage() {
         </Dialog>
       </div>
 
-      <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
         <div className="relative">
-          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
           <Input
             placeholder="Search staff..."
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
-            className="h-11 rounded-full border-slate-200 bg-white pl-10 pr-4 text-sm font-bold shadow-sm sm:w-[290px]"
+            className="h-10 rounded-xl border-slate-200 bg-white pl-9 text-xs focus-visible:ring-orange-600 sm:w-[290px]"
           />
         </div>
 
@@ -497,14 +497,14 @@ export default function StaffManagementPage() {
           value={statusFilter}
           onValueChange={(value) => setStatusFilter(value as "all" | StaffStatus)}
         >
-          <SelectTrigger className="h-11 rounded-full bg-white text-sm font-bold shadow-sm sm:w-[170px]">
+          <SelectTrigger className="h-10 w-full rounded-xl border-slate-200 bg-white text-xs font-bold text-slate-700 focus:ring-orange-600 sm:w-[170px]">
             <SelectValue placeholder="All Status" />
           </SelectTrigger>
 
           <SelectContent className="rounded-xl shadow-xl">
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="Active">Active</SelectItem>
-            <SelectItem value="Inactive">Inactive</SelectItem>
+            <SelectItem value="all" className="font-bold">All Status</SelectItem>
+            <SelectItem value="Active" className="font-bold">Active</SelectItem>
+            <SelectItem value="Inactive" className="font-bold">Inactive</SelectItem>
           </SelectContent>
         </Select>
 
@@ -515,133 +515,109 @@ export default function StaffManagementPage() {
               setSearchTerm("")
               setStatusFilter("all")
             }}
-            className="h-11 rounded-full px-5 font-bold"
+            className="h-10 rounded-xl border-slate-200 px-4 text-xs font-bold text-slate-700 hover:bg-slate-50"
           >
             Clear
           </Button>
         )}
       </div>
 
-      <div className="mb-4 flex flex-col gap-1">
-        <h2 className="text-2xl font-black tracking-tight text-slate-950">Staff Directory</h2>
-        <p className="text-sm font-semibold text-slate-500">
-          Showing {filteredStaff.length} of {staff.length} staff member{staff.length === 1 ? "" : "s"}.
-        </p>
-      </div>
-
       {filteredStaff.length > 0 ? (
-        <div className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm">
-          <div className="hidden border-b border-slate-200 bg-slate-50/80 px-6 py-4 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400 lg:grid lg:grid-cols-[1.5fr_1.5fr_1fr_1fr_.8fr_1.1fr] lg:items-center lg:gap-4">
-            <div>Staff Name</div>
-            <div>Contact Details</div>
-            <div>Position</div>
-            <div>Hire Date</div>
-            <div>Status</div>
-            <div className="text-right">Actions</div>
-          </div>
+        <div className="space-y-3">
+          {filteredStaff.map((staffMember: StaffAccount) => {
+            const fullName = getFullName(staffMember)
+            const normalizedStatus = normalizeStaffStatus(staffMember.status)
 
-          <div className="divide-y divide-slate-100">
-            {filteredStaff.map((staffMember: StaffAccount) => {
-              const fullName = getFullName(staffMember)
-              const normalizedStatus = normalizeStaffStatus(staffMember.status)
-
-              return (
-                <div
-                  key={staffMember.id}
-                  className="grid gap-4 px-6 py-5 transition-colors hover:bg-orange-50/30 lg:grid-cols-[1.5fr_1.5fr_1fr_1fr_.8fr_1.1fr] lg:items-center"
-                >
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-orange-100 text-sm font-black uppercase text-orange-700">
-                        {getInitials(staffMember.firstName, staffMember.lastName)}
-                      </div>
-
-                      <div className="min-w-0">
-                        <p className="truncate text-lg font-black text-slate-950">
-                          {fullName || "Unnamed Staff"}
-                        </p>
-                        <p className="text-xs font-semibold text-slate-500">Staff Account</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid gap-1.5 text-sm font-semibold text-slate-600">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <Mail className="h-4 w-4 flex-shrink-0 text-orange-600" />
-                      <span className="truncate">{staffMember.email}</span>
-                    </div>
-
-                    <div className="flex min-w-0 items-center gap-2">
-                      <Phone className="h-4 w-4 flex-shrink-0 text-slate-400" />
-                      <span className="truncate">{staffMember.phone || "No phone provided"}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex min-w-0 items-center gap-2 text-sm font-bold text-slate-700">
-                    <Briefcase className="h-4 w-4 flex-shrink-0 text-orange-600 lg:hidden" />
-                    <span className="truncate">{staffMember.position || "No position"}</span>
-                  </div>
-
-                  <div className="flex min-w-0 items-center gap-2 text-sm font-bold text-slate-700">
-                    <Calendar className="h-4 w-4 flex-shrink-0 text-orange-600 lg:hidden" />
-                    <span className="truncate">{formatDate(staffMember.hireDate || "")}</span>
-                  </div>
-
-                  <div>
-                    <span
-                      className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] ${getStatusBadgeClass(
-                        normalizedStatus
-                      )}`}
-                    >
-                      {normalizedStatus}
+            return (
+              <div
+                key={staffMember.id}
+                className="group flex w-full max-w-full min-w-0 flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-orange-200 hover:shadow-md sm:flex-row sm:items-center sm:gap-4"
+              >
+                <div className="flex shrink-0 items-center gap-3 sm:w-[200px]">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
+                    <span className="text-sm font-black uppercase">
+                      {getInitials(staffMember.firstName, staffMember.lastName)}
                     </span>
                   </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      Staff
+                    </p>
+                    <p className="break-words whitespace-normal text-sm font-black text-slate-900">
+                      {fullName || "Unnamed Staff"}
+                    </p>
+                    <p className="break-words whitespace-normal text-[11px] font-bold text-slate-500">
+                      {staffMember.position || "No position"}
+                    </p>
+                  </div>
+                </div>
 
-                  <div className="flex flex-col gap-2 sm:flex-row lg:justify-end">
+                <div className="grid min-w-0 flex-1 grid-cols-2 gap-x-2 gap-y-1.5 sm:grid-cols-3 sm:gap-x-3">
+                  <div className="min-w-0 max-w-full">
+                    <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">Email</p>
+                    <p className="whitespace-normal break-words text-xs font-black text-slate-800">{staffMember.email}</p>
+                  </div>
+                  <div className="min-w-0 max-w-full">
+                    <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">Phone</p>
+                    <p className="whitespace-normal break-words text-xs font-bold text-slate-800">{staffMember.phone || "—"}</p>
+                  </div>
+                  <div className="min-w-0 max-w-full">
+                    <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">Hire Date</p>
+                    <p className="whitespace-normal break-words text-xs font-bold text-slate-800">{formatDate(staffMember.hireDate || "")}</p>
+                  </div>
+                </div>
+
+                <div className="flex shrink-0 items-center justify-between gap-2 sm:flex-col sm:items-end sm:gap-1">
+                  <span
+                    className={`inline-flex rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest whitespace-nowrap ${getStatusBadgeClass(
+                      normalizedStatus
+                    )}`}
+                  >
+                    {normalizedStatus}
+                  </span>
+                  <div className="flex gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-10 rounded-full border-slate-200 px-4 font-black"
+                      className="h-8 shrink-0 whitespace-nowrap rounded-lg border-slate-200 px-2.5 text-[10px] font-bold text-slate-700 hover:bg-slate-50"
                       onClick={() => handleOpenEditDialog(staffMember)}
                     >
-                      <Edit2 className="mr-2 h-4 w-4" />
+                      <Edit2 className="mr-1 h-3 w-3" />
                       Edit
                     </Button>
-
                     {normalizedStatus === "Active" ? (
                       <Button
                         size="sm"
                         variant="destructive"
-                        className="h-10 rounded-full px-4 font-black"
+                        className="h-8 shrink-0 whitespace-nowrap rounded-lg px-2.5 text-[10px] font-bold"
                         onClick={() => handleToggleStatus(staffMember)}
                       >
-                        <Power className="mr-2 h-4 w-4" />
+                        <Power className="mr-1 h-3 w-3" />
                         Deactivate
                       </Button>
                     ) : (
                       <Button
                         size="sm"
-                        className="h-10 rounded-full bg-emerald-600 px-4 font-black text-white hover:bg-emerald-700"
+                        className="h-8 shrink-0 whitespace-nowrap rounded-lg bg-emerald-600 px-2.5 text-[10px] font-bold text-white hover:bg-emerald-700"
                         onClick={() => handleToggleStatus(staffMember)}
                       >
-                        <RotateCcw className="mr-2 h-4 w-4" />
+                        <RotateCcw className="mr-1 h-3 w-3" />
                         Activate
                       </Button>
                     )}
                   </div>
                 </div>
-              )
-            })}
-          </div>
+              </div>
+            )
+          })}
         </div>
       ) : (
-        <div className="rounded-[1.75rem] border border-dashed border-slate-300 bg-slate-50 p-14 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-slate-400 shadow-sm">
-            <Users className="h-8 w-8" />
+        <div className="flex min-h-[230px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
+          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-white text-slate-400 shadow-sm">
+            <Users className="h-6 w-6" />
           </div>
-
-          <h3 className="text-xl font-black text-slate-700">No staff found</h3>
-          <p className="mt-1 text-sm font-semibold text-slate-500">
+          <h3 className="text-sm font-black text-slate-700">No staff found</h3>
+          <p className="mt-1 max-w-sm text-xs leading-5 text-slate-500">
             {searchTerm || statusFilter !== "all"
               ? "Try clearing your filters or search keyword."
               : "Add your first staff member to start managing staff accounts."}

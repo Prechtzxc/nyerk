@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { useAuth } from "@/src/modules/shared/auth/auth-context"
 import { useChat } from "@/src/modules/shared/contexts/chat-context"
 import { GlobalProvider } from "@/src/modules/shared/components/global-provider"
+import { StaffProvider } from "@/src/modules/admin/contexts/staff-context"
 
 import {
   LayoutDashboard,
@@ -20,7 +21,7 @@ import {
   LogOut,
   Search,
   Bell,
-  ShieldCheck,
+  Menu,
 } from "lucide-react"
 
 import { Button } from "@/src/modules/shared/components/ui/button"
@@ -41,6 +42,7 @@ const ADMIN_MENU = [
   { name: "Users Information", href: "/users", icon: UserCheck, key: "users" },
 ]
 
+
 export default function AdminLayout({
   children,
 }: {
@@ -50,6 +52,7 @@ export default function AdminLayout({
   const router = useRouter()
   const { logout, user, isLoading } = useAuth()
   const { messages } = useChat()
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const [chatUnread, setChatUnread] = useState(0)
 
@@ -74,6 +77,10 @@ export default function AdminLayout({
     }
   }, [user, isLoading, router])
 
+  useEffect(() => {
+    setIsMobileMenuOpen(false)
+  }, [pathname])
+
   const handleConfirmLogout = () => {
     setShowLogoutConfirm(false)
     logout()
@@ -86,87 +93,90 @@ export default function AdminLayout({
   return (
     <GlobalProvider>
       <div className="relative flex h-screen w-full flex-col overflow-hidden bg-slate-50">
-        <header className="z-50 flex h-16 shrink-0 items-center justify-between bg-gradient-to-r from-slate-900 via-slate-900 to-slate-950 text-white shadow-lg">
-          <div className="flex h-full w-64 shrink-0 items-center gap-3 px-6">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 shadow-md">
-              <ShieldCheck className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-base font-black tracking-tight text-white leading-tight">
-                One Estela Place
-              </h1>
-              <p className="text-[9px] font-bold uppercase tracking-widest text-orange-300">
-                Admin Console
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-1 items-center justify-end gap-3 px-6">
-            <div className="relative hidden items-center md:flex">
-              <Search className="absolute left-3 h-4 w-4 text-slate-400" />
-              <Input
-                type="text"
-                placeholder="Search admin records..."
-                className="h-9 w-[240px] rounded-full border-transparent bg-white/10 pl-9 text-xs text-white placeholder:text-slate-300 focus-visible:ring-2 focus-visible:ring-orange-500/50"
-              />
-            </div>
-
+        {/* ORANGE HEADER matching client portal */}
+        <header className="z-50 flex h-16 shrink-0 items-center justify-between bg-gradient-to-r from-orange-600 via-orange-600 to-orange-700 text-white shadow-lg">
+          <div className="flex h-full shrink-0 items-center gap-3 px-4 lg:w-64 lg:px-6">
             <Button
               variant="ghost"
               size="icon"
-              className="relative rounded-full text-white hover:bg-white/10"
-              onClick={() => router.push("/dashboard/chat")}
-              aria-label="Notifications"
+              className="-ml-2 text-white hover:bg-white/15 lg:hidden"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             >
-              <Bell className="h-5 w-5" />
-              {chatUnread > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-black tabular-nums text-white shadow-md ring-2 ring-slate-900">
-                  {chatUnread > 99 ? "99+" : chatUnread}
-                </span>
-              )}
+              <Menu className="h-5 w-5" />
             </Button>
-
-            <Link
-              href="/dashboard"
-              className="flex items-center gap-2 rounded-full bg-white/10 py-1 pl-1 pr-3 transition hover:bg-white/15"
-            >
-              <UserAvatar
-                name={user.name}
-                picture={profilePicture}
-                className="h-8 w-8"
-                ringClassName="ring-2 ring-white/30"
-              />
-              <div className="hidden text-left md:block">
-                <p className="text-[11px] font-bold capitalize leading-tight text-white">
-                  {user.name}
-                </p>
-                <p className="text-[9px] font-bold uppercase tracking-wider text-orange-300">
-                  Admin
-                </p>
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/15 backdrop-blur">
+                <span className="text-base font-black text-white">O</span>
               </div>
-            </Link>
+              <h1 className="text-lg font-black tracking-tight text-white">
+                One Estela Place
+              </h1>
+            </div>
+          </div>
+
+          <div className="flex flex-1 items-center justify-end gap-3 px-4 lg:px-6">
+            <div className="relative hidden items-center md:flex">
+              <Search className="absolute left-3 h-4 w-4 text-orange-100" />
+              <Input
+                type="text"
+                placeholder="Search admin records..."
+                className="h-9 w-[220px] rounded-full border-transparent bg-white/15 pl-9 text-xs text-white transition-all placeholder:text-orange-100 focus:w-[320px] focus-visible:ring-2 focus-visible:ring-white/40"
+              />
+            </div>
+
+            <div className="flex items-center gap-3 pl-2 lg:pl-4">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative shrink-0 rounded-full text-white hover:bg-white/15"
+                onClick={() => router.push("/dashboard/chat")}
+                aria-label="Notifications"
+              >
+                <Bell className="h-5 w-5" />
+                {chatUnread > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-black tabular-nums text-white shadow-md ring-2 ring-orange-700">
+                    {chatUnread > 99 ? "99+" : chatUnread}
+                  </span>
+                )}
+              </Button>
+
+              <Link
+                href="/dashboard"
+                className="flex items-center gap-3 rounded-full p-1 pr-3 transition hover:bg-white/10"
+              >
+                <div className="hidden text-right md:block">
+                  <p className="text-[13px] font-bold capitalize leading-tight text-white">
+                    {user.name}
+                  </p>
+                  <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider text-orange-100">
+                    Admin
+                  </p>
+                </div>
+                <UserAvatar
+                  name={user.name}
+                  picture={profilePicture}
+                  className="h-9 w-9"
+                />
+              </Link>
+            </div>
           </div>
         </header>
 
-        <div className="relative flex flex-1 overflow-hidden">
-          <aside className="flex w-64 shrink-0 flex-col border-r border-slate-200 bg-white">
-            <div className="flex items-center gap-3 border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white p-4">
-              <UserAvatar
-                name={user.name}
-                picture={profilePicture}
-                className="h-10 w-10"
-                ringClassName="ring-2 ring-white"
-                fallbackClassName="bg-gradient-to-br from-slate-700 to-slate-900 text-white"
-              />
-              <div className="min-w-0">
-                <p className="truncate text-sm font-black text-slate-900">{user.name}</p>
-                <p className="truncate text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                  Administrator
-                </p>
-              </div>
-            </div>
+        <div className="relative flex min-w-0 flex-1 overflow-hidden">
+          {isMobileMenuOpen && (
+            <div
+              className="absolute inset-0 z-40 bg-slate-900/50 backdrop-blur-sm lg:hidden"
+              onClick={() => setIsMobileMenuOpen(false)}
+            />
+          )}
 
-            <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+          <aside
+            className={`absolute inset-y-0 left-0 z-50 flex h-full w-64 flex-col border-r border-slate-200 bg-white shadow-2xl transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 lg:shadow-none ${
+              isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+            }`}
+          >
+            {/* Scrollable navigation - no admin user block at top */}
+            <nav className="flex-1 space-y-1 overflow-y-auto p-3 pt-6">
               {ADMIN_MENU.map((item) => {
                 const isActive = item.exact
                   ? pathname === item.href
@@ -213,21 +223,23 @@ export default function AdminLayout({
               })}
             </nav>
 
-            <div className="border-t border-slate-100 bg-slate-50/50 p-3">
-              <Button
+            {/* Fixed bottom section: Logout */}
+            <div className="shrink-0 border-t border-slate-100 p-3">
+              <button
                 type="button"
-                variant="ghost"
-                className="flex h-10 w-full items-center justify-start rounded-lg px-3 text-[14px] font-bold text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                className="group relative flex w-full items-center rounded-lg px-3 py-2.5 text-[14px] font-bold text-rose-600 transition-all hover:bg-rose-50 hover:text-rose-700"
                 onClick={() => setShowLogoutConfirm(true)}
               >
                 <LogOut className="mr-3 h-4 w-4" />
                 Logout
-              </Button>
+              </button>
             </div>
           </aside>
 
-          <main className="relative flex-1 overflow-auto bg-slate-50">
-            {children}
+          <main className="min-w-0 flex-1 overflow-y-auto bg-slate-50">
+            <StaffProvider>
+              {children}
+            </StaffProvider>
           </main>
         </div>
 

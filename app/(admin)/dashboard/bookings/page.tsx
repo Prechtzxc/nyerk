@@ -1,30 +1,25 @@
 "use client"
 
-import React, { Suspense, useMemo, useState } from "react"
+import type React from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
-  AlertCircle,
+  Calendar,
   CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
-  FileCheck2,
   FileText,
+  Filter,
   Inbox,
-  Loader2,
-  Printer,
-  Receipt,
   Search,
-  ShieldAlert,
-  Wrench,
   X,
+  ShieldCheck,
 } from "lucide-react"
 
 import { Button } from "@/src/modules/shared/components/ui/button"
 import { Input } from "@/src/modules/shared/components/ui/input"
-import { Textarea } from "@/src/modules/shared/components/ui/textarea"
 import {
   Dialog,
   DialogContent,
   DialogTitle,
+  DialogClose,
 } from "@/src/modules/shared/components/ui/dialog"
 import {
   Select,
@@ -33,40 +28,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/src/modules/shared/components/ui/select"
-import {
-  useBookings,
-  type Booking,
-  type BookingStatus,
-  type OfficeRental,
-  calculateDaysBeforeEvent,
-  getRefundEligibilityNote,
-} from "@/src/modules/client/contexts/booking-context"
+import { useToast } from "@/src/modules/shared/hooks/use-toast"
+import { cn } from "@/src/modules/shared/lib/utils"
+import { useBookings, type Booking } from "@/src/modules/client/contexts/booking-context"
+import { getPaymentMethodLabel } from "@/src/modules/shared/lib/labels"
 
-const ALL_VALUE = "__all__"
-
-const STATUS_OPTIONS: { value: BookingStatus | typeof ALL_VALUE; label: string }[] = [
-  { value: ALL_VALUE, label: "All Status" },
-  { value: "pending", label: "Pending" },
-  { value: "verifying", label: "Verifying" },
-  { value: "confirmed", label: "Confirmed" },
-  { value: "cancellation_requested", label: "Cancel Requests" },
-  { value: "modification_under_review", label: "Modification Requests" },
-  { value: "completed", label: "Completed" },
-  { value: "cancelled", label: "Cancelled" },
-  { value: "declined", label: "Declined" },
-]
+const BOOKING_STORAGE_KEY = "oneestela_global_bookings_v2"
 
 function formatDate(date?: string) {
-  if (!date) return "No date"
-
-  const parsed = new Date(date)
-  if (Number.isNaN(parsed.getTime())) return date
-
-  return new Intl.DateTimeFormat("en-PH", {
-    month: "short",
-    day: "2-digit",
-    year: "numeric",
-  }).format(parsed)
+  if (!date) return "—"
+  try {
+    return new Intl.DateTimeFormat("en-PH", { month: "short", day: "2-digit", year: "numeric" }).format(new Date(date))
+  } catch {
+    return date
+  }
 }
 
 function formatMoney(value?: number | string) {
@@ -74,178 +49,350 @@ function formatMoney(value?: number | string) {
   return `₱${Number.isFinite(amount) ? amount.toLocaleString("en-PH") : "0"}`
 }
 
-function normalize(value?: string) {
-  return String(value || "").trim().toLowerCase()
+function getStatusBadgeClass(status?: string) {
+  const v = String(status || "").toLowerCase()
+  if (["confirmed", "reservation_secured", "slot_secured", "slot_verified"].includes(v)) return "border-emerald-100 bg-emerald-50 text-emerald-700"
+  if (["completed", "complete"].includes(v)) return "border-blue-100 bg-blue-50 text-blue-700"
+  if (["pending", "verifying"].includes(v)) return "border-orange-100 bg-orange-50 text-orange-700"
+  if (["cancellation_requested", "cancellation requested"].includes(v)) return "border-amber-100 bg-amber-50 text-amber-700"
+  if (["cancelled", "declined"].includes(v)) return "border-rose-100 bg-rose-50 text-rose-700"
+  return "border-slate-200 bg-slate-50 text-slate-600"
 }
 
-function toDateKey(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
-    date.getDate()
-  ).padStart(2, "0")}`
-}
-
-function getPaymentMethodLabel(method?: string) {
-  if (method === "cash") return "Pay at the Office"
-  if (method === "bank") return "Bank Transfer"
-  return "Not selected"
+function getPaymentBadgeClass(paymentStatus?: string) {
+  const v = String(paymentStatus || "").toLowerCase()
+  if (["verified", "paid", "slot_verified", "partial"].includes(v)) return "border-emerald-100 bg-emerald-50 text-emerald-700"
+  if (["for_review", "cash_pending", "slot_pending"].includes(v)) return "border-amber-100 bg-amber-50 text-amber-700"
+  if (v === "rejected") return "border-rose-100 bg-rose-50 text-rose-700"
+  return "border-slate-200 bg-slate-50 text-slate-600"
 }
 
 function getStatusLabel(status?: string) {
-  if (!status) return "Unknown"
+  const v = String(status || "").toLowerCase()
+  if (v === "pending") return "Pending"
+  if (v === "verifying") return "Verifying"
+  if (v === "confirmed") return "Confirmed"
+  if (v === "completed" || v === "complete") return "Completed"
+  if (v === "cancelled") return "Cancelled"
+  if (v === "declined") return "Declined"
+  if (v === "cancellation_requested") return "Cancel Requested"
+  if (v === "reservation_secured") return "Reservation Secured"
+  return String(status || "Unknown").replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase())
+}
 
-  if (status === "cancellation_requested") return "Cancel Request"
-  if (status === "modification_under_review") return "Modification Requests"
+function getPaymentStatusLabel(paymentStatus?: string) {
+  const v = String(paymentStatus || "").toLowerCase()
+  if (v === "verified" || v === "paid" || v === "slot_verified") return "Verified"
+  if (v === "for_review" || v === "cash_pending" || v === "slot_pending") return "For Review"
+  if (v === "partial") return "Partial"
+  if (v === "rejected") return "Rejected"
+  if (v === "unpaid") return "Unpaid"
+  if (!v) return "Not Set"
+  return String(paymentStatus || "").replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase())
+}
 
-  return status
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+function formatTextLabel(value?: string) {
+  return String(value || "")
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+function isOfficeBooking(booking: Booking) {
+  const text = [(booking as any)?.bookingType, (booking as any)?.rentalType, booking?.venue, booking?.eventType]
     .join(" ")
+    .toLowerCase()
+  return text.includes("office")
 }
 
-function getStatusClass(status?: string) {
-  const key = normalize(status)
+export default function AdminBookingsPage() {
+  const { toast } = useToast()
+  const bookingCtx = useBookings()
+  const contextBookings = bookingCtx?.bookings || []
+  const markContractSigned = bookingCtx?.markContractSigned
 
-  if (key === "pending") return "border-orange-200 bg-orange-50 text-orange-700"
-  if (key === "verifying") return "border-purple-200 bg-purple-50 text-purple-700"
-  if (key === "confirmed") return "border-emerald-200 bg-emerald-50 text-emerald-700"
-  if (key === "completed") return "border-blue-200 bg-blue-50 text-blue-700"
-  if (key === "cancellation_requested") return "border-amber-200 bg-amber-50 text-amber-700"
-  if (key === "modification_under_review") return "border-indigo-200 bg-indigo-50 text-indigo-700"
-  if (key === "cancelled" || key === "declined") return "border-rose-200 bg-rose-50 text-rose-700"
-  if (key === "paid" || key === "verified" || key === "partial") return "border-emerald-200 bg-emerald-50 text-emerald-700"
-  if (key === "for_review" || key === "cash_pending") return "border-amber-200 bg-amber-50 text-amber-700"
-  if (key === "rejected") return "border-rose-200 bg-rose-50 text-rose-700"
+  const [bookings, setBookings] = useState<Booking[]>([])
+  const [searchQuery, setSearchQuery] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
+  const [showContractConfirm, setShowContractConfirm] = useState(false)
 
-  return "border-slate-200 bg-slate-50 text-slate-600"
-}
+  const urlStatusRef = useMemo(() => {
+    if (typeof window === "undefined") return null
+    const params = new URLSearchParams(window.location.search)
+    return params.get("status")
+  }, [])
 
-function getRefundClass(status?: string) {
-  if (status === "Refund Pending") return "border-orange-200 bg-orange-50 text-orange-700"
-  if (status === "Refund Ready for Claiming") return "border-emerald-200 bg-emerald-50 text-emerald-700"
-  if (status === "Refund Claimed") return "border-blue-200 bg-blue-50 text-blue-700"
-  if (status === "Not Eligible for Refund") return "border-slate-200 bg-slate-50 text-slate-600"
+  useEffect(() => {
+    if (urlStatusRef) setStatusFilter(urlStatusRef)
+  }, [urlStatusRef])
 
-  return "border-slate-200 bg-slate-50 text-slate-600"
-}
+  useEffect(() => {
+    const loadBookings = () => {
+      if (contextBookings.length > 0) {
+        setBookings(contextBookings)
+        return
+      }
+      const stored = localStorage.getItem(BOOKING_STORAGE_KEY)
+      if (stored) {
+        try {
+          setBookings(JSON.parse(stored))
+        } catch {
+          setBookings([])
+        }
+      }
+    }
 
-function getOfficeStatusClass(status?: string) {
-  const key = normalize(status)
+    loadBookings()
 
-  if (key.includes("pending")) return "border-orange-200 bg-orange-50 text-orange-700"
-  if (key.includes("approved")) return "border-amber-200 bg-amber-50 text-amber-700"
-  if (key.includes("signed")) return "border-emerald-200 bg-emerald-50 text-emerald-700"
-  if (key.includes("paid")) return "border-blue-200 bg-blue-50 text-blue-700"
-  if (key.includes("submitted")) return "border-indigo-200 bg-indigo-50 text-indigo-700"
-  if (key.includes("active")) return "border-emerald-200 bg-emerald-50 text-emerald-700"
-  if (key.includes("declined") || key.includes("cancelled")) {
-    return "border-rose-200 bg-rose-50 text-rose-700"
+    window.addEventListener("storage", loadBookings)
+    window.addEventListener("bookingsUpdated", loadBookings)
+    window.addEventListener("oneestela_bookings_updated", loadBookings)
+
+    return () => {
+      window.removeEventListener("storage", loadBookings)
+      window.removeEventListener("bookingsUpdated", loadBookings)
+      window.removeEventListener("oneestela_bookings_updated", loadBookings)
+    }
+  }, [contextBookings])
+
+  const persistBookings = (next: Booking[]) => {
+    setBookings(next)
+    localStorage.setItem(BOOKING_STORAGE_KEY, JSON.stringify(next))
+    window.dispatchEvent(new Event("oneestela_bookings_updated"))
   }
 
-  return "border-slate-200 bg-slate-50 text-slate-600"
-}
+  const filteredBookings = useMemo(() => {
+    return bookings.filter((b) => {
+      if (statusFilter !== "all" && b.status !== statusFilter) return false
+      if (!searchQuery) return true
+      const q = searchQuery.toLowerCase()
+      return [b.id, b.eventName, b.venue, b.userInfo?.name, b.userInfo?.email]
+        .some((f) => f && String(f).toLowerCase().includes(q))
+    })
+  }, [bookings, statusFilter, searchQuery])
 
-function StatusBadge({ label, className }: { label: string; className: string }) {
+  const handleMarkCompleted = (id: string) => {
+    const next = bookings.map((b) =>
+      b.id === id
+        ? { ...b, status: "completed" as const, bookingStatus: "Completed" as const, updatedAt: new Date().toISOString() }
+        : b,
+    )
+    persistBookings(next)
+    setSelectedBooking(next.find((b) => b.id === id) || null)
+    toast({
+      title: "Booking Completed",
+      description: `Booking ${id} has been marked as completed.`,
+      className: "border-none bg-emerald-500 text-white",
+    })
+  }
+
+  const handleMarkContractSigned = () => {
+    if (!selectedBooking || !markContractSigned) return
+    const id = selectedBooking.id
+    markContractSigned(id, "Administrator")
+    setShowContractConfirm(false)
+
+    const updated = bookings.map((b) =>
+      b.id === id
+        ? {
+            ...b,
+            contractStatus: "Signed" as const,
+            contractSigned: true,
+            contractSignedDate: new Date().toISOString(),
+            contractSignedBy: "Administrator",
+            contractSigningMethod: "Face-to-face",
+            updatedAt: new Date().toISOString(),
+          }
+        : b,
+    )
+    persistBookings(updated)
+    setSelectedBooking(updated.find((b) => b.id === id) || null)
+
+    toast({
+      title: "Contract Signed",
+      description: `Contract for booking ${id} has been marked as signed.`,
+      className: "border-none bg-blue-500 text-white",
+    })
+  }
+
+  const statusCounts = useMemo(() => {
+    return {
+      all: bookings.length,
+      pending: bookings.filter((b) => b.status === "pending").length,
+      verifying: bookings.filter((b) => b.status === "verifying").length,
+      confirmed: bookings.filter((b) => b.status === "confirmed").length,
+      completed: bookings.filter((b) => b.status === "completed").length,
+      cancelled: bookings.filter((b) => b.status === "cancelled").length,
+      cancellation_requested: bookings.filter((b) => b.status === "cancellation_requested").length,
+    }
+  }, [bookings])
+
+  const STATUS_FILTERS = [
+    { value: "all", label: "All" },
+    { value: "pending", label: "Pending" },
+    { value: "verifying", label: "Verifying" },
+    { value: "confirmed", label: "Confirmed" },
+    { value: "completed", label: "Completed" },
+    { value: "cancelled", label: "Cancelled" },
+    { value: "cancellation_requested", label: "Cancel Requested" },
+  ]
+
   return (
-    <span
-      className={`inline-flex w-fit rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] ${className}`}
-    >
-      {label}
-    </span>
+    <div className="w-full min-w-0 max-w-full overflow-x-hidden">
+      <div className="mx-auto w-full max-w-[1180px] px-3 py-4 sm:px-5 lg:px-6">
+        <BookingDetailsModal
+          booking={selectedBooking}
+          open={!!selectedBooking}
+          onClose={() => { setSelectedBooking(null); setShowContractConfirm(false) }}
+          onMarkCompleted={handleMarkCompleted}
+          onMarkContractSigned={() => setShowContractConfirm(true)}
+        />
+
+        <ContractSigningConfirmModal
+          booking={selectedBooking}
+          open={showContractConfirm}
+          onCancel={() => setShowContractConfirm(false)}
+          onConfirm={handleMarkContractSigned}
+        />
+
+        <section className="border-b border-slate-200 pb-5">
+          <div className="flex flex-col gap-4">
+            <div className="min-w-0">
+              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-orange-600">
+                Admin Booking Management
+              </p>
+              <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
+                Booking Management
+              </h1>
+              <p className="mt-1 text-xs leading-5 text-slate-500 sm:text-sm">
+                View and manage all customer bookings.
+              </p>
+            </div>
+
+            <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="h-10 w-full rounded-xl border-slate-200 bg-white text-xs font-bold text-slate-700 focus:ring-orange-600 sm:w-[170px]">
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-3.5 w-3.5 text-slate-400" />
+                    <SelectValue placeholder="All Status" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                  {STATUS_FILTERS.map((f) => (
+                    <SelectItem key={f.value} value={f.value} className="font-bold">
+                      {f.label} ({statusCounts[f.value as keyof typeof statusCounts]})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <div className="relative w-full sm:w-[300px]">
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search bookings..."
+                  className="h-10 rounded-xl border-slate-200 bg-white pl-9 text-xs focus-visible:ring-orange-600"
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-4 space-y-3">
+          {filteredBookings.length === 0 ? (
+            <div className="flex min-h-[230px] flex-col items-center justify-center px-6 py-10 text-center">
+              <Inbox className="mb-3 h-10 w-10 text-slate-300" />
+              <h3 className="text-base font-black text-slate-900">No bookings found</h3>
+              <p className="mt-1 max-w-sm text-sm leading-6 text-slate-500">
+                {searchQuery || statusFilter !== "all"
+                  ? "No bookings match your current filters."
+                  : "No bookings have been created yet."}
+              </p>
+            </div>
+          ) : (
+            filteredBookings.map((booking) => (
+              <AdminBookingCard
+                key={booking.id}
+                booking={booking}
+                onView={() => setSelectedBooking(booking)}
+              />
+            ))
+          )}
+        </section>
+      </div>
+    </div>
   )
 }
 
-function ReceiptPreview({ booking }: { booking: Booking }) {
-  const receipt = booking.receipt
-
-  if (!booking.receiptIssued || !receipt) {
-    return (
-      <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
-        <Receipt className="mx-auto mb-3 h-10 w-10 text-slate-300" />
-        <p className="font-black text-slate-700">No e-receipt has been issued yet.</p>
-        <p className="mt-1 text-xs font-semibold text-slate-500">
-          Issue receipt after payment is verified.
-        </p>
-      </div>
-    )
-  }
+function AdminBookingCard({
+  booking,
+  onView,
+}: {
+  booking: Booking
+  onView: () => void
+}) {
+  const isOfficeRental = isOfficeBooking(booking)
+  const startDate = formatDate(booking.date)
+  const endDate = (booking as any)?.endDate ? formatDate((booking as any).endDate) : startDate
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5">
-      <div className="mb-5 border-b border-slate-200 pb-4">
-        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-orange-600">
-          One Estela Place
-        </p>
-        <h3 className="mt-1 text-2xl font-black text-slate-950">
-          E-Receipt / Invoice
-        </h3>
-        <p className="mt-1 text-sm font-semibold text-slate-500">
-          Receipt No. {receipt.receiptNumber}
-        </p>
+    <div className="group flex w-full max-w-full min-w-0 flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-orange-200 hover:shadow-md sm:flex-row sm:items-center sm:gap-4">
+      <div className="flex shrink-0 items-center gap-3 sm:w-[200px]">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
+          {isOfficeRental ? <FileText className="h-5 w-5" /> : <Calendar className="h-5 w-5" />}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+            {isOfficeRental ? "Rental" : "Event"}
+          </p>
+          <p className="break-words whitespace-normal text-sm font-black text-slate-900">
+            {booking.eventName || "Untitled"}
+          </p>
+          <p className="break-words whitespace-normal text-[11px] font-bold text-orange-600">
+            {booking.id}
+          </p>
+        </div>
       </div>
 
-      <div className="space-y-3 text-sm">
-        <div className="flex justify-between gap-4">
-          <span className="font-bold text-slate-500">Full Name</span>
-          <span className="text-right font-black text-slate-900">{receipt.fullName}</span>
+      <div className="grid min-w-0 flex-1 grid-cols-2 gap-x-2 gap-y-1.5 sm:grid-cols-4 sm:gap-x-3">
+        <div className="min-w-0 max-w-full">
+          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">Customer</p>
+          <p className="whitespace-normal break-words text-xs font-black text-slate-800">{booking.userInfo?.name || "—"}</p>
+          <p className="whitespace-normal break-words text-[10px] font-bold text-slate-500">{booking.userInfo?.email || "—"}</p>
         </div>
+        <div className="min-w-0 max-w-full">
+          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">Venue</p>
+          <p className="whitespace-normal break-words text-xs font-bold text-slate-800">{booking.venue || "N/A"}</p>
+        </div>
+        <div className="min-w-0 max-w-full">
+          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">
+            {isOfficeRental ? "Start Date" : "Event Date"}
+          </p>
+          <p className="whitespace-normal break-words text-xs font-bold text-slate-800">{startDate}</p>
+        </div>
+        <div className="min-w-0 max-w-full">
+          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">End Date</p>
+          <p className="whitespace-normal break-words text-xs font-bold text-slate-800">{endDate}</p>
+        </div>
+      </div>
 
-        <div className="flex justify-between gap-4">
-          <span className="font-bold text-slate-500">Booking Date</span>
-          <span className="text-right font-black text-slate-900">
-            {formatDate(receipt.bookingDate)}
-          </span>
-        </div>
-
-        <div className="flex justify-between gap-4">
-          <span className="font-bold text-slate-500">Start Date</span>
-          <span className="text-right font-black text-slate-900">
-            {formatDate(receipt.startDate)}
-          </span>
-        </div>
-
-        <div className="flex justify-between gap-4">
-          <span className="font-bold text-slate-500">End Date</span>
-          <span className="text-right font-black text-slate-900">
-            {formatDate(receipt.endDate)}
-          </span>
-        </div>
-
-        <div className="flex justify-between gap-4">
-          <span className="font-bold text-slate-500">Booking Type</span>
-          <span className="text-right font-black text-slate-900">
-            {receipt.bookingType}
-          </span>
-        </div>
-
-        <div className="flex justify-between gap-4">
-          <span className="font-bold text-slate-500">Payment Method</span>
-          <span className="text-right font-black text-slate-900">
-            {receipt.paymentMethod}
-          </span>
-        </div>
-
-        <div className="flex justify-between gap-4">
-          <span className="font-bold text-slate-500">Payment Status</span>
-          <span className="text-right font-black capitalize text-slate-900">
-            {receipt.paymentStatus}
-          </span>
-        </div>
-
-        <div className="flex justify-between gap-4 border-t border-dashed border-slate-300 pt-4">
-          <span className="font-black uppercase tracking-[0.12em] text-slate-500">
-            Payment Amount
-          </span>
-          <span className="text-2xl font-black text-orange-600">
-            {formatMoney(receipt.paymentAmount)}
-          </span>
-        </div>
-
-        <div className="flex justify-between gap-4">
-          <span className="font-bold text-slate-500">Date Issued</span>
-          <span className="text-right font-black text-slate-900">
-            {formatDate(receipt.dateIssued)}
-          </span>
-        </div>
+      <div className="flex shrink-0 items-center justify-between gap-2 sm:flex-col sm:items-end sm:gap-1">
+        <span
+          className={cn(
+            "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest whitespace-nowrap",
+            getStatusBadgeClass(booking.status),
+          )}
+        >
+          {getStatusLabel(booking.status)}
+        </span>
+        <Button
+          variant="outline"
+          onClick={onView}
+          className="h-8 shrink-0 whitespace-nowrap rounded-lg border-slate-200 px-2.5 text-[10px] font-bold text-slate-700 hover:bg-slate-50"
+        >
+          View Details
+        </Button>
       </div>
     </div>
   )
@@ -254,1384 +401,473 @@ function ReceiptPreview({ booking }: { booking: Booking }) {
 function BookingDetailsModal({
   booking,
   open,
-  onOpenChange,
-  onDeclineOpen,
-  onApproveOpen,
-  onModDeclineOpen,
-  onModApproveOpen,
+  onClose,
+  onMarkCompleted,
+  onMarkContractSigned,
 }: {
   booking: Booking | null
   open: boolean
-  onOpenChange: (open: boolean) => void
-  onDeclineOpen?: (booking: Booking) => void
-  onApproveOpen?: (booking: Booking) => void
-  onModDeclineOpen?: (booking: Booking) => void
-  onModApproveOpen?: (booking: Booking) => void
+  onClose: () => void
+  onMarkCompleted: (id: string) => void
+  onMarkContractSigned: () => void
 }) {
   if (!booking) return null
 
-  const contractSigned = booking.contractSigned || booking.contractStatus === "Signed"
+  const isPaymentVerified = (() => {
+    const ps = String(booking.paymentStatus || "").toLowerCase()
+    return (
+      ps === "verified" ||
+      ps === "paid" ||
+      ps === "partial" ||
+      ps === "slot_verified" ||
+      booking.isSlotSecured === true
+    )
+  })()
+
+  const isOfficeRental = isOfficeBooking(booking)
+  const typeLabel = isOfficeRental ? "Office Space Rental" : booking.eventType || "Event Venue Rental"
+  const startDate = formatDate(booking.date)
+  const endDate = (booking as any)?.endDate ? formatDate((booking as any).endDate) : startDate
+  const isCompleted = String(booking.status || "").toLowerCase() === "completed"
+  const isCancelled = String(booking.status || "").toLowerCase() === "cancelled"
+  const canComplete = !isCompleted && !isCancelled
+
+  const timeValue =
+    booking.time ||
+    `${booking.startTime || ""}${booking.startTime && booking.endTime ? " – " : ""}${booking.endTime || ""}` ||
+    "—"
+
+  const bankRef = (booking as any)?.bankReferenceNumber || (booking as any)?.referenceNumber || null
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] max-h-[92dvh] w-[95vw] overflow-y-auto rounded-3xl border-slate-200 p-0 shadow-xl sm:max-w-4xl [&>button]:hidden">
-        <div className="sticky top-0 z-10 flex items-start justify-between border-b border-slate-200 bg-white p-5 safari-sticky">
-          <div>
-            <DialogTitle className="text-2xl font-black text-slate-950">
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent
+        showCloseButton={false}
+        className="flex max-h-[calc(100vh-32px)] max-h-[calc(100dvh-32px)] w-[calc(100vw-2rem)] max-w-[950px] flex-col gap-0 overflow-hidden rounded-2xl border-0 bg-white p-0 shadow-xl"
+      >
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-100 bg-white px-6 pt-6 pb-4">
+          <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-widest text-orange-600">
               Booking Details
+            </p>
+            <DialogTitle className="mt-1 truncate text-xl font-black text-slate-900">
+              {booking.eventName || "Untitled Booking"}
             </DialogTitle>
-            <p className="mt-1 text-sm font-semibold text-slate-500">
-              {booking.id} · {booking.eventName}
+            <p className="mt-0.5 text-xs font-bold text-slate-500">
+              {typeLabel} <span className="mx-1.5 text-slate-300">·</span> #{booking.id}
             </p>
           </div>
-
-          <button
-            onClick={() => onOpenChange(false)}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-rose-50 hover:text-rose-500"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        <div className="grid gap-5 p-5 lg:grid-cols-[1.1fr_.9fr]">
-          <div className="space-y-5">
-            <div className="rounded-2xl border border-slate-200 bg-white p-5">
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
-                    Booking Information
-                  </p>
-                  <h3 className="mt-1 text-xl font-black text-slate-950">
-                    {booking.eventName}
-                  </h3>
-                  <p className="mt-1 text-sm font-bold text-orange-600">
-                    {booking.venue}
-                  </p>
-                </div>
-
-                <StatusBadge
-                  label={getStatusLabel(booking.status)}
-                  className={getStatusClass(booking.status)}
-                />
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <DetailTile label="Client" value={booking.userInfo?.name || "Client"} subValue={booking.userInfo?.email || "No email"} />
-                <DetailTile label="Date & Time" value={formatDate(booking.date)} subValue={booking.time || `${booking.startTime} - ${booking.endTime}`} />
-                <DetailTile label="Guests / Term" value={booking.isOfficeRental ? String((booking as any).contractTerm || (booking as any).rentalTerm || "Office Rental") : `${booking.guestCount} pax`} />
-                <DetailTile label="Total Price" value={formatMoney(booking.totalPrice)} highlight />
-              </div>
-            </div>
-
-            <div
-              className={`rounded-2xl border p-4 ${
-                contractSigned
-                  ? "border-emerald-200 bg-emerald-50"
-                  : "border-orange-200 bg-orange-50"
-              }`}
-            >
-              <div className="flex gap-3">
-                {contractSigned ? (
-                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
-                ) : (
-                  <FileText className="mt-0.5 h-5 w-5 shrink-0 text-orange-600" />
-                )}
-                <div>
-                  <p className={`text-sm font-black ${contractSigned ? "text-emerald-900" : "text-orange-900"}`}>
-                    Contract Status: {contractSigned ? "Signed" : "Pending"}
-                  </p>
-                  <p className={`mt-1 text-xs font-semibold leading-5 ${contractSigned ? "text-emerald-700" : "text-orange-700"}`}>
-                    {contractSigned
-                      ? `Contract was signed${booking.contractSignedDate ? ` on ${formatDate(booking.contractSignedDate)}` : ""}.`
-                      : "Client must visit One Estela Place office for contract signing."}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-white p-5">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
-                    Payment Status
-                  </p>
-                  <h3 className="text-lg font-black text-slate-950">
-                    Payment Details
-                  </h3>
-                </div>
-
-                <StatusBadge
-                  label={getStatusLabel(booking.paymentStatus || "unpaid")}
-                  className={getStatusClass(booking.paymentStatus || "unpaid")}
-                />
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <DetailTile label="Method" value={getPaymentMethodLabel(booking.paymentMethod)} />
-                <DetailTile label="Amount Paid" value={formatMoney(booking.amountPaid)} />
-                <DetailTile label="Balance" value={formatMoney(booking.remainingBalance)} />
-                <DetailTile label="Payment Type" value={booking.paymentType || "Not selected"} />
-                {booking.bankReferenceNumber && (
-                  <DetailTile label="Bank Reference No." value={booking.bankReferenceNumber} />
-                )}
-              </div>
-
-              <div className="mt-4 rounded-2xl border border-orange-100 bg-orange-50 p-4">
-                <p className="text-xs font-black uppercase tracking-widest text-orange-700">
-                  Payment actions are only available in the Payment Verification tab.
-                </p>
-
-                <a
-                  href={`/dashboard/payments?search=${booking.id}`}
-                  className="mt-3 inline-flex h-10 w-full items-center justify-center rounded-xl bg-orange-600 px-4 text-xs font-black text-white shadow-sm transition hover:bg-orange-700 sm:w-auto"
-                >
-                  Go to Payment Verification
-                </a>
-              </div>
-            </div>
-
-            <ReceiptPreview booking={booking} />
-          </div>
-
-          <div className="space-y-5">
-            {(booking.status === "cancellation_requested" || booking.cancellationStatus === "Under Review") && (
-              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
-                <div className="flex gap-3">
-                  <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
-                  <div className="w-full">
-                    <h3 className="font-black text-amber-900">Cancellation Under Review</h3>
-                    <p className="mt-1 text-sm font-semibold leading-6 text-amber-800">
-                      Reason: {booking.cancellationReason || "No reason provided"}
-                    </p>
-                    <div className="mt-3 space-y-1 text-xs font-semibold text-amber-800">
-                      <p>Days before event: <span className="font-black">{booking.daysBeforeEventAtCancellation ?? calculateDaysBeforeEvent(booking.date)} days</span></p>
-                      <p>Refund eligibility: <span className="font-black">{booking.refundEligibilityNote || getRefundEligibilityNote(booking.date)}</span></p>
-                      <p>Payment status: <span className="font-black capitalize">{booking.paymentStatus || "N/A"}</span></p>
-                      <p>Current refund status: <span className="font-black">{booking.refundStatus || "Pending Review"}</span></p>
-                    </div>
-                    <div className="mt-4 flex gap-3">
-                      <Button
-                        onClick={() => onApproveOpen?.(booking)}
-                        className="h-10 flex-1 rounded-xl bg-emerald-600 text-xs font-black text-white hover:bg-emerald-700"
-                      >
-                        Approve Cancellation
-                      </Button>
-                      <Button
-                        onClick={() => onDeclineOpen?.(booking)}
-                        className="h-10 flex-1 rounded-xl bg-rose-600 text-xs font-black text-white hover:bg-rose-700"
-                      >
-                        Decline Cancellation
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {booking.cancellationStatus && booking.cancellationStatus !== "None" && (
-              <div className="rounded-2xl border border-slate-200 bg-white p-5">
-                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Cancellation Status</p>
-                <div className="mt-3 space-y-2 text-sm font-semibold text-slate-600">
-                  <p>Status: <span className="font-black text-slate-900">{booking.cancellationStatus}</span></p>
-                  <p>Refund: <span className="font-black text-slate-900">{booking.refundStatus || "Not Applicable"}</span></p>
-                  {booking.cancellationDeclineReason && <p>Decline Reason: {booking.cancellationDeclineReason}</p>}
-                  {booking.cancellationCooldownUntil && <p>Cooldown Until: {formatDate(booking.cancellationCooldownUntil)}</p>}
-                </div>
-              </div>
-            )}
-
-            {booking.modificationStatus === "Under Review" && (
-              <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-5">
-                <div className="flex gap-3">
-                  <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />
-                  <div className="w-full">
-                    <h3 className="font-black text-indigo-900">Modification Under Review</h3>
-                    <p className="mt-1 text-sm font-semibold leading-6 text-indigo-800">
-                      Reason: {booking.modificationReason || "No reason provided"}
-                    </p>
-                    {booking.requestedChanges && (
-                      <div className="mt-3 rounded-xl bg-white p-3 space-y-1.5 text-xs font-semibold text-indigo-800">
-                        <p className="font-black uppercase tracking-wider text-indigo-600 mb-2">Requested Changes:</p>
-                        {Object.entries(booking.requestedChanges).map(([key, value]) => {
-                          const original = (booking.originalBookingSnapshot as Record<string, unknown>)?.[key]
-                          if (String(value) === String(original)) return null
-                          return (
-                            <div key={key} className="flex justify-between gap-2">
-                              <span className="capitalize text-slate-500">{key.replace(/([A-Z])/g, " $1")}:</span>
-                              <span className="font-bold text-slate-900 truncate max-w-[180px]">
-                                {String(original || "N/A")} → {String(value)}
-                              </span>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
-                    <div className="mt-3 space-y-1 text-xs font-semibold text-indigo-800">
-                      <p>Requested: <span className="font-black">{formatDate(booking.modificationRequestedAt || "")}</span></p>
-                      <p>Payment status: <span className="font-black capitalize">{booking.paymentStatus || "N/A"}</span></p>
-                    </div>
-                    <div className="mt-4 flex gap-3">
-                      <Button
-                        onClick={() => onModApproveOpen?.(booking)}
-                        className="h-10 flex-1 rounded-xl bg-emerald-600 text-xs font-black text-white hover:bg-emerald-700"
-                      >
-                        Approve Modification
-                      </Button>
-                      <Button
-                        onClick={() => onModDeclineOpen?.(booking)}
-                        className="h-10 flex-1 rounded-xl bg-rose-600 text-xs font-black text-white hover:bg-rose-700"
-                      >
-                        Decline Modification
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {booking.modificationStatus === "Approved" && (
-              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
-                <div className="flex gap-3">
-                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
-                  <div>
-                    <h3 className="font-black text-emerald-900">Modification Approved</h3>
-                    <p className="mt-1 text-xs font-semibold text-emerald-700">
-                      {booking.modificationReviewedAt ? `Reviewed on ${formatDate(booking.modificationReviewedAt)}` : ""}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {booking.modificationStatus === "Declined" && (
-              <div className="rounded-2xl border border-rose-200 bg-rose-50 p-5">
-                <div className="flex gap-3">
-                  <X className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" />
-                  <div>
-                    <h3 className="font-black text-rose-900">Modification Declined</h3>
-                    {booking.modificationDeclineReason && (
-                      <p className="mt-1 text-xs font-semibold text-rose-700">
-                        Reason: {booking.modificationDeclineReason}
-                      </p>
-                    )}
-                    {booking.modificationReviewedAt && (
-                      <p className="mt-1 text-xs font-semibold text-rose-700">
-                        Reviewed on {formatDate(booking.modificationReviewedAt)}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {booking.adminLogs && booking.adminLogs.length > 0 && (
-              <div className="rounded-2xl border border-slate-200 bg-white p-5">
-                <p className="mb-3 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
-                  Admin Logs
-                </p>
-                <div className="space-y-3">
-                  {booking.adminLogs.slice().reverse().map((log, index) => (
-                    <div key={`${log.createdAt}-${index}`} className="rounded-xl bg-slate-50 p-3">
-                      <p className="text-xs font-black text-slate-900">{log.action}</p>
-                      <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">{log.message}</p>
-                      <p className="mt-1 text-[10px] font-bold text-slate-400">{formatDate(log.createdAt)}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-function DetailTile({ label, value, subValue, highlight = false }: { label: string; value: React.ReactNode; subValue?: React.ReactNode; highlight?: boolean }) {
-  return (
-    <div className="rounded-xl bg-slate-50 p-3">
-      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</p>
-      <p className={`mt-1 break-words text-sm font-black ${highlight ? "text-orange-600" : "text-slate-800"}`}>{value || "N/A"}</p>
-      {subValue && <p className="text-xs font-semibold text-slate-500">{subValue}</p>}
-    </div>
-  )
-}
-
-function DeclineCancellationModal({
-  booking,
-  open,
-  onOpenChange,
-}: {
-  booking: Booking | null
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}) {
-  const { declineCancellation } = useBookings()
-  const [reason, setReason] = useState("")
-
-  const handleDecline = () => {
-    if (!booking || !reason.trim()) return
-
-    declineCancellation(booking.id, reason.trim())
-    setReason("")
-    onOpenChange(false)
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] rounded-2xl border-slate-200 p-6 shadow-xl sm:max-w-md">
-        <DialogTitle className="text-xl font-black text-slate-950">
-          Decline Cancellation
-        </DialogTitle>
-
-        <p className="mt-1 text-sm font-semibold text-slate-500">
-          Please provide a reason. This will be visible to the client.
-        </p>
-
-        <Textarea
-          value={reason}
-          onChange={(event) => setReason(event.target.value)}
-          placeholder="Type decline reason..."
-          className="mt-5 min-h-[130px] resize-none rounded-xl border-slate-200 bg-slate-50"
-        />
-
-        <div className="mt-5 flex gap-3">
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            className="h-11 flex-1 rounded-xl font-black"
-          >
-            Cancel
-          </Button>
-
-          <Button
-            disabled={!reason.trim()}
-            onClick={handleDecline}
-            className="h-11 flex-1 rounded-xl bg-rose-600 font-black text-white hover:bg-rose-700 disabled:opacity-50"
-          >
-            Decline
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-function ApproveCancellationModal({
-  booking,
-  open,
-  onOpenChange,
-}: {
-  booking: Booking | null
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}) {
-  const { approveCancellation } = useBookings()
-
-  const handleApprove = () => {
-    if (!booking) return
-    approveCancellation(booking.id)
-    onOpenChange(false)
-  }
-
-  if (!booking) return null
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] rounded-2xl border-slate-200 p-6 shadow-xl sm:max-w-md">
-        <DialogTitle className="text-xl font-black text-slate-950">
-          Approve Cancellation
-        </DialogTitle>
-
-        <p className="mt-1 text-sm font-semibold text-slate-500">
-          Are you sure you want to approve this cancellation request?
-        </p>
-
-        <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-2 text-sm font-semibold text-slate-600">
-          <p>Customer: <span className="font-black text-slate-900">{booking.userInfo?.name || "Client"}</span></p>
-          <p>Event: <span className="font-black text-slate-900">{booking.eventName}</span></p>
-          <p>Event Date: <span className="font-black text-slate-900">{booking.date}</span></p>
-          <p>Days Before Event: <span className="font-black text-slate-900">{calculateDaysBeforeEvent(booking.date)} days</span></p>
-          <p>Refund Eligibility: <span className="font-black text-slate-900">{getRefundEligibilityNote(booking.date)}</span></p>
-        </div>
-
-        <div className="mt-5 flex gap-3">
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            className="h-11 flex-1 rounded-xl font-black"
-          >
-            Cancel
-          </Button>
-
-          <Button
-            onClick={handleApprove}
-            className="h-11 flex-1 rounded-xl bg-emerald-600 font-black text-white hover:bg-emerald-700"
-          >
-            Approve Cancellation
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-function ApproveModificationModal({
-  booking,
-  open,
-  onOpenChange,
-}: {
-  booking: Booking | null
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}) {
-  const { approveModification } = useBookings()
-
-  const handleApprove = () => {
-    if (!booking) return
-    approveModification(booking.id)
-    onOpenChange(false)
-  }
-
-  if (!booking) return null
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] rounded-2xl border-slate-200 p-6 shadow-xl sm:max-w-md">
-        <DialogTitle className="text-xl font-black text-slate-950">
-          Approve Modification
-        </DialogTitle>
-
-        <p className="mt-1 text-sm font-semibold text-slate-500">
-          Are you sure you want to approve this modification request? The requested changes will be applied to the booking.
-        </p>
-
-        <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-2 text-sm font-semibold text-slate-600">
-          <p>Customer: <span className="font-black text-slate-900">{booking.userInfo?.name || "Client"}</span></p>
-          <p>Booking: <span className="font-black text-slate-900">{booking.id}</span></p>
-          <p>Event: <span className="font-black text-slate-900">{booking.eventName}</span></p>
-          <p>Reason: <span className="font-black text-slate-900">{booking.modificationReason || "N/A"}</span></p>
-        </div>
-
-        <div className="mt-5 flex gap-3">
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            className="h-11 flex-1 rounded-xl font-black"
-          >
-            Cancel
-          </Button>
-
-          <Button
-            onClick={handleApprove}
-            className="h-11 flex-1 rounded-xl bg-emerald-600 font-black text-white hover:bg-emerald-700"
-          >
-            Approve Modification
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-function DeclineModificationModal({
-  booking,
-  open,
-  onOpenChange,
-}: {
-  booking: Booking | null
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}) {
-  const { declineModification } = useBookings()
-  const [reason, setReason] = useState("")
-
-  const handleDecline = () => {
-    if (!booking || !reason.trim()) return
-    declineModification(booking.id, reason.trim())
-    setReason("")
-    onOpenChange(false)
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] rounded-2xl border-slate-200 p-6 shadow-xl sm:max-w-md">
-        <DialogTitle className="text-xl font-black text-slate-950">
-          Decline Modification
-        </DialogTitle>
-
-        <p className="mt-1 text-sm font-semibold text-slate-500">
-          Please provide a reason. This will be visible to the client.
-        </p>
-
-        <Textarea
-          value={reason}
-          onChange={(event) => setReason(event.target.value)}
-          placeholder="Type decline reason..."
-          className="mt-5 min-h-[130px] resize-none rounded-xl border-slate-200 bg-slate-50"
-        />
-
-        <div className="mt-5 flex gap-3">
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            className="h-11 flex-1 rounded-xl font-black"
-          >
-            Cancel
-          </Button>
-
-          <Button
-            disabled={!reason.trim()}
-            onClick={handleDecline}
-            className="h-11 flex-1 rounded-xl bg-rose-600 font-black text-white hover:bg-rose-700 disabled:opacity-50"
-          >
-            Decline Modification
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-function MaintenanceCalendarModal({
-  open,
-  onOpenChange,
-}: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}) {
-  const { bookings, maintenanceDates, toggleMaintenanceDate } = useBookings()
-  const [calendarMonth, setCalendarMonth] = useState(() => new Date())
-  const [selectedVenueKey, setSelectedVenueKey] = useState("")
-  const [selectedDates, setSelectedDates] = useState<string[]>([])
-  const [confirmBlockOpen, setConfirmBlockOpen] = useState(false)
-  const [unblockTarget, setUnblockTarget] = useState<string | null>(null)
-
-  const venues = useMemo(() => {
-    const map = new Map<string, string>()
-
-    bookings.forEach((booking) => {
-      const key = String(booking.venueId || booking.venue || "").trim()
-      const name = String(booking.venue || booking.eventName || "").trim()
-
-      if (key && name && !map.has(key)) {
-        map.set(key, name)
-      }
-    })
-
-    return Array.from(map.entries()).map(([id, name]) => ({ id, name }))
-  }, [bookings])
-
-  const activeVenueKey = selectedVenueKey || venues[0]?.id || "no-venue"
-  const activeVenueName = venues.find((venue) => venue.id === activeVenueKey)?.name || "Selected Venue"
-
-  const year = calendarMonth.getFullYear()
-  const month = calendarMonth.getMonth()
-  const daysInMonth = new Date(year, month + 1, 0).getDate()
-  const firstDay = new Date(year, month, 1).getDay()
-
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
-  const emptySlots = Array.from({ length: firstDay })
-  const days = Array.from({ length: daysInMonth }, (_, index) => index + 1)
-
-  const isPastDate = (dateKey: string) => {
-    const date = new Date(`${dateKey}T00:00:00`)
-    return date < today
-  }
-
-  const isBookedDate = (dateKey: string) => {
-    return bookings.some((booking) => {
-      const bookingVenueKey = String(booking.venueId || booking.venue || "").trim()
-      const validStatus =
-        booking.status !== "cancelled" &&
-        booking.status !== "declined" &&
-        booking.status !== "cancellation_requested"
-
-      return bookingVenueKey === activeVenueKey && booking.date === dateKey && validStatus
-    })
-  }
-
-  const isMaintenanceDate = (dateKey: string) => {
-    return maintenanceDates.includes(`${activeVenueKey}|${dateKey}`) || maintenanceDates.includes(dateKey)
-  }
-
-  const toggleSelectedDate = (dateKey: string) => {
-    if (!activeVenueKey || activeVenueKey === "no-venue" || isPastDate(dateKey) || isBookedDate(dateKey)) return
-
-    if (isMaintenanceDate(dateKey)) {
-      setUnblockTarget(dateKey)
-      return
-    }
-
-    setSelectedDates((current) =>
-      current.includes(dateKey)
-        ? current.filter((item) => item !== dateKey)
-        : [...current, dateKey]
-    )
-  }
-
-  const confirmBlockDates = () => {
-    selectedDates.forEach((dateKey) => {
-      if (!isMaintenanceDate(dateKey) && !isPastDate(dateKey)) {
-        toggleMaintenanceDate(dateKey, activeVenueKey)
-      }
-    })
-
-    setSelectedDates([])
-    setConfirmBlockOpen(false)
-  }
-
-  const confirmUnblockDate = () => {
-    if (unblockTarget && !isPastDate(unblockTarget)) {
-      toggleMaintenanceDate(unblockTarget, activeVenueKey)
-    }
-    setUnblockTarget(null)
-  }
-
-  return (
-    <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="w-[95vw] rounded-3xl border-slate-200 p-0 shadow-xl sm:max-w-2xl [&>button]:hidden">
-          <div className="flex items-start justify-between border-b border-slate-200 p-5">
-            <div>
-              <DialogTitle className="text-2xl font-black text-slate-950">
-                Maintenance Calendar
-              </DialogTitle>
-              <p className="mt-1 text-sm font-semibold text-slate-500">
-                Select future dates first, then confirm before blocking.
-              </p>
-            </div>
-
+          <DialogClose asChild>
             <button
-              onClick={() => onOpenChange(false)}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-rose-50 hover:text-rose-500"
+              type="button"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 transition hover:bg-slate-100 hover:text-slate-900"
+              aria-label="Close"
             >
               <X className="h-4 w-4" />
             </button>
+          </DialogClose>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-4 py-4 pb-4 sm:px-6 sm:py-5 sm:pb-6">
+          <div className="mb-5 flex flex-wrap items-center gap-2">
+            <span
+              className={cn(
+                "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
+                getStatusBadgeClass(booking.status),
+              )}
+            >
+              {getStatusLabel(booking.status)}
+            </span>
+            <span
+              className={cn(
+                "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
+                getPaymentBadgeClass(booking.paymentStatus),
+              )}
+            >
+              {getPaymentStatusLabel(booking.paymentStatus)}
+            </span>
+            {booking.cancellationStatus && booking.cancellationStatus !== "None" && (
+              <>
+                <span className="inline-block rounded-md border border-amber-100 bg-amber-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-amber-700">
+                  Cancel: {booking.cancellationStatus}
+                </span>
+                {booking.refundStatus && (
+                  <span className="inline-block rounded-md border border-blue-100 bg-blue-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-blue-700">
+                    Refund: {booking.refundStatus}
+                  </span>
+                )}
+              </>
+            )}
           </div>
 
-          <div className="p-5">
-            <div className="mb-5 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
-              <Select value={activeVenueKey} onValueChange={(value) => value !== "no-venue" && setSelectedVenueKey(value)}>
-                <SelectTrigger className="h-11 rounded-xl border-slate-200 bg-white font-bold">
-                  <SelectValue placeholder="Select venue" />
-                </SelectTrigger>
-                <SelectContent>
-                  {venues.length > 0 ? (
-                    venues.map((venue) => (
-                      <SelectItem key={venue.id} value={venue.id}>{venue.name}</SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="no-venue" disabled>No venues found</SelectItem>
+          {(booking.contractStatus === "Signed" || booking.contractSigned) && (
+            <div className="mb-5 rounded-xl border border-slate-200 bg-white p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <FileText className="h-4 w-4 text-slate-500" />
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Contract</p>
+              </div>
+              <div className="space-y-2">
+                <span
+                  className={cn(
+                    "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
+                    "border-emerald-100 bg-emerald-50 text-emerald-700",
                   )}
-                </SelectContent>
-              </Select>
-
-              <div className="rounded-xl bg-orange-50 px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-orange-700">
-                {activeVenueName}
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-white p-4">
-              <div className="mb-4 flex items-center justify-between">
-                <Button type="button" variant="outline" onClick={() => setCalendarMonth(new Date(year, month - 1, 1))} className="h-10 w-10 rounded-full p-0">
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-
-                <div className="text-center">
-                  <p className="text-lg font-black text-slate-950">
-                    {calendarMonth.toLocaleString("default", { month: "long", year: "numeric" })}
+                >
+                  Contract Status: Signed
+                </span>
+                {booking.contractSignedDate && (
+                  <p className="text-xs font-semibold text-slate-700">
+                    Signed Date: {formatDate(booking.contractSignedDate)}
                   </p>
-                  <p className="text-xs font-semibold text-slate-400">Past dates are view-only</p>
-                </div>
+                )}
+                {booking.contractSignedBy && (
+                  <p className="text-xs font-semibold text-slate-700">
+                    Signed By: {booking.contractSignedBy}
+                  </p>
+                )}
+                <p className="text-xs font-semibold text-slate-500">
+                  Signing Method: Face-to-face
+                </p>
+              </div>
+            </div>
+          )}
 
-                <Button type="button" variant="outline" onClick={() => setCalendarMonth(new Date(year, month + 1, 1))} className="h-10 w-10 rounded-full p-0">
-                  <ChevronRight className="h-4 w-4" />
+          {isPaymentVerified && !(booking.contractStatus === "Signed" || booking.contractSigned) && !isCancelled && !isCompleted && (
+            <div className="mb-5 rounded-xl border border-slate-200 bg-white p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <FileText className="h-4 w-4 text-slate-500" />
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Contract</p>
+              </div>
+              <div className="space-y-3">
+                <span
+                  className={cn(
+                    "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
+                    "border-orange-100 bg-orange-50 text-orange-700",
+                  )}
+                >
+                  Contract Status: Pending Signature
+                </span>
+                <p className="text-xs font-semibold text-orange-700">
+                  Contract signing must be completed onsite at the One Estela Place office.
+                </p>
+                <p className="text-[11px] font-semibold text-slate-500">
+                  The customer must personally sign the official contract at the One Estela Place office.
+                </p>
+                <Button
+                  onClick={onMarkContractSigned}
+                  className="h-9 rounded-lg bg-blue-600 px-4 text-[11px] font-bold text-white shadow-sm hover:bg-blue-700"
+                >
+                  <ShieldCheck className="mr-1.5 h-3.5 w-3.5" />
+                  Mark Contract as Signed
                 </Button>
               </div>
+            </div>
+          )}
 
-              <div className="mb-2 grid grid-cols-7 text-center text-[10px] font-black uppercase tracking-widest text-slate-400">
-                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => <div key={day} className="py-2">{day}</div>)}
+          {!isPaymentVerified && !(booking.contractStatus === "Signed" || booking.contractSigned) && (
+            <div className="mb-5 rounded-xl border border-slate-200 bg-white p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <FileText className="h-4 w-4 text-slate-500" />
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Contract</p>
               </div>
-
-              <div className="grid grid-cols-7 gap-2">
-                {emptySlots.map((_, index) => <div key={`empty-${index}`} className="h-11" />)}
-                {days.map((day) => {
-                  const dateKey = toDateKey(new Date(year, month, day))
-                  const booked = isBookedDate(dateKey)
-                  const maintenance = isMaintenanceDate(dateKey)
-                  const selected = selectedDates.includes(dateKey)
-                  const past = isPastDate(dateKey)
-
-                  let className = "border-slate-200 bg-white text-slate-700 hover:border-orange-400 hover:bg-orange-50"
-                  let disabled = !activeVenueKey || activeVenueKey === "no-venue" || past || booked
-
-                  if (past) className = "cursor-not-allowed border-slate-100 bg-slate-100 text-slate-300 opacity-60"
-                  if (booked) className = "cursor-not-allowed border-rose-200 bg-rose-50 text-rose-600"
-                  if (selected) className = "border-orange-600 bg-orange-500 text-white shadow-md"
-                  if (maintenance) {
-                    className = past
-                      ? "cursor-not-allowed border-slate-900 bg-slate-900 text-slate-500 opacity-60"
-                      : "border-slate-900 bg-slate-900 text-white hover:bg-slate-800"
-                    disabled = past
-                  }
-
-                  return (
-                    <button
-                      key={dateKey}
-                      type="button"
-                      disabled={disabled}
-                      onClick={() => toggleSelectedDate(dateKey)}
-                      className={`flex h-11 items-center justify-center rounded-xl border text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
-                    >
-                      {day}
-                    </button>
-                  )
-                })}
-              </div>
-
-              <div className="mt-5 flex flex-wrap gap-3 text-xs font-bold">
-                <span className="inline-flex items-center gap-2 text-slate-500"><span className="h-3 w-3 rounded-full border border-slate-200 bg-white" />Available</span>
-                <span className="inline-flex items-center gap-2 text-orange-600"><span className="h-3 w-3 rounded-full bg-orange-500" />Selected</span>
-                <span className="inline-flex items-center gap-2 text-rose-600"><span className="h-3 w-3 rounded-full bg-rose-100" />Booked</span>
-                <span className="inline-flex items-center gap-2 text-slate-700"><span className="h-3 w-3 rounded-full bg-slate-900" />Maintenance</span>
-              </div>
-
-              <Button
-                type="button"
-                disabled={selectedDates.length === 0}
-                onClick={() => setConfirmBlockOpen(true)}
-                className="mt-5 h-11 w-full rounded-xl bg-orange-600 font-black text-white hover:bg-orange-700 disabled:opacity-50"
+              <span
+                className={cn(
+                  "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
+                  "border-slate-200 bg-slate-50 text-slate-600",
+                )}
               >
-                Block Selected Dates ({selectedDates.length})
-              </Button>
+                Contract Status: Not Available
+              </span>
+              <p className="mt-2 text-xs font-semibold text-slate-500">
+                Contract will be available once payment is verified.
+              </p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
+            <div className="rounded-xl border border-slate-100 p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Booking Information</p>
+              </div>
+              <div className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Customer</p>
+                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{booking.userInfo?.name || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Email</p>
+                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{booking.userInfo?.email || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Booking Date</p>
+                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{formatDate(booking.createdAt) || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">{isOfficeRental ? "Start Date" : "Event Date"}</p>
+                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{startDate || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">End Date</p>
+                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{endDate || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Venue / Office</p>
+                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{booking.venue || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Guests</p>
+                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{booking.guestCount ? `${booking.guestCount} pax` : "—"}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Time</p>
+                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{timeValue}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Booking ID</p>
+                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">#{booking.id}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Event Type</p>
+                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{typeLabel}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-slate-100">
+              <PaymentSummaryCard booking={booking} bankRef={bankRef} />
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
 
-      <Dialog open={confirmBlockOpen} onOpenChange={setConfirmBlockOpen}>
-        <DialogContent className="w-[92vw] max-w-md rounded-3xl border-slate-200 bg-white p-6 shadow-2xl">
-          <DialogTitle className="text-xl font-black text-slate-950">Confirm Maintenance Block</DialogTitle>
-          <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
-            Are you sure you want to block the selected date(s) for maintenance? These dates will become unavailable for customer bookings.
-          </p>
-          <div className="mt-5 grid grid-cols-2 gap-3">
-            <Button variant="outline" onClick={() => setConfirmBlockOpen(false)} className="h-11 rounded-xl border-slate-200 font-black">Cancel</Button>
-            <Button onClick={confirmBlockDates} className="h-11 rounded-xl bg-orange-600 font-black text-white hover:bg-orange-700">Confirm Block Dates</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+          {booking.specialRequests && (
+            <div className="mt-5 p-4">
+              <div className="mb-2 flex items-center gap-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Special Requests</p>
+              </div>
+              <p className="text-xs font-semibold leading-relaxed text-slate-700">{booking.specialRequests}</p>
+            </div>
+          )}
 
-      <Dialog open={!!unblockTarget} onOpenChange={(open) => !open && setUnblockTarget(null)}>
-        <DialogContent className="w-[92vw] max-w-md rounded-3xl border-slate-200 bg-white p-6 shadow-2xl">
-          <DialogTitle className="text-xl font-black text-slate-950">Unblock Maintenance Date?</DialogTitle>
-          <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
-            Are you sure you want to remove this maintenance block? This date may become available for customer bookings again.
-          </p>
-          <div className="mt-5 grid grid-cols-2 gap-3">
-            <Button variant="outline" onClick={() => setUnblockTarget(null)} className="h-11 rounded-xl border-slate-200 font-black">Cancel</Button>
-            <Button onClick={confirmUnblockDate} className="h-11 rounded-xl bg-slate-900 font-black text-white hover:bg-slate-800">Yes, Unblock Date</Button>
+          {booking.cancellationStatus && booking.cancellationStatus !== "None" && (
+            <div className="mt-5 p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-rose-400" />
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Cancellation / Refund Status</p>
+              </div>
+              <div className="space-y-2.5 text-xs font-semibold text-slate-700">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Cancellation</span>
+                  <span className="font-bold text-slate-900">{booking.cancellationStatus}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Refund</span>
+                  <span className="font-bold text-slate-900">{booking.refundStatus || "Not Applicable"}</span>
+                </div>
+                {booking.refundEligibilityNote && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Eligibility</span>
+                    <span className="font-bold text-slate-900">{booking.refundEligibilityNote}</span>
+                  </div>
+                )}
+                {booking.daysBeforeEventAtCancellation !== undefined && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Days before event</span>
+                    <span className="font-bold text-slate-900">{booking.daysBeforeEventAtCancellation} days</span>
+                  </div>
+                )}
+                {booking.refundClaimNote && (
+                  <div className="mt-2 rounded-lg bg-amber-100/50 px-3 py-2 text-[11px] font-semibold text-amber-800">
+                    {booking.refundClaimNote}
+                  </div>
+                )}
+                {booking.cancellationDeclineReason && (
+                  <div className="mt-2 rounded-lg bg-rose-100/50 px-3 py-2 text-[11px] font-semibold text-rose-700">
+                    Decline Reason: {booking.cancellationDeclineReason}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {booking.modificationRequested && booking.modificationStatus && booking.modificationStatus !== "None" && (
+            <div className="mt-5 p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-blue-400" />
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Modification Status</p>
+              </div>
+              <div className="space-y-2.5 text-xs font-semibold text-slate-700">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Status</span>
+                  <span className="font-bold text-slate-900">{booking.modificationStatus}</span>
+                </div>
+                {booking.modificationReason && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Reason</span>
+                    <span className="font-bold text-slate-900">{booking.modificationReason}</span>
+                  </div>
+                )}
+                {booking.modificationDeclineReason && (
+                  <div className="mt-2 rounded-lg bg-rose-100/50 px-3 py-2 text-[11px] font-semibold text-rose-700">
+                    Decline Reason: {booking.modificationDeclineReason}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-3 border-t border-slate-100 bg-white px-4 py-3 sm:px-6 sm:py-4">
+          <div className="grid grid-cols-2 gap-3">
+            <Button
+              variant="outline"
+              onClick={onClose}
+              className="h-10 rounded-lg border-slate-200 px-4 text-xs font-bold text-slate-700 hover:bg-slate-100"
+            >
+              Close
+            </Button>
+            {canComplete && (
+              <Button
+                onClick={() => onMarkCompleted(booking.id)}
+                className="h-10 rounded-lg bg-emerald-600 px-4 text-xs font-bold text-white shadow-sm hover:bg-emerald-700"
+              >
+                <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
+                Mark as Completed
+              </Button>
+            )}
           </div>
-        </DialogContent>
-      </Dialog>
-    </>
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }
 
-function OfficeRentalCard({ rental }: { rental: OfficeRental }) {
-  const {
-    approveOfficeRentalForContractSigning,
-    declineOfficeRental,
-    markOfficeContractSigned,
-    markOfficeAdvanceDepositPaid,
-    updateOfficeChequeSubmission,
-    activateOfficeLease,
-    cancelOfficeRental,
-    completeOfficeRental,
-  } = useBookings()
-
-  const [declineReason, setDeclineReason] = useState("")
-  const [chequeCount, setChequeCount] = useState(String(rental.submittedChequeCount || 0))
-  const [chequeNotes, setChequeNotes] = useState(rental.chequeNotes || "")
+function PaymentSummaryCard({
+  booking,
+  bankRef,
+}: {
+  booking: Booking
+  bankRef: string | null
+}) {
+  const rawAmountPaid = (booking as any)?.amountPaid || (booking as any)?.downPayment || 0
+  const amountPaid = Number(rawAmountPaid) || 0
+  const totalPrice = Number(booking.totalPrice) || 0
+  const hasPaid = amountPaid > 0
+  const hasTotal = totalPrice > 0
+  const remaining = hasTotal && hasPaid ? Math.max(0, totalPrice - amountPaid) : null
 
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="mb-4 flex flex-col gap-3 border-b border-slate-100 pb-4 sm:flex-row sm:items-start sm:justify-between">
+    <div className="p-4">
+      <div className="mb-3 flex items-center gap-2">
+        <div className="h-1.5 w-1.5 rounded-full bg-orange-500" />
+        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Payment Summary</p>
+      </div>
+
+      <div className="grid gap-y-3 gap-x-6 sm:grid-cols-2">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
-            Office Rental
-          </p>
-          <h3 className="mt-1 text-xl font-black text-slate-950">
-            {rental.officeSpaceName}
-          </h3>
-          <p className="mt-1 text-sm font-semibold text-slate-500">
-            {rental.clientName} · {rental.rentalTerm.replace("_", " ")}
+          <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Method</p>
+          <p className="text-xs font-bold text-slate-800">
+            {booking.paymentMethod ? getPaymentMethodLabel(booking.paymentMethod) : "—"}
           </p>
         </div>
-
-        <StatusBadge
-          label={rental.leaseStatus}
-          className={getOfficeStatusClass(rental.leaseStatus)}
-        />
-      </div>
-
-      <div className="grid gap-3 md:grid-cols-3">
-        <div className="rounded-2xl bg-orange-50 p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-orange-600">
-            Monthly Rent
-          </p>
-          <p className="mt-1 text-xl font-black text-orange-700">
-            {formatMoney(rental.monthlyRent)}
-          </p>
-        </div>
-
-        <div className="rounded-2xl bg-slate-50 p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-            Advance + Deposit
-          </p>
-          <p className="mt-1 text-xl font-black text-slate-900">
-            {formatMoney(rental.totalInitialPayment)}
-          </p>
-        </div>
-
-        <div className="rounded-2xl bg-blue-50 p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-blue-600">
-            Physical Cheques
-          </p>
-          <p className="mt-1 text-xl font-black text-blue-700">
-            {rental.submittedChequeCount}/{rental.requiredChequeCount}
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-        <div className="flex gap-3">
-          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
-          <p className="text-sm font-semibold leading-6 text-amber-800">
-            Office rentals require face-to-face contract signing. Monthly rental payments
-            are by cheque only and must be submitted personally at the office.
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-5 grid gap-3 lg:grid-cols-2">
-        <div className="rounded-2xl border border-slate-200 p-4">
-          <p className="mb-3 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
-            Contract & Payment
-          </p>
-
-          <div className="grid gap-2">
-            <Button
-              onClick={() => approveOfficeRentalForContractSigning(rental.id)}
-              className="h-10 rounded-xl bg-orange-600 text-xs font-black text-white hover:bg-orange-700"
-            >
-              Approve for Contract Signing
-            </Button>
-
-            <Button
-              disabled={rental.contractSigned}
-              onClick={() => markOfficeContractSigned(rental.id)}
-              className="h-10 rounded-xl bg-slate-900 text-xs font-black text-white hover:bg-slate-800 disabled:opacity-50"
-            >
-              Mark Contract Signed
-            </Button>
-
-            <Button
-              disabled={rental.advanceDepositPaid}
-              onClick={() => markOfficeAdvanceDepositPaid(rental.id)}
-              className="h-10 rounded-xl bg-emerald-600 text-xs font-black text-white hover:bg-emerald-700 disabled:opacity-50"
-            >
-              Confirm Advance/Deposit Paid
-            </Button>
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 p-4">
-          <p className="mb-3 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
-            Physical Cheque Submission
-          </p>
-
-          <div className="grid gap-3">
-            <Input
-              type="number"
-              min={0}
-              max={rental.requiredChequeCount}
-              value={chequeCount}
-              onChange={(event) => setChequeCount(event.target.value)}
-              className="h-10 rounded-xl border-slate-200"
-            />
-
-            <Textarea
-              value={chequeNotes}
-              onChange={(event) => setChequeNotes(event.target.value)}
-              placeholder="Cheque submission notes..."
-              className="min-h-[80px] resize-none rounded-xl border-slate-200"
-            />
-
-            <Button
-              onClick={() =>
-                updateOfficeChequeSubmission(
-                  rental.id,
-                  Number(chequeCount || 0),
-                  chequeNotes,
-                  "Admin"
-                )
-              }
-              className="h-10 rounded-xl bg-blue-600 text-xs font-black text-white hover:bg-blue-700"
-            >
-              Update Cheque Submission
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-5 grid gap-3 md:grid-cols-3">
-        <Button
-          onClick={() => activateOfficeLease(rental.id)}
-          className="h-10 rounded-xl bg-emerald-600 text-xs font-black text-white hover:bg-emerald-700"
-        >
-          Activate Lease
-        </Button>
-
-        <Button
-          onClick={() => completeOfficeRental(rental.id)}
-          variant="outline"
-          className="h-10 rounded-xl border-slate-200 text-xs font-black"
-        >
-          Mark Completed
-        </Button>
-
-        <Button
-          onClick={() => cancelOfficeRental(rental.id)}
-          variant="outline"
-          className="h-10 rounded-xl border-rose-200 text-xs font-black text-rose-600 hover:bg-rose-50"
-        >
-          Cancel
-        </Button>
-      </div>
-
-      {rental.leaseStatus !== "Declined" && (
-        <div className="mt-5 rounded-2xl border border-rose-100 bg-rose-50 p-4">
-          <p className="mb-3 text-[10px] font-black uppercase tracking-[0.18em] text-rose-600">
-            Decline Request
-          </p>
-
-          <div className="grid gap-3 md:grid-cols-[1fr_auto]">
-            <Input
-              value={declineReason}
-              onChange={(event) => setDeclineReason(event.target.value)}
-              placeholder="Decline reason..."
-              className="h-10 rounded-xl border-rose-200 bg-white"
-            />
-
-            <Button
-              disabled={!declineReason.trim()}
-              onClick={() => {
-                declineOfficeRental(rental.id, declineReason.trim())
-                setDeclineReason("")
-              }}
-              className="h-10 rounded-xl bg-rose-600 px-5 text-xs font-black text-white hover:bg-rose-700 disabled:opacity-50"
-            >
-              Decline
-            </Button>
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-function AdminBookingsContent() {
-  const bookingCtx = useBookings()
-
-  const bookings = bookingCtx.bookings || []
-  const officeRentals = bookingCtx.officeRentals || []
-
-  const [mode, setMode] = useState<"venue" | "office">("venue")
-  const [statusFilter, setStatusFilter] = useState<string>(ALL_VALUE)
-  const [eventFilter, setEventFilter] = useState<string>(ALL_VALUE)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
-  const [declineTarget, setDeclineTarget] = useState<Booking | null>(null)
-  const [approveTarget, setApproveTarget] = useState<Booking | null>(null)
-  const [modDeclineTarget, setModDeclineTarget] = useState<Booking | null>(null)
-  const [modApproveTarget, setModApproveTarget] = useState<Booking | null>(null)
-  const [isMaintenanceOpen, setIsMaintenanceOpen] = useState(false)
-
-  const eventOptions = useMemo(() => {
-    const events = new Set<string>()
-
-    bookings.forEach((booking) => {
-      if (booking.eventName) events.add(booking.eventName)
-    })
-
-    return Array.from(events).sort()
-  }, [bookings])
-
-  const filteredBookings = useMemo(() => {
-    const keyword = searchQuery.trim().toLowerCase()
-
-    return bookings
-      .filter((booking) => {
-        const matchesStatus =
-          statusFilter === ALL_VALUE || booking.status === statusFilter
-
-        const matchesEvent =
-          eventFilter === ALL_VALUE || booking.eventName === eventFilter
-
-        const searchable = [
-          booking.id,
-          booking.eventName,
-          booking.venue,
-          booking.userInfo?.name,
-          booking.userInfo?.email,
-          booking.status,
-          booking.paymentStatus,
-        ]
-          .join(" ")
-          .toLowerCase()
-
-        const matchesSearch = !keyword || searchable.includes(keyword)
-
-        return matchesStatus && matchesEvent && matchesSearch
-      })
-      .sort((a, b) => {
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      })
-  }, [bookings, statusFilter, eventFilter, searchQuery])
-
-  const filteredOfficeRentals = useMemo(() => {
-    const keyword = searchQuery.trim().toLowerCase()
-
-    return officeRentals
-      .filter((rental) => {
-        const searchable = [
-          rental.id,
-          rental.clientName,
-          rental.officeSpaceName,
-          rental.leaseStatus,
-          rental.rentalTerm,
-        ]
-          .join(" ")
-          .toLowerCase()
-
-        return !keyword || searchable.includes(keyword)
-      })
-      .sort((a, b) => {
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      })
-  }, [officeRentals, searchQuery])
-
-  return (
-    <div className="mx-auto w-full max-w-[1400px] animate-in fade-in p-5 duration-500 md:p-8 xl:p-10">
-      <BookingDetailsModal
-        booking={selectedBooking}
-        open={!!selectedBooking}
-        onOpenChange={(open) => {
-          if (!open) setSelectedBooking(null)
-        }}
-        onDeclineOpen={(booking) => setDeclineTarget(booking)}
-        onApproveOpen={(booking) => setApproveTarget(booking)}
-        onModDeclineOpen={(booking) => setModDeclineTarget(booking)}
-        onModApproveOpen={(booking) => setModApproveTarget(booking)}
-      />
-
-      <DeclineCancellationModal
-        booking={declineTarget}
-        open={!!declineTarget}
-        onOpenChange={(open) => {
-          if (!open) setDeclineTarget(null)
-        }}
-      />
-
-      <ApproveCancellationModal
-        booking={approveTarget}
-        open={!!approveTarget}
-        onOpenChange={(open) => {
-          if (!open) setApproveTarget(null)
-        }}
-      />
-
-      <ApproveModificationModal
-        booking={modApproveTarget}
-        open={!!modApproveTarget}
-        onOpenChange={(open) => {
-          if (!open) setModApproveTarget(null)
-        }}
-      />
-
-      <DeclineModificationModal
-        booking={modDeclineTarget}
-        open={!!modDeclineTarget}
-        onOpenChange={(open) => {
-          if (!open) setModDeclineTarget(null)
-        }}
-      />
-
-      <MaintenanceCalendarModal
-        open={isMaintenanceOpen}
-        onOpenChange={setIsMaintenanceOpen}
-      />
-
-      <div className="mb-7 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="mb-2 text-xs font-black uppercase tracking-[0.35em] text-orange-600">
-            Admin Booking Management
-          </p>
-
-          <h1 className="text-4xl font-black tracking-tight text-slate-950 md:text-5xl">
-            Bookings
-          </h1>
-
-          <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-500">
-            Manage venue bookings, cancellation requests, refunds, contracts,
-            e-receipts, office rentals, and maintenance dates.
+          <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Type</p>
+          <p className="text-xs font-bold text-slate-800">
+            {booking.paymentType ? formatTextLabel(booking.paymentType) : "—"}
           </p>
         </div>
-
-        {mode === "venue" && (
-          <Button
-            type="button"
-            onClick={() => setIsMaintenanceOpen(true)}
-            className="h-11 w-full rounded-xl bg-slate-900 px-5 text-xs font-black text-white shadow-sm hover:bg-slate-800 sm:w-auto"
-          >
-            <Wrench className="mr-2 h-4 w-4" />
-            Maintenance Calendar
-          </Button>
+        <div>
+          <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Total Amount</p>
+          <p className="text-xs font-bold text-slate-800">{hasTotal ? formatMoney(totalPrice) : "—"}</p>
+        </div>
+        <div>
+          <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Amount Paid</p>
+          <p className="text-xs font-bold text-slate-800">{hasPaid ? formatMoney(amountPaid) : "—"}</p>
+        </div>
+        {remaining !== null && (
+          <div>
+            <p className="text-[9px] font-bold uppercase tracking-wider text-amber-600">Remaining Balance</p>
+            <p className="text-xs font-bold text-amber-700">{remaining > 0 ? formatMoney(remaining) : "—"}</p>
+          </div>
         )}
       </div>
 
-      <div className="mb-5 flex w-full justify-center lg:justify-end">
-        <div className="grid w-full grid-cols-2 rounded-full border border-slate-200 bg-white p-1 shadow-sm sm:w-[430px]">
-          <button
-            type="button"
-            onClick={() => setMode("venue")}
-            className={`rounded-full px-5 py-2.5 text-[11px] font-black uppercase tracking-[0.12em] transition ${
-              mode === "venue"
-                ? "bg-orange-600 text-white shadow-sm"
-                : "text-slate-500 hover:bg-orange-50 hover:text-orange-600"
-            }`}
-          >
-            Venue
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setMode("office")}
-            className={`rounded-full px-5 py-2.5 text-[11px] font-black uppercase tracking-[0.12em] transition ${
-              mode === "office"
-                ? "bg-orange-600 text-white shadow-sm"
-                : "text-slate-500 hover:bg-orange-50 hover:text-orange-600"
-            }`}
-          >
-            Office Rentals
-          </button>
-        </div>
-      </div>
-
-      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-orange-600">
-            {mode === "venue" ? "Venue Booking Records" : "Office Rental Requests"}
-          </p>
-
-          <p className="mt-1 text-sm font-semibold text-slate-500">
-            {mode === "venue"
-              ? "Search and filter booking records."
-              : "Track face-to-face contract signing and cheque submissions."}
-          </p>
-        </div>
-
-        <div className="flex w-full flex-col gap-3 sm:flex-row md:w-auto md:items-center md:justify-end">
-          {mode === "venue" && (
-            <>
-              <div className="relative w-full sm:w-[320px]">
-                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <Input
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  placeholder="Search bookings..."
-                  className="h-11 rounded-xl border-slate-200 bg-white pl-10 pr-4 text-sm font-bold shadow-sm"
-                />
-              </div>
-
-              <Select value={eventFilter} onValueChange={setEventFilter}>
-                <SelectTrigger className="h-11 w-full rounded-xl border-slate-200 bg-white font-bold shadow-sm sm:w-[210px]">
-                  <SelectValue placeholder="All Events" />
-                </SelectTrigger>
-
-                <SelectContent>
-                  <SelectItem value={ALL_VALUE}>All Events</SelectItem>
-                  {eventOptions.map((eventName) => (
-                    <SelectItem key={eventName} value={eventName}>
-                      {eventName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="h-11 w-full rounded-xl border-slate-200 bg-white font-bold shadow-sm sm:w-[190px]">
-                  <SelectValue placeholder="All Status" />
-                </SelectTrigger>
-
-                <SelectContent>
-                  {STATUS_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </>
-          )}
-
-          {mode === "office" && (
-            <>
-              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 sm:max-w-[430px]">
-                <p className="text-xs font-bold leading-5 text-amber-800">
-                  Office rental cheque payments are face-to-face only. No online cheque upload.
-                </p>
-              </div>
-
-              <div className="relative w-full sm:w-[340px]">
-                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <Input
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  placeholder="Search office rentals..."
-                  className="h-11 rounded-xl border-slate-200 bg-white pl-10 pr-4 text-sm font-bold shadow-sm"
-                />
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-
-      {mode === "venue" ? (
-        filteredBookings.length > 0 ? (
-          <div className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm">
-            <div className="hidden border-b border-slate-200 bg-slate-50 px-6 py-4 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400 lg:grid lg:grid-cols-[1fr_1.5fr_1fr_1fr_1fr_.55fr] lg:gap-4">
-              <div>Booking ID</div>
-              <div>Client / Event</div>
-              <div>Date</div>
-              <div>Payment</div>
-              <div>Status</div>
-              <div className="text-right">Action</div>
-            </div>
-
-            <div className="divide-y divide-slate-100">
-              {filteredBookings.map((booking) => (
-                <div
-                  key={booking.id}
-                  className="grid gap-4 px-6 py-5 transition hover:bg-orange-50/30 lg:grid-cols-[1fr_1.5fr_1fr_1fr_1fr_.55fr] lg:items-center"
-                >
-                  <div>
-                    <p className="text-sm font-black text-slate-950">{booking.id}</p>
-                    <p className="mt-1 text-xs font-semibold text-slate-400">
-                      {formatDate(booking.createdAt)}
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-sm font-black text-slate-950">
-                      {booking.userInfo?.name || "Client"}
-                    </p>
-                    <p className="mt-1 text-xs font-semibold text-orange-600">
-                      {booking.eventName}
-                    </p>
-                    <p className="text-xs font-semibold text-slate-400">
-                      {booking.venue}
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-sm font-black text-slate-800">
-                      {formatDate(booking.date)}
-                    </p>
-                    <p className="mt-1 text-xs font-semibold text-slate-400">
-                      {booking.time || `${booking.startTime} - ${booking.endTime}`}
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-sm font-black text-slate-800">
-                      {formatMoney(booking.amountPaid || booking.totalPrice)}
-                    </p>
-                    <p className="mt-1 text-xs font-semibold text-slate-400">
-                      {getPaymentMethodLabel(booking.paymentMethod)}
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <StatusBadge
-                      label={getStatusLabel(booking.status)}
-                      className={getStatusClass(booking.status)}
-                    />
-
-                    {booking.refundStatus && (
-                      <div>
-                        <StatusBadge
-                          label={booking.refundStatus}
-                          className={getRefundClass(booking.refundStatus)}
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="lg:text-right">
-                    <Button
-                      onClick={() => setSelectedBooking(booking)}
-                      className="h-10 rounded-xl bg-slate-900 px-4 text-xs font-black text-white hover:bg-slate-800"
-                    >
-                      View
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="rounded-[1.75rem] border border-dashed border-slate-300 bg-slate-50 p-14 text-center">
-            <Inbox className="mx-auto mb-4 h-12 w-12 text-slate-300" />
-            <h3 className="text-xl font-black text-slate-700">No bookings found</h3>
-            <p className="mt-1 text-sm font-semibold text-slate-500">
-              Try another filter or search keyword.
-            </p>
-          </div>
-        )
-      ) : filteredOfficeRentals.length > 0 ? (
-        <div className="space-y-5">
-          {filteredOfficeRentals.map((rental) => (
-            <OfficeRentalCard key={rental.id} rental={rental} />
-          ))}
-        </div>
-      ) : (
-        <div className="rounded-[1.75rem] border border-dashed border-slate-300 bg-slate-50 p-14 text-center">
-          <Inbox className="mx-auto mb-4 h-12 w-12 text-slate-300" />
-          <h3 className="text-xl font-black text-slate-700">No office rental requests</h3>
-          <p className="mt-1 text-sm font-semibold text-slate-500">
-            Office rental requests will appear here after client submission.
-          </p>
+      {bankRef && (
+        <div className="mt-3 border-t border-slate-100 pt-3">
+          <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Bank Reference</p>
+          <p className="mt-0.5 text-xs font-bold text-slate-900">{bankRef}</p>
         </div>
       )}
     </div>
   )
 }
 
-export default function AdminBookingsPage() {
+function ContractSigningConfirmModal({
+  booking,
+  open,
+  onCancel,
+  onConfirm,
+}: {
+  booking: Booking | null
+  open: boolean
+  onCancel: () => void
+  onConfirm: () => void
+}) {
   return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-[70vh] items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-orange-600" />
+    <Dialog open={open} onOpenChange={(v) => !v && onCancel()}>
+      <DialogContent className="w-[calc(100vw-28px)] max-w-[520px] rounded-2xl border-0 bg-white p-0 shadow-2xl [&>button]:hidden">
+        <div className="p-6 sm:p-7">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+            <FileText className="h-8 w-8" />
+          </div>
+
+          <DialogTitle className="text-2xl font-black text-slate-950">
+            Mark Contract as Signed?
+          </DialogTitle>
+
+          <p className="mt-2 text-sm leading-6 text-slate-500">
+            Are you sure you want to mark this contract as signed? This should only be done after
+            the customer has signed the official contract face-to-face at the One Estela Place office.
+          </p>
+
+          {booking && (
+            <div className="mt-5 space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left">
+              <div className="flex justify-between text-xs">
+                <span className="font-semibold text-slate-400">Booking ID</span>
+                <span className="font-bold text-slate-900">{booking.id}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="font-semibold text-slate-400">Customer</span>
+                <span className="font-bold text-slate-900">{booking.userInfo?.name || "No Name"}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="font-semibold text-slate-400">Event</span>
+                <span className="font-bold text-slate-900">{booking.eventName || "Untitled"}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="font-semibold text-slate-400">Contract Status</span>
+                <span className="font-bold text-slate-900">{booking.contractStatus === "Signed" ? "Signed" : "Pending Signature"}</span>
+              </div>
+            </div>
+          )}
+
+          <div className="mt-6 grid grid-cols-2 gap-3">
+            <Button
+              variant="outline"
+              onClick={onCancel}
+              className="h-11 rounded-xl border-slate-200 text-sm font-black text-slate-700"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={onConfirm}
+              className="h-11 rounded-xl bg-blue-600 text-sm font-black text-white hover:bg-blue-700"
+            >
+              Yes, Mark as Signed
+            </Button>
+          </div>
         </div>
-      }
-    >
-      <AdminBookingsContent />
-    </Suspense>
+      </DialogContent>
+    </Dialog>
   )
 }

@@ -54,7 +54,11 @@ export type RefundStatus =
   | "Refund Claimed"
   | "Not Eligible for Refund";
 
-export type ContractStatus = "Pending" | "Signed";
+export type ContractStatus =
+  | "Not Available"
+  | "Pending Signature"
+  | "Signed"
+  | "Pending";
 
 export type BookingStatusLabel =
   | "Pending Verification"
@@ -193,6 +197,8 @@ export interface Booking {
   contractSigningRequired?: boolean;
   contractSigned?: boolean;
   contractSignedDate?: string;
+  contractSignedBy?: string;
+  contractSigningMethod?: string;
   contractStatus?: ContractStatus;
 
   receiptIssued?: boolean;
@@ -291,7 +297,7 @@ interface BookingContextType {
   markRefundReady: (id: string) => void;
   markRefundClaimed: (id: string) => void;
 
-  markContractSigned: (id: string) => void;
+  markContractSigned: (id: string, signedBy?: string) => void;
   issueReceipt: (id: string) => void;
 
   verifyCashPayment: (id: string, paymentType?: "downpayment" | "full") => void;
@@ -741,8 +747,22 @@ function normalizeBookingForNewFields(booking: Booking): Booking {
     receiptIssuedAt: booking.receiptIssuedAt || savedReceipt?.dateGenerated || savedReceipt?.dateIssued,
     contractSigningRequired: booking.contractSigningRequired ?? true,
     contractSigned: booking.contractSigned ?? false,
-    contractStatus:
-      booking.contractStatus || (booking.contractSigned ? "Signed" : "Pending"),
+    contractStatus: (() => {
+      if (booking.contractStatus === "Signed" || booking.contractSigned) return "Signed" as ContractStatus;
+      if (booking.contractStatus === "Pending Signature") return "Pending Signature" as ContractStatus;
+      if (booking.contractStatus === "Pending") {
+        const ps = String(booking.paymentStatus || "").toLowerCase();
+        const isVerified =
+          ps === "verified" || ps === "paid" || ps === "slot_verified" || ps === "partial" ||
+          booking.isSlotSecured === true || booking.verifiedByAdmin === true;
+        return isVerified ? ("Pending Signature" as ContractStatus) : ("Not Available" as ContractStatus);
+      }
+      const ps = String(booking.paymentStatus || "").toLowerCase();
+      const isVerified =
+        ps === "verified" || ps === "paid" || ps === "slot_verified" || ps === "partial" ||
+        booking.isSlotSecured === true || booking.verifiedByAdmin === true;
+      return isVerified ? ("Pending Signature" as ContractStatus) : ("Not Available" as ContractStatus);
+    })(),
     refundEligible: booking.refundEligible ?? false,
     bookingCategory:
       booking.bookingCategory || (officeBooking ? "office" : "venue"),
@@ -889,7 +909,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       remainingBalancePaid: bookingData.remainingBalancePaid || false,
       contractSigningRequired: true,
       contractSigned: bookingData.contractSigned || false,
-      contractStatus: bookingData.contractSigned ? "Signed" : "Pending",
+      contractStatus: "Not Available" as ContractStatus,
       receiptIssued: bookingData.receiptIssued || false,
       refundEligible: false,
       adminLogs: [
@@ -1409,7 +1429,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     saveBookings(updatedBookings);
   };
 
-  const markContractSigned = (id: string) => {
+  const markContractSigned = (id: string, signedBy?: string) => {
     const updatedBookings = bookings.map((booking) => {
       if (booking.id !== id) return booking;
 
@@ -1418,12 +1438,14 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         contractSigningRequired: true,
         contractSigned: true,
         contractSignedDate: new Date().toISOString(),
+        contractSignedBy: signedBy || "Administrator",
+        contractSigningMethod: "Face-to-face",
         contractStatus: "Signed" as ContractStatus,
         updatedAt: new Date().toISOString(),
         adminLogs: makeAdminLog(
           booking,
           "MARK_CONTRACT_SIGNED",
-          "Admin marked contract as signed at One Estela Place office.",
+          `Admin marked contract as signed at One Estela Place office. Signed by: ${signedBy || "Administrator"}. Method: Face-to-face.`,
         ),
       };
     });
@@ -1520,7 +1542,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         verifiedAt: new Date().toISOString(),
         contractSigningRequired: true,
         contractSigned: booking.contractSigned || false,
-        contractStatus: booking.contractSigned ? "Signed" : "Pending",
+        contractStatus: booking.contractSigned ? "Signed" : "Pending Signature",
         updatedAt: new Date().toISOString(),
         adminLogs: makeAdminLog(
           booking,
@@ -1624,7 +1646,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         verifiedAt: new Date().toISOString(),
         contractSigningRequired: true,
         contractSigned: booking.contractSigned || false,
-        contractStatus: booking.contractSigned ? "Signed" : "Pending",
+        contractStatus: booking.contractSigned ? "Signed" : "Pending Signature",
         updatedAt: new Date().toISOString(),
         adminLogs: makeAdminLog(
           booking,

@@ -793,7 +793,7 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
       contractTerm: rentalTerm,
       contractSigningRequired: true,
       contractSigned: false,
-      contractStatus: "Pending" as any,
+      contractStatus: "Not Available" as any,
       requiresOnsiteContractSigning: isOfficeBooking,
       cancellationRequested: false,
       cancellationStatus: "None" as any,

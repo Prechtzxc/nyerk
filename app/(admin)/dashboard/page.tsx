@@ -78,10 +78,10 @@ export default function AdminDashboardPage() {
   }, [bookings])
 
   return (
-    <div className="mx-auto w-full max-w-[1500px] animate-in fade-in slide-in-from-bottom-2 duration-500">
-      <div className="space-y-4 p-4 sm:p-5 xl:p-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
+    <div className="mx-auto w-full max-w-[1180px] px-3 py-4 sm:px-5 lg:px-6">
+      <div className="border-b border-slate-200 pb-6 mb-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
             <p className="text-[11px] font-black uppercase tracking-[0.22em] text-orange-600">
               Admin Dashboard
             </p>
@@ -92,25 +92,25 @@ export default function AdminDashboardPage() {
               Monitor bookings, payments, approvals, and venue activity.
             </p>
           </div>
-
-          <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
             <Link
               href={ROUTES.bookings}
-              className="inline-flex h-9 items-center justify-center rounded-lg bg-orange-600 px-3 text-xs font-black text-white shadow-sm transition hover:bg-orange-700 sm:text-sm"
+              className="inline-flex h-9 items-center justify-center rounded-lg bg-orange-600 px-3 text-xs font-black text-white shadow-sm transition hover:bg-orange-700"
             >
               Manage Bookings
               <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
             </Link>
             <Link
               href={ROUTES.payments}
-              className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 shadow-sm transition hover:bg-slate-50 sm:text-sm"
+              className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 shadow-sm transition hover:bg-slate-50"
             >
               Review Payments
             </Link>
           </div>
         </div>
+      </div>
 
-        <section className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:gap-4">
+        <section className="grid grid-cols-2 gap-4 sm:grid-cols-4 xl:gap-5 mb-6">
           <StatCard
             href={ROUTES.payments}
             icon={<Banknote className="h-4 w-4" />}
@@ -145,7 +145,7 @@ export default function AdminDashboardPage() {
           />
         </section>
 
-        <section className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <section className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div className="flex flex-col gap-2 border-b border-slate-100 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
               <div>
@@ -168,11 +168,11 @@ export default function AdminDashboardPage() {
               </Link>
             </div>
 
-            <div className="p-3 sm:p-4">
+            <div className="p-4 sm:p-5">
               {recentBookings.length === 0 ? (
                 <EmptyState />
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {recentBookings.map((booking) => (
                     <BookingRow
                       key={booking.id}
@@ -185,7 +185,7 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-          <aside className="grid h-fit gap-4 self-start">
+          <aside className="grid h-fit gap-5 self-start">
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
@@ -201,7 +201,7 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <ActionItem
                   href={ROUTES.pendingBookings}
                   icon={<Clock className="h-4 w-4" />}
@@ -244,7 +244,6 @@ export default function AdminDashboardPage() {
             </div>
           </aside>
         </section>
-      </div>
     </div>
   )
 }
@@ -381,7 +380,7 @@ function BookingRow({
   return (
     <Link
       href={ROUTES.bookings}
-      className="group block rounded-xl border border-slate-200 bg-white p-3 transition hover:border-orange-200 hover:bg-orange-50/30 sm:p-4"
+      className="group block rounded-xl border border-slate-200 bg-white p-3.5 transition hover:border-orange-200 hover:bg-orange-50/30 sm:p-4"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-1 items-center gap-2.5">

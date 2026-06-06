@@ -336,22 +336,22 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1450px] animate-in fade-in duration-500 p-5 md:p-8 xl:p-10">
-      <div className="mb-8">
-        <p className="mb-2 text-xs font-black uppercase tracking-[0.35em] text-orange-600">
-          ADMIN REPORTS
-        </p>
-
-        <h1 className="text-4xl font-black tracking-tight text-slate-950 md:text-5xl">
-          Reports & Analytics
-        </h1>
-
-        <p className="mt-2 text-sm font-medium text-slate-500">
-          Review booking records, revenue trends, event performance, and downloadable report summaries.
-        </p>
+    <div className="mx-auto w-full max-w-[1180px] px-3 py-4 sm:px-5 lg:px-6">
+      <div className="border-b border-slate-200 pb-5 mb-5">
+        <div className="min-w-0">
+          <p className="text-[11px] font-black uppercase tracking-[0.22em] text-orange-600">
+            Admin Reports & Analytics
+          </p>
+          <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
+            Reports & Analytics
+          </h1>
+          <p className="mt-1 text-xs leading-5 text-slate-500 sm:text-sm">
+            Review booking records, revenue trends, event performance, and downloadable report summaries.
+          </p>
+        </div>
       </div>
 
-      <div className="mb-6 flex flex-col gap-4 border-y border-slate-200 bg-white/70 py-5 xl:flex-row xl:items-center xl:justify-between">
+      <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-bold text-slate-500">
           <span>
             Records: <b className="text-slate-950">{filteredData.length}</b>
@@ -366,19 +366,19 @@ export default function ReportsPage() {
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative">
-            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
             <input
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
               placeholder="Search booking..."
-              className="h-11 w-full rounded-full border border-slate-200 bg-white pl-10 pr-4 text-sm font-bold text-slate-700 shadow-sm outline-none transition focus:border-orange-300 focus:ring-4 focus:ring-orange-100 sm:w-[230px]"
+              className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-4 text-xs font-bold text-slate-700 outline-none transition focus:border-orange-300 focus:ring-4 focus:ring-orange-100 sm:w-[230px]"
             />
           </div>
 
           <Select value={filterMonth} onValueChange={setFilterMonth}>
-            <SelectTrigger className="h-11 w-full rounded-full bg-white text-sm font-bold shadow-sm sm:w-[160px]">
+            <SelectTrigger className="h-10 w-full rounded-xl border-slate-200 bg-white text-xs font-bold text-slate-700 focus:ring-orange-600 sm:w-[160px]">
               <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4 text-slate-400" />
+                <Filter className="h-3.5 w-3.5 text-slate-400" />
                 <SelectValue placeholder="All Months" />
               </div>
             </SelectTrigger>
@@ -396,7 +396,7 @@ export default function ReportsPage() {
           </Select>
 
           <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="h-11 w-full rounded-full bg-white text-sm font-bold shadow-sm sm:w-[175px]">
+            <SelectTrigger className="h-10 w-full rounded-xl border-slate-200 bg-white text-xs font-bold text-slate-700 focus:ring-orange-600 sm:w-[175px]">
               <SelectValue placeholder="All Status" />
             </SelectTrigger>
 
@@ -412,9 +412,9 @@ export default function ReportsPage() {
           <Button
             onClick={exportCSV}
             disabled={filteredData.length === 0}
-            className="h-11 rounded-full bg-orange-600 px-6 text-sm font-black text-white shadow-sm transition-transform hover:bg-orange-700 active:scale-95 disabled:cursor-not-allowed disabled:bg-slate-300"
+            className="h-10 rounded-xl bg-orange-600 px-4 text-xs font-black text-white shadow-sm hover:bg-orange-700 disabled:cursor-not-allowed disabled:bg-slate-300"
           >
-            <Download className="mr-2 h-4 w-4" />
+            <Download className="mr-1.5 h-3.5 w-3.5" />
             Export CSV
           </Button>
         </div>

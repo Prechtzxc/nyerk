@@ -447,37 +447,50 @@ function StatusCard({ booking }: { booking: StatusBooking }) {
             </div>
           )}
 
-          {isOfficeRental && (
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                Contract Status
-              </p>
-              <div
-                className={cn(
-                  "mt-2 flex items-center gap-2 rounded-xl border p-3",
-                  contractSigned
-                    ? "border-emerald-200 bg-emerald-50"
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+              Contract Status
+            </p>
+            <div
+              className={cn(
+                "mt-2 flex items-center gap-2 rounded-xl border p-3",
+                contractStatus === "Signed"
+                  ? "border-emerald-200 bg-emerald-50"
+                  : contractStatus === "Not Available"
+                    ? "border-slate-200 bg-slate-50"
                     : "border-orange-200 bg-orange-50",
+              )}
+            >
+              {contractStatus === "Signed" ? (
+                <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-600" />
+              ) : contractStatus === "Not Available" ? (
+                <FileText className="h-4 w-4 shrink-0 text-slate-400" />
+              ) : (
+                <ShieldAlert className="h-4 w-4 shrink-0 text-orange-600" />
+              )}
+              <p
+                className={cn(
+                  "text-[11px] font-bold",
+                  contractStatus === "Signed"
+                    ? "text-emerald-700"
+                    : contractStatus === "Not Available"
+                      ? "text-slate-500"
+                      : "text-orange-700",
                 )}
               >
-                {contractSigned ? (
-                  <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-600" />
-                ) : (
-                  <ShieldAlert className="h-4 w-4 shrink-0 text-orange-600" />
-                )}
-                <p
-                  className={cn(
-                    "text-[11px] font-bold",
-                    contractSigned ? "text-emerald-700" : "text-orange-700",
-                  )}
-                >
-                  {contractSigned
+                {contractStatus === "Not Available"
+                  ? "Not Available"
+                  : contractStatus === "Signed"
                     ? `Signed${(booking as any).contractSignedDate ? ` · ${formatDate((booking as any).contractSignedDate)}` : ""}`
-                    : "Pending — Please visit the office to sign the contract."}
-                </p>
-              </div>
+                    : "Pending Signature — Please visit the office to sign the contract."}
+              </p>
             </div>
-          )}
+            {contractStatus === "Signed" && (booking as any).contractSignedBy && (
+              <p className="mt-1 text-[10px] font-semibold text-slate-400 pl-8">
+                Signed by: {(booking as any).contractSignedBy}
+              </p>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -524,45 +537,48 @@ export default function StatusPage() {
   if (!user) return null
 
   return (
-    <div className="mx-auto w-full max-w-5xl animate-in fade-in space-y-5 p-4 duration-500 md:p-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-black tracking-tight text-slate-900 md:text-3xl">
-            Status
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Track the progress of your bookings, payments, cancellations, refunds, and contracts.
-          </p>
-        </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <div className="flex rounded-full border border-slate-200 bg-white p-1">
-            <button
-              type="button"
-              onClick={() => setFilter("current")}
-              className={cn(
-                "rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-widest transition",
-                filter === "current"
-                  ? "bg-orange-600 text-white"
-                  : "text-slate-600 hover:text-slate-900",
-              )}
-            >
-              Current
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilter("all")}
-              className={cn(
-                "rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-widest transition",
-                filter === "all"
-                  ? "bg-orange-600 text-white"
-                  : "text-slate-600 hover:text-slate-900",
-              )}
-            >
-              All
-            </button>
+    <div className="w-full min-w-0 max-w-full overflow-x-hidden">
+      <div className="mx-auto w-full max-w-[1180px] px-3 py-4 sm:px-5 lg:px-6 animate-in fade-in duration-500">
+        <section className="border-b border-slate-200 pb-5 mb-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h1 className="text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
+                Status
+              </h1>
+              <p className="mt-1 text-sm text-slate-500">
+                Track the progress of your bookings, payments, cancellations, refunds, and contracts.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <div className="flex rounded-full border border-slate-200 bg-white p-1">
+                <button
+                  type="button"
+                  onClick={() => setFilter("current")}
+                  className={cn(
+                    "rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-widest transition",
+                    filter === "current"
+                      ? "bg-orange-600 text-white"
+                      : "text-slate-600 hover:text-slate-900",
+                  )}
+                >
+                  Current
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFilter("all")}
+                  className={cn(
+                    "rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-widest transition",
+                    filter === "all"
+                      ? "bg-orange-600 text-white"
+                      : "text-slate-600 hover:text-slate-900",
+                  )}
+                >
+                  All
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        </section>
 
       {visible.length === 0 ? (
         <div className="flex flex-col items-center rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
@@ -585,6 +601,7 @@ export default function StatusPage() {
           ))}
         </div>
       )}
+      </div>
     </div>
   )
 }
