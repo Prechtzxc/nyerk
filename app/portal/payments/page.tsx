@@ -167,6 +167,16 @@ function isCurrentTransaction(booking: Booking) {
   return status !== "completed";
 }
 
+function hasPaymentRecord(booking: Booking) {
+  const amt = Number((booking as any).amountPaid || 0);
+  const payAmt = Number((booking as any).paymentAmount || 0);
+  const proof = (booking as any).paymentProof || (booking as any).proofOfPayment;
+  const ps = String(booking.paymentStatus || "").toLowerCase();
+  if (amt > 0 || payAmt > 0) return true;
+  if (proof) return true;
+  return ["for review", "pending verification", "partial payment", "fully paid", "verified", "rejected", "incomplete"].includes(ps);
+}
+
 function paymentMatchesFilter(paymentStatus: string, status: string, filter: TransactionFilter) {
   if (filter === "all") return true;
   const ps = paymentStatus.toLowerCase();
@@ -339,13 +349,15 @@ function CurrentTransactionCard({
           </p>
         )}
         <div className="flex flex-wrap items-center justify-end gap-2">
-          <Button
-            variant="outline"
-            onClick={() => onView(booking)}
-            className="h-9 shrink-0 whitespace-nowrap rounded-lg border-slate-200 px-3 text-[11px] font-bold text-slate-700 hover:bg-slate-50"
-          >
-            View Details
-          </Button>
+          {hasPaymentRecord(booking) && (
+            <Button
+              variant="outline"
+              onClick={() => onView(booking)}
+              className="h-9 shrink-0 whitespace-nowrap rounded-lg border-slate-200 px-3 text-[11px] font-bold text-slate-700 hover:bg-slate-50"
+            >
+              View Details
+            </Button>
+          )}
           {booking.status === "pending" && !isCashPending && !isExpired && (
             <Button
               onClick={() => onPay(booking)}
@@ -551,6 +563,7 @@ function TransactionsContent() {
   const [dateTo, setDateTo] = useState("");
   const [showDateFilter, setShowDateFilter] = useState(false);
   const [historyPage, setHistoryPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
   const [showHistory, setShowHistory] = useState(false);
   const [expandedBookingId, setExpandedBookingId] = useState<string | null>(null);
   const [viewingReceipt, setViewingReceipt] = useState<Booking | null>(null);
@@ -674,6 +687,22 @@ function TransactionsContent() {
     () => historyTransactions.length > 0,
     [historyTransactions],
   );
+
+  const otherActivePageSize = 10
+  const totalOtherActivePages = Math.max(1, Math.ceil(otherActiveTransactions.length / otherActivePageSize))
+  const safeCurrentPage = Math.min(currentPage, totalOtherActivePages)
+  const paginatedOtherActive = useMemo(
+    () =>
+      otherActiveTransactions.slice(
+        (safeCurrentPage - 1) * otherActivePageSize,
+        safeCurrentPage * otherActivePageSize,
+      ),
+    [otherActiveTransactions, safeCurrentPage],
+  )
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [showHistory])
 
   const filteredHistory = useMemo(
     () =>
@@ -1486,7 +1515,7 @@ function TransactionsContent() {
                 icon={<Receipt className="h-4 w-4" />}
               />
               <div className="mt-3 space-y-2">
-                {otherActiveTransactions.map((booking) => {
+                {paginatedOtherActive.map((booking) => {
                   const isOfficeRental = isOfficeRentalBooking(booking);
                   return (
                     <div
@@ -1516,17 +1545,24 @@ function TransactionsContent() {
                         >
                           {getStatusLabel(booking.paymentStatus, booking.status)}
                         </span>
-                        <Button
-                          variant="outline"
-                          onClick={() => setViewingReceipt(booking)}
-                          className="h-8 shrink-0 whitespace-nowrap rounded-lg border-slate-200 px-2.5 text-[10px] font-bold text-slate-700 hover:bg-slate-50"
-                        >
-                          View Details
-                        </Button>
+                        {hasPaymentRecord(booking) && (
+                          <Button
+                            variant="outline"
+                            onClick={() => setViewingReceipt(booking)}
+                            className="h-8 shrink-0 whitespace-nowrap rounded-lg border-slate-200 px-2.5 text-[10px] font-bold text-slate-700 hover:bg-slate-50"
+                          >
+                            View Details
+                          </Button>
+                        )}
                       </div>
                     </div>
                   );
                 })}
+                <Pagination
+                  page={safeCurrentPage}
+                  totalPages={totalOtherActivePages}
+                  onPageChange={setCurrentPage}
+                />
               </div>
             </section>
           )}

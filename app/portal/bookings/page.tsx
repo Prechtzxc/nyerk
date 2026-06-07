@@ -873,7 +873,7 @@ function BookingDetailsModal({
                   </p>
                 </div>
               ) : (
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                   <div className="min-w-0 space-y-2">
                     <p className="text-xs font-semibold text-orange-700">
                       Contract signing must be completed onsite at the One Estela Place office.
@@ -884,7 +884,7 @@ function BookingDetailsModal({
                   </div>
                   <Button
                     onClick={() => setShowContractPreview(true)}
-                    className="shrink-0 h-9 rounded-lg bg-emerald-600 px-4 text-[11px] font-bold text-white shadow-sm hover:bg-emerald-700 sm:w-auto w-full"
+                    className="w-full sm:w-auto shrink-0 h-9 rounded-lg bg-emerald-600 px-4 text-[11px] font-bold text-white shadow-sm hover:bg-emerald-700"
                   >
                     <FileText className="mr-1.5 h-3.5 w-3.5" />
                     Preview Contract
@@ -896,9 +896,9 @@ function BookingDetailsModal({
         </div>
 
         <div className="border-t border-slate-100 bg-white px-4 py-3 sm:px-6 sm:py-4">
-          <div className="flex flex-col gap-3 sm:items-end">
+          <div className="flex flex-col gap-3 w-full">
             {(showModify || showReceipt || showPay) && (
-              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+              <div className={cn("w-full", (showModify && (showReceipt || showPay)) ? "grid grid-cols-2 gap-3" : "flex flex-col gap-3")}>
                 {showModify && (
                   <Button
                     variant="outline"
@@ -908,7 +908,7 @@ function BookingDetailsModal({
                         onClose()
                       }
                     }}
-                    className="h-10 rounded-lg border-slate-200 px-4 text-xs font-bold text-slate-700 hover:bg-slate-100 w-full sm:w-auto"
+                    className="w-full h-10 rounded-lg border-slate-200 px-4 text-xs font-bold text-slate-700 hover:bg-slate-100"
                   >
                     <Pencil className="mr-1.5 h-3.5 w-3.5" />
                     Modify Booking
@@ -921,7 +921,7 @@ function BookingDetailsModal({
                       onViewReceipt(booking)
                       onClose()
                     }}
-                    className="h-10 rounded-lg border-slate-200 px-4 text-xs font-bold text-slate-700 hover:bg-slate-100 w-full sm:w-auto"
+                    className="w-full h-10 rounded-lg border-slate-200 px-4 text-xs font-bold text-slate-700 hover:bg-slate-100"
                   >
                     <Receipt className="mr-1.5 h-3.5 w-3.5" />
                     View Receipt
@@ -932,7 +932,7 @@ function BookingDetailsModal({
                       onPay(booking)
                       onClose()
                     }}
-                    className="h-10 rounded-lg bg-[#ea580c] hover:bg-[#c2410c] px-5 text-xs font-bold text-white shadow-sm w-full sm:w-auto"
+                    className="w-full h-10 rounded-lg bg-[#ea580c] hover:bg-[#c2410c] px-5 text-xs font-bold text-white shadow-sm"
                   >
                     <CreditCard className="mr-1.5 h-3.5 w-3.5" />
                     Pay Now
@@ -947,7 +947,7 @@ function BookingDetailsModal({
                   onCancel(booking)
                   onClose()
                 }}
-                className="w-full sm:w-auto h-10 rounded-lg border-rose-200 px-4 text-xs font-bold text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                className="w-full h-10 rounded-lg border-rose-200 px-4 text-xs font-bold text-rose-600 hover:bg-rose-50 hover:text-rose-700"
               >
                 <X className="mr-1.5 h-3.5 w-3.5" />
                 Cancel Booking
@@ -2011,6 +2011,7 @@ export default function MyBookingsPage() {
   const [dateTo, setDateTo] = useState("")
   const [showDateFilter, setShowDateFilter] = useState(false)
   const [historyPage, setHistoryPage] = useState(1)
+  const [currentPage, setCurrentPage] = useState(1)
   const [showHistory, setShowHistory] = useState(false)
 
   useEffect(() => {
@@ -2080,6 +2081,22 @@ export default function MyBookingsPage() {
     if (f === "current") return isCurrentBooking(booking)
     return String(booking.status || "").toLowerCase() === f
   }
+
+  const otherActivePageSize = 10
+  const totalOtherActivePages = Math.max(1, Math.ceil(otherActiveBookings.length / otherActivePageSize))
+  const safeCurrentPage = Math.min(currentPage, totalOtherActivePages)
+  const paginatedOtherActive = useMemo(
+    () =>
+      otherActiveBookings.slice(
+        (safeCurrentPage - 1) * otherActivePageSize,
+        safeCurrentPage * otherActivePageSize,
+      ),
+    [otherActiveBookings, safeCurrentPage],
+  )
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [showHistory])
 
   const filteredHistory = useMemo(
     () =>
@@ -2278,8 +2295,8 @@ export default function MyBookingsPage() {
         />
 
         <section className="border-b border-slate-200 pb-5 mb-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-            <div className="min-w-0">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0 max-w-full">
               <p className="text-[11px] font-black uppercase tracking-[0.24em] text-orange-600">
                 Reservations
               </p>
@@ -2290,23 +2307,21 @@ export default function MyBookingsPage() {
                 Track and manage your space reservations.
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex w-full sm:w-auto flex-wrap items-center gap-2">
               <ReserveDialog>
                 <Button className="flex h-11 items-center justify-center gap-2 rounded-xl bg-orange-600 px-5 font-bold text-white shadow-sm transition-all hover:bg-orange-700">
                   <Plus className="h-4 w-4" />
                   New Booking
                 </Button>
               </ReserveDialog>
-              {hasHistoryRecords && (
-                <Button
-                  variant="outline"
-                  onClick={() => setShowHistory((v) => !v)}
-                  className="h-11 whitespace-nowrap rounded-xl border-slate-200 px-4 text-xs font-bold text-slate-700 hover:bg-slate-50"
-                >
-                  <Receipt className="mr-1.5 h-3.5 w-3.5" />
-                  {showHistory ? "Hide Booking History" : "View Booking History"}
-                </Button>
-              )}
+              <Button
+                variant="outline"
+                onClick={() => setShowHistory((v) => !v)}
+                className="h-11 whitespace-nowrap rounded-xl border-slate-200 px-4 text-xs font-bold text-slate-700 hover:bg-slate-50"
+              >
+                <Receipt className="mr-1.5 h-3.5 w-3.5" />
+                {showHistory ? "Hide Booking History" : "View Booking History"}
+              </Button>
             </div>
           </div>
         </section>
@@ -2365,13 +2380,18 @@ export default function MyBookingsPage() {
             icon={<ListChecks className="h-4 w-4" />}
           />
           <div className="mt-3 space-y-2">
-            {otherActiveBookings.map((booking) => (
+            {paginatedOtherActive.map((booking) => (
               <HistoryRow
                 key={booking.id}
                 booking={booking}
                 onView={handleView}
               />
             ))}
+            <Pagination
+              page={safeCurrentPage}
+              totalPages={totalOtherActivePages}
+              onPageChange={setCurrentPage}
+            />
           </div>
         </section>
       )}
