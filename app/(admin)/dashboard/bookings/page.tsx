@@ -2,6 +2,7 @@
 
 import type React from "react"
 import { useEffect, useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
 import {
   Calendar,
   CheckCircle2,
@@ -11,6 +12,7 @@ import {
   Search,
   X,
   ShieldCheck,
+  ArrowRight,
 } from "lucide-react"
 
 import { Button } from "@/src/modules/shared/components/ui/button"
@@ -38,7 +40,7 @@ const BOOKING_STORAGE_KEY = "oneestela_global_bookings_v2"
 function formatDate(date?: string) {
   if (!date) return "—"
   try {
-    return new Intl.DateTimeFormat("en-PH", { month: "short", day: "2-digit", year: "numeric" }).format(new Date(date))
+    return new Intl.DateTimeFormat("en-PH", { month: "long", day: "2-digit", year: "numeric" }).format(new Date(date))
   } catch {
     return date
   }
@@ -115,6 +117,8 @@ export default function AdminBookingsPage() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
   const [showContractConfirm, setShowContractConfirm] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const ITEMS_PER_PAGE = 10
 
   const urlStatusRef = useMemo(() => {
     if (typeof window === "undefined") return null
@@ -170,6 +174,17 @@ export default function AdminBookingsPage() {
         .some((f) => f && String(f).toLowerCase().includes(q))
     })
   }, [bookings, statusFilter, searchQuery])
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery, statusFilter])
+
+  const totalPages = Math.ceil(filteredBookings.length / ITEMS_PER_PAGE)
+  const safePage = currentPage > totalPages ? Math.max(totalPages, 1) : currentPage
+  const paginatedBookings = filteredBookings.slice(
+    (safePage - 1) * ITEMS_PER_PAGE,
+    safePage * ITEMS_PER_PAGE,
+  )
 
   const handleMarkCompleted = (id: string) => {
     const next = bookings.map((b) =>
@@ -311,7 +326,7 @@ export default function AdminBookingsPage() {
               </p>
             </div>
           ) : (
-            filteredBookings.map((booking) => (
+            paginatedBookings.map((booking) => (
               <AdminBookingCard
                 key={booking.id}
                 booking={booking}
@@ -320,6 +335,30 @@ export default function AdminBookingsPage() {
             ))
           )}
         </section>
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-4 pt-4 pb-2">
+            <Button
+              variant="outline"
+              disabled={safePage <= 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              className="h-9 rounded-lg border-slate-200 px-3 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+            >
+              Previous
+            </Button>
+            <span className="text-xs font-semibold text-slate-500">
+              Page {safePage} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              disabled={safePage >= totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              className="h-9 rounded-lg border-slate-200 px-3 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+            >
+              Next
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -413,6 +452,8 @@ function BookingDetailsModal({
 }) {
   if (!booking) return null
 
+  const router = useRouter()
+
   const isPaymentVerified = (() => {
     const ps = String(booking.paymentStatus || "").toLowerCase()
     return (
@@ -430,7 +471,39 @@ function BookingDetailsModal({
   const endDate = (booking as any)?.endDate ? formatDate((booking as any).endDate) : startDate
   const isCompleted = String(booking.status || "").toLowerCase() === "completed"
   const isCancelled = String(booking.status || "").toLowerCase() === "cancelled"
-  const canComplete = !isCompleted && !isCancelled
+
+  const normalizeStatus = (value: any) => String(value || "").trim().toLowerCase()
+
+  const getAmount = (value: any) => {
+    const numberValue = Number(String(value || 0).replace(/[^0-9.-]+/g, ""))
+    return Number.isFinite(numberValue) ? numberValue : 0
+  }
+
+  const totalAmount = getAmount(
+    (booking as any).totalAmount || booking.totalPrice || (booking as any).amount || (booking as any).price
+  )
+
+  const amountPaid = getAmount(
+    (booking as any).amountPaid || (booking as any).paymentAmount || (booking as any).paidAmount
+  )
+
+  const remainingBalance = getAmount(
+    (booking as any).remainingBalance || Math.max(totalAmount - amountPaid, 0)
+  )
+
+  const paymentStatus = normalizeStatus((booking as any).paymentStatus)
+
+  const isFullyPaid =
+    paymentStatus === "fully paid" ||
+    paymentStatus === "paid" ||
+    paymentStatus === "completed" ||
+    remainingBalance === 0 ||
+    (totalAmount > 0 && amountPaid >= totalAmount)
+
+  const canComplete =
+    isFullyPaid &&
+    normalizeStatus((booking as any).bookingStatus) !== "completed" &&
+    normalizeStatus((booking as any).bookingStatus) !== "cancelled"
 
   const timeValue =
     booking.time ||
@@ -443,7 +516,7 @@ function BookingDetailsModal({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent
         showCloseButton={false}
-        className="flex max-h-[calc(100vh-32px)] max-h-[calc(100dvh-32px)] w-[calc(100vw-2rem)] max-w-[950px] flex-col gap-0 overflow-hidden rounded-2xl border-0 bg-white p-0 shadow-xl"
+        className="flex max-h-[calc(100vh-32px)] max-h-[calc(100dvh-32px)] w-[calc(100vw-48px)] max-w-[1100px] flex-col gap-0 overflow-hidden rounded-2xl border-0 bg-white p-0 shadow-xl min-w-0"
       >
         <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-100 bg-white px-6 pt-6 pb-4">
           <div className="min-w-0">
@@ -468,7 +541,7 @@ function BookingDetailsModal({
           </DialogClose>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4 py-4 pb-4 sm:px-6 sm:py-5 sm:pb-6">
+        <div className="min-w-0 flex-1 overflow-y-auto px-4 py-4 pb-6 sm:px-6 sm:py-5 sm:pb-10">
           <div className="mb-5 flex flex-wrap items-center gap-2">
             <span
               className={cn(
@@ -500,141 +573,57 @@ function BookingDetailsModal({
             )}
           </div>
 
-          {(booking.contractStatus === "Signed" || booking.contractSigned) && (
-            <div className="mb-5 rounded-xl border border-slate-200 bg-white p-4">
-              <div className="mb-3 flex items-center gap-2">
-                <FileText className="h-4 w-4 text-slate-500" />
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Contract</p>
-              </div>
-              <div className="space-y-2">
-                <span
-                  className={cn(
-                    "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
-                    "border-emerald-100 bg-emerald-50 text-emerald-700",
-                  )}
-                >
-                  Contract Status: Signed
-                </span>
-                {booking.contractSignedDate && (
-                  <p className="text-xs font-semibold text-slate-700">
-                    Signed Date: {formatDate(booking.contractSignedDate)}
-                  </p>
-                )}
-                {booking.contractSignedBy && (
-                  <p className="text-xs font-semibold text-slate-700">
-                    Signed By: {booking.contractSignedBy}
-                  </p>
-                )}
-                <p className="text-xs font-semibold text-slate-500">
-                  Signing Method: Face-to-face
-                </p>
-              </div>
-            </div>
-          )}
-
-          {isPaymentVerified && !(booking.contractStatus === "Signed" || booking.contractSigned) && !isCancelled && !isCompleted && (
-            <div className="mb-5 rounded-xl border border-slate-200 bg-white p-4">
-              <div className="mb-3 flex items-center gap-2">
-                <FileText className="h-4 w-4 text-slate-500" />
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Contract</p>
-              </div>
-              <div className="space-y-3">
-                <span
-                  className={cn(
-                    "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
-                    "border-orange-100 bg-orange-50 text-orange-700",
-                  )}
-                >
-                  Contract Status: Pending Signature
-                </span>
-                <p className="text-xs font-semibold text-orange-700">
-                  Contract signing must be completed onsite at the One Estela Place office.
-                </p>
-                <p className="text-[11px] font-semibold text-slate-500">
-                  The customer must personally sign the official contract at the One Estela Place office.
-                </p>
-                <Button
-                  onClick={onMarkContractSigned}
-                  className="h-9 rounded-lg bg-blue-600 px-4 text-[11px] font-bold text-white shadow-sm hover:bg-blue-700"
-                >
-                  <ShieldCheck className="mr-1.5 h-3.5 w-3.5" />
-                  Mark Contract as Signed
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {!isPaymentVerified && !(booking.contractStatus === "Signed" || booking.contractSigned) && (
-            <div className="mb-5 rounded-xl border border-slate-200 bg-white p-4">
-              <div className="mb-3 flex items-center gap-2">
-                <FileText className="h-4 w-4 text-slate-500" />
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Contract</p>
-              </div>
-              <span
-                className={cn(
-                  "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
-                  "border-slate-200 bg-slate-50 text-slate-600",
-                )}
-              >
-                Contract Status: Not Available
-              </span>
-              <p className="mt-2 text-xs font-semibold text-slate-500">
-                Contract will be available once payment is verified.
-              </p>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
-            <div className="rounded-xl border border-slate-100 p-4">
+          <div className="min-w-0 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
+            <div className="min-w-0 rounded-xl border border-slate-100 p-4">
               <div className="mb-3 flex items-center gap-2">
                 <div className="h-1.5 w-1.5 rounded-full bg-slate-400" />
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Booking Information</p>
               </div>
-              <div className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-                <div>
+              <div className="space-y-3">
+                <div className="min-w-0">
                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Customer</p>
-                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{booking.userInfo?.name || "—"}</p>
+                  <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{booking.userInfo?.name || "—"}</p>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Email</p>
-                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{booking.userInfo?.email || "—"}</p>
+                  <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{booking.userInfo?.email || "—"}</p>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Booking Date</p>
-                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{formatDate(booking.createdAt) || "—"}</p>
+                  <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{formatDate(booking.createdAt) || "—"}</p>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">{isOfficeRental ? "Start Date" : "Event Date"}</p>
-                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{startDate || "—"}</p>
+                  <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{startDate || "—"}</p>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">End Date</p>
-                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{endDate || "—"}</p>
+                  <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{endDate || "—"}</p>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Venue / Office</p>
-                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{booking.venue || "—"}</p>
+                  <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{booking.venue || "—"}</p>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Guests</p>
-                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{booking.guestCount ? `${booking.guestCount} pax` : "—"}</p>
+                  <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{booking.guestCount ? `${booking.guestCount} pax` : "—"}</p>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Time</p>
-                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{timeValue}</p>
+                  <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{timeValue}</p>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Booking ID</p>
-                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">#{booking.id}</p>
+                  <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">#{booking.id}</p>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Event Type</p>
-                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{typeLabel}</p>
+                  <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{typeLabel}</p>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-xl border border-slate-100">
+            <div className="min-w-0 rounded-xl border border-slate-100">
               <PaymentSummaryCard booking={booking} bankRef={bankRef} />
             </div>
           </div>
@@ -715,28 +704,122 @@ function BookingDetailsModal({
               </div>
             </div>
           )}
+
+          {(booking.contractStatus === "Signed" || booking.contractSigned) && (
+            <div className="mt-5 rounded-xl border border-slate-200 bg-white p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <FileText className="h-4 w-4 text-slate-500" />
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Contract</p>
+              </div>
+              <div className="space-y-2">
+                <span
+                  className={cn(
+                    "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
+                    "border-emerald-100 bg-emerald-50 text-emerald-700",
+                  )}
+                >
+                  Contract Status: Signed
+                </span>
+                {booking.contractSignedDate && (
+                  <p className="text-xs font-semibold text-slate-700">
+                    Signed Date: {formatDate(booking.contractSignedDate)}
+                  </p>
+                )}
+                {booking.contractSignedBy && (
+                  <p className="text-xs font-semibold text-slate-700">
+                    Signed By: {booking.contractSignedBy}
+                  </p>
+                )}
+                <p className="text-xs font-semibold text-slate-500">
+                  Signing Method: Face-to-face
+                </p>
+              </div>
+            </div>
+          )}
+
+          {isPaymentVerified && !(booking.contractStatus === "Signed" || booking.contractSigned) && !isCancelled && !isCompleted && (
+            <div className="mt-5 rounded-xl border border-slate-200 bg-white p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <FileText className="h-4 w-4 text-slate-500" />
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Contract</p>
+              </div>
+              <div className="min-w-0 space-y-3">
+                <div className="space-y-2">
+                  <span
+                    className={cn(
+                      "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
+                      "border-orange-100 bg-orange-50 text-orange-700",
+                    )}
+                  >
+                    Contract Status: Pending Signature
+                  </span>
+                  <p className="text-xs font-semibold text-orange-700">
+                    Contract signing must be completed onsite at the One Estela Place office.
+                  </p>
+                  <p className="text-[11px] font-semibold text-slate-500">
+                    The customer must personally sign the official contract at the One Estela Place office.
+                  </p>
+                </div>
+                <div className="flex sm:justify-end">
+                  <Button
+                    onClick={onMarkContractSigned}
+                    className="h-9 rounded-lg bg-blue-600 px-4 text-[11px] font-bold text-white shadow-sm hover:bg-blue-700 w-full sm:w-auto"
+                  >
+                    <ShieldCheck className="mr-1.5 h-3.5 w-3.5" />
+                    Mark Contract as Signed
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!isPaymentVerified && !(booking.contractStatus === "Signed" || booking.contractSigned) && (
+            <div className="mt-5 rounded-xl border border-slate-200 bg-white p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <FileText className="h-4 w-4 text-slate-500" />
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Contract</p>
+              </div>
+              <span
+                className={cn(
+                  "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
+                  "border-slate-200 bg-slate-50 text-slate-600",
+                )}
+              >
+                Contract Status: Not Available
+              </span>
+              <p className="mt-2 text-xs font-semibold text-slate-500">
+                Contract will be available once payment is verified.
+              </p>
+            </div>
+          )}
         </div>
 
-        <div className="space-y-3 border-t border-slate-100 bg-white px-4 py-3 sm:px-6 sm:py-4">
-          <div className="grid grid-cols-2 gap-3">
-            <Button
-              variant="outline"
-              onClick={onClose}
-              className="h-10 rounded-lg border-slate-200 px-4 text-xs font-bold text-slate-700 hover:bg-slate-100"
-            >
-              Close
-            </Button>
-            {canComplete && (
+        {!isFullyPaid && !isCompleted && !isCancelled && (
+          <div className="border-t border-slate-100 bg-white px-4 py-3 sm:px-6 sm:py-4">
+            <div className="flex sm:justify-end">
               <Button
-                onClick={() => onMarkCompleted(booking.id)}
-                className="h-10 rounded-lg bg-emerald-600 px-4 text-xs font-bold text-white shadow-sm hover:bg-emerald-700"
+                onClick={() => router.push(`/dashboard/payments?search=${booking.id}`)}
+                variant="outline"
+                className="h-10 w-full rounded-lg border-orange-200 px-4 text-xs font-bold text-orange-700 hover:bg-orange-50 sm:w-auto"
               >
-                <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
-                Mark as Completed
+                Go to Payment Verification
+                <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
               </Button>
-            )}
+            </div>
           </div>
-        </div>
+        )}
+
+        {canComplete && (
+          <div className="border-t border-slate-100 bg-white px-4 py-3 sm:px-6 sm:py-4">
+            <Button
+              onClick={() => onMarkCompleted(booking.id)}
+              className="h-11 w-full rounded-lg bg-emerald-600 px-4 text-xs font-bold text-white shadow-sm hover:bg-emerald-700"
+            >
+              <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
+              Mark as Completed
+            </Button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   )
@@ -763,41 +846,40 @@ function PaymentSummaryCard({
         <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Payment Summary</p>
       </div>
 
-      <div className="grid gap-y-3 gap-x-6 sm:grid-cols-2">
-        <div>
+      <div className="space-y-3">
+        <div className="min-w-0">
           <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Method</p>
-          <p className="text-xs font-bold text-slate-800">
+          <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">
             {booking.paymentMethod ? getPaymentMethodLabel(booking.paymentMethod) : "—"}
           </p>
         </div>
-        <div>
+        <div className="min-w-0">
           <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Type</p>
-          <p className="text-xs font-bold text-slate-800">
+          <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">
             {booking.paymentType ? formatTextLabel(booking.paymentType) : "—"}
           </p>
         </div>
-        <div>
+        <div className="min-w-0">
           <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Total Amount</p>
-          <p className="text-xs font-bold text-slate-800">{hasTotal ? formatMoney(totalPrice) : "—"}</p>
+          <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{hasTotal ? formatMoney(totalPrice) : "—"}</p>
         </div>
-        <div>
+        <div className="min-w-0">
           <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Amount Paid</p>
-          <p className="text-xs font-bold text-slate-800">{hasPaid ? formatMoney(amountPaid) : "—"}</p>
+          <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{hasPaid ? formatMoney(amountPaid) : "—"}</p>
         </div>
         {remaining !== null && (
-          <div>
+          <div className="min-w-0">
             <p className="text-[9px] font-bold uppercase tracking-wider text-amber-600">Remaining Balance</p>
-            <p className="text-xs font-bold text-amber-700">{remaining > 0 ? formatMoney(remaining) : "—"}</p>
+            <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-amber-700">{remaining > 0 ? formatMoney(remaining) : "—"}</p>
+          </div>
+        )}
+        {bankRef && (
+          <div className="min-w-0">
+            <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Bank Reference</p>
+            <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-900">{bankRef}</p>
           </div>
         )}
       </div>
-
-      {bankRef && (
-        <div className="mt-3 border-t border-slate-100 pt-3">
-          <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Bank Reference</p>
-          <p className="mt-0.5 text-xs font-bold text-slate-900">{bankRef}</p>
-        </div>
-      )}
     </div>
   )
 }

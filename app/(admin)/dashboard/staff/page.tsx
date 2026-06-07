@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useStaff, type StaffAccount } from "@admin/contexts/staff-context"
 import { Button } from "@shared/components/ui/button"
 import {
@@ -112,6 +112,8 @@ export default function StaffManagementPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<"all" | StaffStatus>("all")
   const [formData, setFormData] = useState<StaffFormData>(DEFAULT_FORM)
+  const [staffPage, setStaffPage] = useState(1)
+  const STAFF_PER_PAGE = 10
 
   const filteredStaff = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase()
@@ -145,6 +147,17 @@ export default function StaffManagementPage() {
         return getFullName(a).localeCompare(getFullName(b))
       })
   }, [staff, searchTerm, statusFilter])
+
+  useEffect(() => {
+    setStaffPage(1)
+  }, [searchTerm, statusFilter])
+
+  const staffTotalPages = Math.ceil(filteredStaff.length / STAFF_PER_PAGE)
+  const safeStaffPage = staffPage > staffTotalPages ? Math.max(staffTotalPages, 1) : staffPage
+  const paginatedStaff = filteredStaff.slice(
+    (safeStaffPage - 1) * STAFF_PER_PAGE,
+    safeStaffPage * STAFF_PER_PAGE,
+  )
 
   const resetForm = () => {
     setFormData(DEFAULT_FORM)
@@ -523,94 +536,119 @@ export default function StaffManagementPage() {
       </div>
 
       {filteredStaff.length > 0 ? (
-        <div className="space-y-3">
-          {filteredStaff.map((staffMember: StaffAccount) => {
-            const fullName = getFullName(staffMember)
-            const normalizedStatus = normalizeStaffStatus(staffMember.status)
+        <>
+          <div className="space-y-3">
+            {paginatedStaff.map((staffMember: StaffAccount) => {
+              const fullName = getFullName(staffMember)
+              const normalizedStatus = normalizeStaffStatus(staffMember.status)
 
-            return (
-              <div
-                key={staffMember.id}
-                className="group flex w-full max-w-full min-w-0 flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-orange-200 hover:shadow-md sm:flex-row sm:items-center sm:gap-4"
-              >
-                <div className="flex shrink-0 items-center gap-3 sm:w-[200px]">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
-                    <span className="text-sm font-black uppercase">
-                      {getInitials(staffMember.firstName, staffMember.lastName)}
-                    </span>
+              return (
+                <div
+                  key={staffMember.id}
+                  className="group flex w-full max-w-full min-w-0 flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-orange-200 hover:shadow-md sm:flex-row sm:items-center sm:gap-4"
+                >
+                  <div className="flex shrink-0 items-center gap-3 sm:w-[200px]">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
+                      <span className="text-sm font-black uppercase">
+                        {getInitials(staffMember.firstName, staffMember.lastName)}
+                      </span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        Staff
+                      </p>
+                      <p className="break-words whitespace-normal text-sm font-black text-slate-900">
+                        {fullName || "Unnamed Staff"}
+                      </p>
+                      <p className="break-words whitespace-normal text-[11px] font-bold text-slate-500">
+                        {staffMember.position || "No position"}
+                      </p>
+                    </div>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                      Staff
-                    </p>
-                    <p className="break-words whitespace-normal text-sm font-black text-slate-900">
-                      {fullName || "Unnamed Staff"}
-                    </p>
-                    <p className="break-words whitespace-normal text-[11px] font-bold text-slate-500">
-                      {staffMember.position || "No position"}
-                    </p>
-                  </div>
-                </div>
 
-                <div className="grid min-w-0 flex-1 grid-cols-2 gap-x-2 gap-y-1.5 sm:grid-cols-3 sm:gap-x-3">
-                  <div className="min-w-0 max-w-full">
-                    <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">Email</p>
-                    <p className="whitespace-normal break-words text-xs font-black text-slate-800">{staffMember.email}</p>
+                  <div className="grid min-w-0 flex-1 grid-cols-2 gap-x-2 gap-y-1.5 sm:grid-cols-3 sm:gap-x-3">
+                    <div className="min-w-0 max-w-full">
+                      <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">Email</p>
+                      <p className="whitespace-normal break-words text-xs font-black text-slate-800">{staffMember.email}</p>
+                    </div>
+                    <div className="min-w-0 max-w-full">
+                      <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">Phone</p>
+                      <p className="whitespace-normal break-words text-xs font-bold text-slate-800">{staffMember.phone || "—"}</p>
+                    </div>
+                    <div className="min-w-0 max-w-full">
+                      <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">Hire Date</p>
+                      <p className="whitespace-normal break-words text-xs font-bold text-slate-800">{formatDate(staffMember.hireDate || "")}</p>
+                    </div>
                   </div>
-                  <div className="min-w-0 max-w-full">
-                    <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">Phone</p>
-                    <p className="whitespace-normal break-words text-xs font-bold text-slate-800">{staffMember.phone || "—"}</p>
-                  </div>
-                  <div className="min-w-0 max-w-full">
-                    <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">Hire Date</p>
-                    <p className="whitespace-normal break-words text-xs font-bold text-slate-800">{formatDate(staffMember.hireDate || "")}</p>
-                  </div>
-                </div>
 
-                <div className="flex shrink-0 items-center justify-between gap-2 sm:flex-col sm:items-end sm:gap-1">
-                  <span
-                    className={`inline-flex rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest whitespace-nowrap ${getStatusBadgeClass(
-                      normalizedStatus
-                    )}`}
-                  >
-                    {normalizedStatus}
-                  </span>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 shrink-0 whitespace-nowrap rounded-lg border-slate-200 px-2.5 text-[10px] font-bold text-slate-700 hover:bg-slate-50"
-                      onClick={() => handleOpenEditDialog(staffMember)}
+                  <div className="flex shrink-0 items-center justify-between gap-2 sm:flex-col sm:items-end sm:gap-1">
+                    <span
+                      className={`inline-flex rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest whitespace-nowrap ${getStatusBadgeClass(
+                        normalizedStatus
+                      )}`}
                     >
-                      <Edit2 className="mr-1 h-3 w-3" />
-                      Edit
-                    </Button>
-                    {normalizedStatus === "Active" ? (
+                      {normalizedStatus}
+                    </span>
+                    <div className="flex gap-2">
                       <Button
+                        variant="outline"
                         size="sm"
-                        variant="destructive"
-                        className="h-8 shrink-0 whitespace-nowrap rounded-lg px-2.5 text-[10px] font-bold"
-                        onClick={() => handleToggleStatus(staffMember)}
+                        className="h-8 shrink-0 whitespace-nowrap rounded-lg border-slate-200 px-2.5 text-[10px] font-bold text-slate-700 hover:bg-slate-50"
+                        onClick={() => handleOpenEditDialog(staffMember)}
                       >
-                        <Power className="mr-1 h-3 w-3" />
-                        Deactivate
+                        <Edit2 className="mr-1 h-3 w-3" />
+                        Edit
                       </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        className="h-8 shrink-0 whitespace-nowrap rounded-lg bg-emerald-600 px-2.5 text-[10px] font-bold text-white hover:bg-emerald-700"
-                        onClick={() => handleToggleStatus(staffMember)}
-                      >
-                        <RotateCcw className="mr-1 h-3 w-3" />
-                        Activate
-                      </Button>
-                    )}
+                      {normalizedStatus === "Active" ? (
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          className="h-8 shrink-0 whitespace-nowrap rounded-lg px-2.5 text-[10px] font-bold"
+                          onClick={() => handleToggleStatus(staffMember)}
+                        >
+                          <Power className="mr-1 h-3 w-3" />
+                          Deactivate
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          className="h-8 shrink-0 whitespace-nowrap rounded-lg bg-emerald-600 px-2.5 text-[10px] font-bold text-white hover:bg-emerald-700"
+                          onClick={() => handleToggleStatus(staffMember)}
+                        >
+                          <RotateCcw className="mr-1 h-3 w-3" />
+                          Activate
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            )
-          })}
-        </div>
+              )
+            })}
+          </div>
+          {staffTotalPages > 1 && (
+            <div className="flex items-center justify-center gap-4 pt-2 pb-1">
+              <Button
+                variant="outline"
+                disabled={safeStaffPage <= 1}
+                onClick={() => setStaffPage((p) => Math.max(1, p - 1))}
+                className="h-9 rounded-lg border-slate-200 px-3 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+              >
+                Previous
+              </Button>
+              <span className="text-xs font-semibold text-slate-500">
+                Page {safeStaffPage} of {staffTotalPages}
+              </span>
+              <Button
+                variant="outline"
+                disabled={safeStaffPage >= staffTotalPages}
+                onClick={() => setStaffPage((p) => Math.min(staffTotalPages, p + 1))}
+                className="h-9 rounded-lg border-slate-200 px-3 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+              >
+                Next
+              </Button>
+            </div>
+          )}
+        </>
       ) : (
         <div className="flex min-h-[230px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
           <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-white text-slate-400 shadow-sm">

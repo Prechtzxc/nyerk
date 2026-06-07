@@ -6,6 +6,7 @@ import {
   AlertCircle,
   Banknote,
   CheckCircle2,
+  DollarSign,
   Eye,
   FileImage,
   FileText,
@@ -47,7 +48,6 @@ const VENUE_OPTIONS = [
   "Office B",
 ]
 
-type PaymentTab = "verifying" | "verified" | "all"
 type PaymentAction = "verify" | "reject" | "incomplete" | "mark_paid"
 type BookingRecord = any
 
@@ -59,13 +59,16 @@ type PendingPaymentAction = {
 export default function AdminPaymentsPage() {
   const { toast } = useToast()
   const [bookings, setBookings] = useState<BookingRecord[]>([])
-  const [activeTab, setActiveTab] = useState<PaymentTab>("verifying")
+  const [statusFilter, setStatusFilter] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
   const [venueFilter, setVenueFilter] = useState("all")
   const [selectedPayment, setSelectedPayment] = useState<BookingRecord | null>(null)
   const [pendingAction, setPendingAction] = useState<PendingPaymentAction>(null)
   const [actionNote, setActionNote] = useState("")
   const [contractSigningTarget, setContractSigningTarget] = useState<BookingRecord | null>(null)
+  const [manualMarkTarget, setManualMarkTarget] = useState<BookingRecord | null>(null)
+  const [paymentPage, setPaymentPage] = useState(1)
+  const PAYMENTS_PER_PAGE = 10
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
@@ -73,7 +76,7 @@ export default function AdminPaymentsPage() {
 
     if (searchId) {
       setSearchQuery(searchId)
-      setActiveTab("all")
+      setStatusFilter("all")
 
       // Remove the URL query after using it once so the page does not stay locked
       // on the same booking ID after refresh/navigation.
@@ -109,17 +112,6 @@ export default function AdminPaymentsPage() {
       )
   }, [bookings])
 
-  const tabCounts = useMemo(() => {
-    const verifying = paymentBookings.filter((booking) => isForReviewPayment(booking)).length
-    const verified = paymentBookings.filter((booking) => isVerifiedPayment(booking)).length
-
-    return {
-      verifying,
-      verified,
-      all: paymentBookings.length,
-    }
-  }, [paymentBookings])
-
   const filteredPayments = useMemo(() => {
     return paymentBookings.filter((booking) => {
       const searchText = [
@@ -143,14 +135,27 @@ export default function AdminPaymentsPage() {
         venueFilter === "all" ||
         String(booking?.venue || "").includes(venueFilter)
 
-      let matchesTab = true
+      let matchesStatus = true
 
-      if (activeTab === "verifying") matchesTab = isForReviewPayment(booking)
-      if (activeTab === "verified") matchesTab = isVerifiedPayment(booking)
+      if (statusFilter === "for_review") matchesStatus = isForReviewPayment(booking)
+      if (statusFilter === "verified") matchesStatus = isVerifiedPayment(booking)
+      if (statusFilter === "rejected") matchesStatus = String(booking?.paymentStatus || "").toLowerCase() === "rejected"
+      if (statusFilter === "incomplete") matchesStatus = String(booking?.paymentStatus || "").toLowerCase() === "incomplete"
 
-      return matchesSearch && matchesVenue && matchesTab
+      return matchesSearch && matchesVenue && matchesStatus
     })
-  }, [paymentBookings, searchQuery, venueFilter, activeTab])
+  }, [paymentBookings, searchQuery, venueFilter, statusFilter])
+
+  useEffect(() => {
+    setPaymentPage(1)
+  }, [searchQuery, venueFilter, statusFilter])
+
+  const paymentTotalPages = Math.ceil(filteredPayments.length / PAYMENTS_PER_PAGE)
+  const safePaymentPage = paymentPage > paymentTotalPages ? Math.max(paymentTotalPages, 1) : paymentPage
+  const paginatedPayments = filteredPayments.slice(
+    (safePaymentPage - 1) * PAYMENTS_PER_PAGE,
+    safePaymentPage * PAYMENTS_PER_PAGE,
+  )
 
   const refreshBookingsFromStorage = (fallback?: BookingRecord[]) => {
     const stored = readStoredBookings()
@@ -240,55 +245,9 @@ export default function AdminPaymentsPage() {
     }
   }
 
-  const handleMarkContractSigned = () => {
-    if (!contractSigningTarget) return
-
-    const bookingId = contractSigningTarget.id
-    const signedBy = "Administrator"
-    const baseBookings = readStoredBookings()
-    const sourceBookings = baseBookings.length > 0 ? baseBookings : bookings
-
-    const nextBookings = sourceBookings.map((booking) => {
-      if (booking.id !== bookingId) return booking
-
-      return {
-        ...booking,
-        contractSigningRequired: true,
-        contractSigned: true,
-        contractSignedDate: new Date().toISOString(),
-        contractSignedBy: signedBy,
-        contractSigningMethod: "Face-to-face",
-        contractStatus: "Signed",
-        updatedAt: new Date().toISOString(),
-        adminLogs: appendAdminLog(
-          booking,
-          "MARK_CONTRACT_SIGNED",
-          `Admin marked contract as signed at One Estela Place office. Signed by: ${signedBy}. Method: Face-to-face.`,
-        ),
-      }
-    })
-
-    persistBookings(nextBookings)
-
-    const updatedBooking = nextBookings.find((booking) => booking.id === bookingId)
-    setSelectedPayment(updatedBooking || null)
-    setContractSigningTarget(null)
-
-    toast({
-      title: "Contract Marked as Signed",
-      description: `Booking ${bookingId} contract has been marked as signed.`,
-      className: "border-none bg-emerald-500 text-white",
-    })
-  }
-
   return (
     <div className="w-full min-w-0 max-w-full overflow-x-hidden">
       <div className="mx-auto w-full max-w-[1180px] px-3 py-4 sm:px-5 lg:px-6">
-        <ContractSigningConfirmModal
-          booking={contractSigningTarget}
-          onCancel={() => setContractSigningTarget(null)}
-          onConfirm={handleMarkContractSigned}
-        />
         <PaymentActionConfirmModal
           pendingAction={pendingAction}
           note={actionNote}
@@ -296,9 +255,22 @@ export default function AdminPaymentsPage() {
           onCancel={closeActionModal}
           onConfirm={handleConfirmPaymentAction}
         />
+        <ManualMarkAsPaidModal
+          booking={manualMarkTarget}
+          onClose={() => setManualMarkTarget(null)}
+          onConfirm={(updatedBooking) => {
+            const baseBookings = readStoredBookings()
+            const sourceBookings = baseBookings.length > 0 ? baseBookings : bookings
+            const nextBookings = sourceBookings.map((b) =>
+              b.id === updatedBooking.id ? updatedBooking : b
+            )
+            persistBookings(nextBookings)
+            setManualMarkTarget(null)
+          }}
+        />
 
         <section className="border-b border-slate-200 pb-5">
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="min-w-0">
               <p className="text-[11px] font-black uppercase tracking-[0.22em] text-orange-600">
                 Admin Payment Verification
@@ -313,7 +285,7 @@ export default function AdminPaymentsPage() {
               </p>
             </div>
 
-            <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
               <Select value={venueFilter} onValueChange={setVenueFilter}>
                 <SelectTrigger className="h-10 w-full rounded-xl border-slate-200 bg-white text-xs font-bold text-slate-700 focus:ring-orange-600 sm:w-[170px]">
                   <div className="flex items-center gap-2">
@@ -335,6 +307,24 @@ export default function AdminPaymentsPage() {
                 </SelectContent>
               </Select>
 
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="h-10 w-full rounded-xl border-slate-200 bg-white text-xs font-bold text-slate-700 focus:ring-orange-600 sm:w-[150px]">
+                  <div className="flex items-center gap-2">
+                    <SelectValue placeholder="All" />
+                  </div>
+                </SelectTrigger>
+
+                <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                  <SelectItem value="all" className="font-bold">
+                    All
+                  </SelectItem>
+                  <SelectItem value="for_review">For Review</SelectItem>
+                  <SelectItem value="verified">Verified</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                  <SelectItem value="incomplete">Incomplete</SelectItem>
+                </SelectContent>
+              </Select>
+
               <div className="relative w-full sm:w-[300px]">
                 <Search className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
 
@@ -350,7 +340,7 @@ export default function AdminPaymentsPage() {
                     type="button"
                     onClick={() => {
                       setSearchQuery("")
-                      setActiveTab("verifying")
+                      setStatusFilter("all")
                       window.history.replaceState(null, "", window.location.pathname)
                     }}
                     className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-[10px] font-black uppercase tracking-widest text-slate-400 transition hover:bg-slate-100 hover:text-orange-600"
@@ -363,36 +353,11 @@ export default function AdminPaymentsPage() {
           </div>
         </section>
 
-        <section className="mt-4 border-b border-slate-200">
-          <div className="grid grid-cols-3">
-            <PaymentTabButton
-              label="For Review"
-              count={tabCounts.verifying}
-              active={activeTab === "verifying"}
-              onClick={() => setActiveTab("verifying")}
-            />
-
-            <PaymentTabButton
-              label="Verified"
-              count={tabCounts.verified}
-              active={activeTab === "verified"}
-              onClick={() => setActiveTab("verified")}
-            />
-
-            <PaymentTabButton
-              label="All Records"
-              count={tabCounts.all}
-              active={activeTab === "all"}
-              onClick={() => setActiveTab("all")}
-            />
-          </div>
-        </section>
-
         <section className="mt-4 space-y-3">
           {filteredPayments.length === 0 ? (
             <EmptyState />
           ) : (
-            filteredPayments.map((payment) => {
+            paginatedPayments.map((payment) => {
               const amountPaid = getAmountPaid(payment)
               return (
                 <PaymentCard
@@ -406,17 +371,41 @@ export default function AdminPaymentsPage() {
           )}
         </section>
 
+        {paymentTotalPages > 1 && (
+          <div className="flex items-center justify-center gap-4 pt-4 pb-2">
+            <Button
+              variant="outline"
+              disabled={safePaymentPage <= 1}
+              onClick={() => setPaymentPage((p) => Math.max(1, p - 1))}
+              className="h-9 rounded-lg border-slate-200 px-3 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+            >
+              Previous
+            </Button>
+            <span className="text-xs font-semibold text-slate-500">
+              Page {safePaymentPage} of {paymentTotalPages}
+            </span>
+            <Button
+              variant="outline"
+              disabled={safePaymentPage >= paymentTotalPages}
+              onClick={() => setPaymentPage((p) => Math.min(paymentTotalPages, p + 1))}
+              className="h-9 rounded-lg border-slate-200 px-3 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+            >
+              Next
+            </Button>
+          </div>
+        )}
+
         <Dialog
           open={!!selectedPayment}
           onOpenChange={(open) => !open && setSelectedPayment(null)}
         >
-          <DialogContent className="h-[calc(100vh-32px)] h-[calc(100svh-32px)] max-h-[calc(100vh-32px)] max-h-[calc(100svh-32px)] w-[calc(100vw-32px)] !max-w-[900px] overflow-hidden rounded-[1.75rem] border-0 bg-white p-0 shadow-2xl [&>button]:hidden">
+          <DialogContent className="h-[calc(100vh-32px)] h-[calc(100dvh-32px)] max-h-[calc(100vh-32px)] max-h-[calc(100dvh-32px)] w-[calc(100vw-32px)] !max-w-[900px] overflow-hidden rounded-[1.75rem] border-0 bg-white p-0 shadow-2xl [&>button]:hidden">
             {selectedPayment && (
               <PaymentReviewModal
                 payment={selectedPayment}
                 onClose={() => setSelectedPayment(null)}
                 onAction={(type) => openActionModal(selectedPayment, type)}
-                onMarkContractSigned={(payment) => setContractSigningTarget(payment)}
+                onMarkAsPaid={() => setManualMarkTarget(selectedPayment)}
               />
             )}
           </DialogContent>
@@ -696,41 +685,6 @@ function PaymentCard({
   )
 }
 
-function PaymentTabButton({
-  label,
-  count,
-  active,
-  onClick,
-}: {
-  label: string
-  count: number
-  active: boolean
-  onClick: () => void
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`relative flex h-[58px] min-w-0 items-center justify-center gap-2 px-2 text-center text-xs font-black transition sm:text-sm ${
-        active ? "text-orange-600" : "text-slate-500 hover:text-slate-900"
-      }`}
-    >
-      <span className="line-clamp-2 leading-tight">{label}</span>
-
-      <span
-        className={`shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-black sm:text-[10px] ${
-          active ? "bg-orange-100 text-orange-700" : "bg-slate-100 text-slate-500"
-        }`}
-      >
-        {count}
-      </span>
-
-      {active && (
-        <span className="absolute bottom-0 left-0 h-[2px] w-full bg-orange-600" />
-      )}
-    </button>
-  )
-}
-
 function getContractStatusBadge(b: BookingRecord) {
   const status = b.contractStatus
   const baseClass =
@@ -779,12 +733,12 @@ function PaymentReviewModal({
   payment,
   onClose,
   onAction,
-  onMarkContractSigned,
+  onMarkAsPaid,
 }: {
   payment: BookingRecord
   onClose: () => void
   onAction: (type: PaymentAction) => void
-  onMarkContractSigned?: (payment: BookingRecord) => void
+  onMarkAsPaid?: () => void
 }) {
   const totalAmount = getSafePrice(payment.totalPrice)
   const amountPaid = getAmountPaid(payment)
@@ -995,6 +949,23 @@ function PaymentReviewModal({
               Mark Complete Payment
             </Button>
           </div>
+        ) : !isPaymentFullyPaid(payment) && onMarkAsPaid ? (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Button
+              onClick={onClose}
+              variant="outline"
+              className="h-11 rounded-xl border-slate-200 text-sm font-black text-slate-700 hover:bg-slate-50"
+            >
+              Close Window
+            </Button>
+            <Button
+              onClick={() => onMarkAsPaid()}
+              className="h-11 rounded-xl bg-emerald-600 text-sm font-black text-white hover:bg-emerald-700"
+            >
+              <DollarSign className="mr-1.5 h-4 w-4" />
+              Mark as Paid
+            </Button>
+          </div>
         ) : (
           <Button
             onClick={onClose}
@@ -1004,18 +975,7 @@ function PaymentReviewModal({
             Close Window
           </Button>
         )}
-        {!isActionable && isVerifiedPayment(payment) && payment.contractStatus !== "Signed" &&
-          !["cancelled", "completed", "declined"].includes(String(payment?.status || "").toLowerCase()) && (
-          <div className="mt-3">
-            <Button
-              onClick={() => onMarkContractSigned?.(payment)}
-              className="h-11 w-full rounded-xl bg-blue-600 text-sm font-black text-white hover:bg-blue-700"
-            >
-              <FileText className="mr-1.5 h-4 w-4" />
-              Mark Contract as Signed
-            </Button>
-          </div>
-        )}
+
       </div>
     </div>
   )
@@ -1287,6 +1247,26 @@ function getPaymentStatusText(payment: BookingRecord) {
   return String(payment.paymentStatus || payment.status || "Unknown")
 }
 
+function isPaymentFullyPaid(booking: BookingRecord) {
+  const ps = String(booking?.paymentStatus || "").trim().toLowerCase()
+  const totalAmount = getSafePrice(
+    (booking as any).totalAmount || booking.totalPrice || (booking as any).amount || (booking as any).price
+  )
+  const amountPaid = getSafePrice(
+    (booking as any).amountPaid || (booking as any).paymentAmount || (booking as any).paidAmount
+  )
+  const remainingBalance = getSafePrice(
+    (booking as any).remainingBalance || Math.max(totalAmount - amountPaid, 0)
+  )
+  return (
+    ps === "fully paid" ||
+    ps === "paid" ||
+    ps === "completed" ||
+    remainingBalance === 0 ||
+    (totalAmount > 0 && amountPaid >= totalAmount)
+  )
+}
+
 function getActionLabel(action: PaymentAction) {
   if (action === "verify") return "Verify / Accept Payment"
   if (action === "reject") return "Reject Payment"
@@ -1441,4 +1421,298 @@ function ensureReceiptForVerifiedBooking(booking: BookingRecord) {
   }
 
   writeStoredReceipts([receipt, ...receipts])
+}
+
+function getAmountValue(value: any) {
+  const num = Number(String(value || 0).replace(/[^0-9.-]+/g, ""))
+  return Number.isFinite(num) ? num : 0
+}
+
+function ManualMarkAsPaidModal({
+  booking,
+  onClose,
+  onConfirm,
+}: {
+  booking: BookingRecord | null
+  onClose: () => void
+  onConfirm: (updated: BookingRecord) => void
+}) {
+  const [paymentAmount, setPaymentAmount] = useState("")
+  const [paymentType, setPaymentType] = useState("remaining_balance")
+  const [paymentMethod, setPaymentMethod] = useState("cash")
+  const [adminNote, setAdminNote] = useState("")
+  const [confirmStep, setConfirmStep] = useState(false)
+
+  useEffect(() => {
+    if (booking) {
+      const totalAmount = getAmountValue(
+        (booking as any).totalAmount || booking.totalPrice || (booking as any).amount || (booking as any).price
+      )
+      const currentAmountPaid = getAmountValue(
+        (booking as any).amountPaid || (booking as any).paymentAmount || (booking as any).paidAmount
+      )
+      const remainingBalance = Math.max(totalAmount - currentAmountPaid, 0)
+      setPaymentAmount(String(remainingBalance))
+      setPaymentType("remaining_balance")
+      setPaymentMethod("cash")
+      setAdminNote("")
+      setConfirmStep(false)
+    }
+  }, [booking])
+
+  if (!booking) return null
+
+  const totalAmount = getAmountValue(
+    (booking as any).totalAmount || booking.totalPrice || (booking as any).amount || (booking as any).price
+  )
+  const currentAmountPaid = getAmountValue(
+    (booking as any).amountPaid || (booking as any).paymentAmount || (booking as any).paidAmount
+  )
+  const enteredAmount = getAmountValue(paymentAmount)
+
+  const handleConfirm = () => {
+    if (enteredAmount <= 0) return
+
+    let newAmountPaid: number
+    let newRemainingBalance: number
+    let newPaymentStatus: string
+    let newBalanceStatus: string
+
+    if (paymentType === "full_payment") {
+      newAmountPaid = totalAmount
+      newRemainingBalance = 0
+      newPaymentStatus = "Fully Paid"
+      newBalanceStatus = "Settled"
+    } else if (paymentType === "remaining_balance") {
+      newAmountPaid = currentAmountPaid + enteredAmount
+      newRemainingBalance = Math.max(totalAmount - newAmountPaid, 0)
+      newPaymentStatus = newRemainingBalance === 0 ? "Fully Paid" : "Partial"
+      newBalanceStatus = newRemainingBalance === 0 ? "Settled" : "With Remaining Balance"
+    } else {
+      newAmountPaid = enteredAmount
+      newRemainingBalance = Math.max(totalAmount - enteredAmount, 0)
+      newPaymentStatus = "Partial"
+      newBalanceStatus = "With Remaining Balance"
+    }
+
+    const updatedBooking: BookingRecord = {
+      ...booking,
+      amountPaid: newAmountPaid,
+      paymentAmount: enteredAmount,
+      lastPaymentAmount: enteredAmount,
+      paymentMethod: paymentMethod,
+      paymentType: paymentType === "full_payment" ? "full" : paymentType === "downpayment" ? "downpayment" : (booking as any).paymentType || "full",
+      paymentStatus: newPaymentStatus,
+      remainingBalance: newRemainingBalance,
+      balanceStatus: newBalanceStatus,
+      manualPaymentMarked: true,
+      manualPaymentMarkedAt: new Date().toISOString(),
+      manualPaymentMarkedBy: "Administrator",
+      manualPaymentNote: adminNote.trim(),
+      paymentVerifiedAt: new Date().toISOString(),
+      paymentVerifiedBy: "Administrator",
+      updatedAt: new Date().toISOString(),
+      adminLogs: appendAdminLog(
+        booking,
+        "MANUAL_MARK_PAID",
+        `Admin manually marked payment as ${newPaymentStatus}. Type: ${paymentType}. Amount: ₱${enteredAmount.toLocaleString()}. Note: ${adminNote.trim() || "N/A"}.`
+      ),
+    }
+
+    onConfirm(updatedBooking)
+    setConfirmStep(false)
+  }
+
+  const remainingBalance = Math.max(totalAmount - currentAmountPaid, 0)
+  const typeLabel =
+    paymentType === "full_payment"
+      ? "Full Payment"
+      : paymentType === "remaining_balance"
+        ? "Remaining Balance"
+        : "Downpayment"
+
+  return (
+    <Dialog open={!!booking} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="w-[calc(100vw-28px)] max-w-[520px] rounded-[1.75rem] border-0 bg-white p-0 shadow-2xl [&>button]:hidden">
+        <div className="p-6 sm:p-7">
+          {!confirmStep ? (
+            <>
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+                <DollarSign className="h-8 w-8" />
+              </div>
+
+              <DialogTitle className="text-2xl font-black text-slate-950">
+                Mark Payment as Paid
+              </DialogTitle>
+
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                Use this only if the customer has already paid at the One Estela Place office
+                or through an officially confirmed onsite payment.
+              </p>
+
+              <div className="mt-5 space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left">
+                <p className="flex justify-between text-xs">
+                  <span className="font-semibold text-slate-400">Booking ID</span>
+                  <span className="font-bold text-slate-900">{booking.id}</span>
+                </p>
+                <p className="flex justify-between text-xs">
+                  <span className="font-semibold text-slate-400">Customer</span>
+                  <span className="font-bold text-slate-900">{booking.userInfo?.name || "No Name"}</span>
+                </p>
+                <p className="flex justify-between text-xs">
+                  <span className="font-semibold text-slate-400">Total Amount</span>
+                  <span className="font-bold text-slate-900">₱{totalAmount.toLocaleString()}</span>
+                </p>
+                <p className="flex justify-between text-xs">
+                  <span className="font-semibold text-slate-400">Current Paid</span>
+                  <span className="font-bold text-slate-900">₱{currentAmountPaid.toLocaleString()}</span>
+                </p>
+                <p className="flex justify-between text-xs">
+                  <span className="font-semibold text-slate-400">Remaining</span>
+                  <span className="font-bold text-amber-700">₱{remainingBalance.toLocaleString()}</span>
+                </p>
+              </div>
+
+              <div className="mt-5 space-y-4">
+                <div>
+                  <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    Payment Amount *
+                  </label>
+                  <Input
+                    value={paymentAmount}
+                    onChange={(e) => setPaymentAmount(e.target.value)}
+                    placeholder="Enter amount paid"
+                    className="h-10 rounded-xl border-slate-200 text-xs font-bold focus-visible:ring-emerald-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    Payment Type *
+                  </label>
+                  <Select value={paymentType} onValueChange={setPaymentType}>
+                    <SelectTrigger className="h-10 w-full rounded-xl border-slate-200 bg-white text-xs font-bold text-slate-700 focus:ring-emerald-600">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                      <SelectItem value="downpayment">Downpayment</SelectItem>
+                      <SelectItem value="remaining_balance">Remaining Balance</SelectItem>
+                      <SelectItem value="full_payment">Full Payment</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    Payment Method *
+                  </label>
+                  <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                    <SelectTrigger className="h-10 w-full rounded-xl border-slate-200 bg-white text-xs font-bold text-slate-700 focus:ring-emerald-600">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                      <SelectItem value="cash">Cash / Pay at the Office</SelectItem>
+                      <SelectItem value="bank">Bank Transfer</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    Admin Note / Reference
+                  </label>
+                  <Textarea
+                    value={adminNote}
+                    onChange={(e) => setAdminNote(e.target.value)}
+                    placeholder="Example: Paid onsite, verified by staff."
+                    className="min-h-[80px] resize-none rounded-xl border-slate-200 text-xs focus-visible:ring-emerald-600"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-6 grid grid-cols-2 gap-3">
+                <Button
+                  variant="outline"
+                  onClick={onClose}
+                  className="h-11 rounded-xl border-slate-200 text-sm font-black text-slate-700"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  disabled={enteredAmount <= 0}
+                  onClick={() => setConfirmStep(true)}
+                  className="h-11 rounded-xl bg-emerald-600 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-50"
+                >
+                  Continue
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
+                <AlertCircle className="h-8 w-8" />
+              </div>
+
+              <DialogTitle className="text-2xl font-black text-slate-950">
+                Confirm {typeLabel}
+              </DialogTitle>
+
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                Are you sure you want to mark this as {typeLabel}?
+                Please confirm that the customer has already paid this amount.
+              </p>
+
+              <div className="mt-5 space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left">
+                <p className="flex justify-between text-xs">
+                  <span className="font-semibold text-slate-400">Booking ID</span>
+                  <span className="font-bold text-slate-900">{booking.id}</span>
+                </p>
+                <p className="flex justify-between text-xs">
+                  <span className="font-semibold text-slate-400">Customer</span>
+                  <span className="font-bold text-slate-900">{booking.userInfo?.name || "No Name"}</span>
+                </p>
+                <p className="flex justify-between text-xs">
+                  <span className="font-semibold text-slate-400">Amount</span>
+                  <span className="font-bold text-slate-900">₱{enteredAmount.toLocaleString()}</span>
+                </p>
+                <p className="flex justify-between text-xs">
+                  <span className="font-semibold text-slate-400">Type</span>
+                  <span className="font-bold text-slate-900">{typeLabel}</span>
+                </p>
+                <p className="flex justify-between text-xs">
+                  <span className="font-semibold text-slate-400">Method</span>
+                  <span className="font-bold text-slate-900">
+                    {paymentMethod === "cash" ? "Cash / Pay at the Office" : paymentMethod === "bank" ? "Bank Transfer" : "Other"}
+                  </span>
+                </p>
+                {adminNote.trim() && (
+                  <p className="flex justify-between text-xs">
+                    <span className="font-semibold text-slate-400">Note</span>
+                    <span className="font-bold text-slate-900">{adminNote.trim()}</span>
+                  </p>
+                )}
+              </div>
+
+              <div className="mt-6 grid grid-cols-2 gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setConfirmStep(false)}
+                  className="h-11 rounded-xl border-slate-200 text-sm font-black text-slate-700"
+                >
+                  Back
+                </Button>
+                <Button
+                  onClick={handleConfirm}
+                  className="h-11 rounded-xl bg-emerald-600 text-sm font-black text-white hover:bg-emerald-700"
+                >
+                  Yes, Mark as Paid
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
 }

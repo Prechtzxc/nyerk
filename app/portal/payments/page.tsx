@@ -473,11 +473,11 @@ function HistoryRow({
 
 function DetailItem({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div>
+    <div className="min-w-0 max-w-full">
       <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">
         {label}
       </p>
-      <div className="mt-0.5 break-words text-xs font-bold text-slate-800">{value}</div>
+      <div className="mt-0.5 whitespace-normal text-xs font-bold text-slate-800">{value}</div>
     </div>
   );
 }

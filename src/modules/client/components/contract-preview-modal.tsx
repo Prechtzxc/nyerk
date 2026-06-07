@@ -1,7 +1,6 @@
 "use client"
 
 import { Dialog, DialogContent, DialogTitle, DialogClose } from "@/src/modules/shared/components/ui/dialog"
-import { Button } from "@/src/modules/shared/components/ui/button"
 import { X, FileText, MapPin, Calendar, Clock, CreditCard, CheckCircle } from "lucide-react"
 import { cn } from "@/src/modules/shared/lib/utils"
 import { type Booking } from "@/src/modules/client/contexts/booking-context"
@@ -228,17 +227,6 @@ export function ContractPreviewModal({
               </p>
             </div>
           </div>
-        </div>
-
-        <div className="flex items-center justify-end gap-3 border-t border-slate-100 bg-white px-4 py-3 sm:px-6 sm:py-4">
-          <DialogClose asChild>
-            <Button
-              variant="outline"
-              className="h-10 rounded-lg border-slate-200 px-5 text-xs font-bold text-slate-700 hover:bg-slate-100"
-            >
-              Close
-            </Button>
-          </DialogClose>
         </div>
       </DialogContent>
     </Dialog>

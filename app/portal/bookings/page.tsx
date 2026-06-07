@@ -162,7 +162,7 @@ function formatDate(date?: string) {
   const parsed = new Date(date)
   if (Number.isNaN(parsed.getTime())) return date
   return new Intl.DateTimeFormat("en-PH", {
-    month: "short",
+    month: "long",
     day: "2-digit",
     year: "numeric",
   }).format(parsed)
@@ -470,19 +470,6 @@ function Pagination({
   )
 }
 
-function DetailItem({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div>
-      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">
-        {label}
-      </p>
-      <p className="mt-0.5 break-words text-xs font-bold text-slate-800">
-        {value}
-      </p>
-    </div>
-  )
-}
-
 function PaymentSummaryCard({
   booking,
   bankRef,
@@ -507,63 +494,62 @@ function PaymentSummaryCard({
         </p>
       </div>
 
-      <div className="grid gap-y-3 gap-x-6 sm:grid-cols-2">
-        <div>
+      <div className="space-y-3">
+        <div className="min-w-0">
           <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
             Method
           </p>
-          <p className="text-xs font-bold text-slate-800">
+          <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">
             {booking.paymentMethod
               ? getPaymentMethodLabel(booking.paymentMethod)
               : "—"}
           </p>
         </div>
-        <div>
+        <div className="min-w-0">
           <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
             Type
           </p>
-          <p className="text-xs font-bold text-slate-800">
+          <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">
             {booking.paymentType
               ? formatTextLabel(booking.paymentType)
               : "—"}
           </p>
         </div>
-        <div>
+        <div className="min-w-0">
           <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
             Total Amount
           </p>
-          <p className="text-xs font-bold text-slate-800">
+          <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">
             {hasTotal ? formatMoney(totalPrice) : "—"}
           </p>
         </div>
-        <div>
+        <div className="min-w-0">
           <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
             Amount Paid
           </p>
-          <p className="text-xs font-bold text-slate-800">
+          <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">
             {hasPaid ? formatMoney(amountPaid) : "—"}
           </p>
         </div>
         {remaining !== null && (
-          <div>
+          <div className="min-w-0">
             <p className="text-[9px] font-bold uppercase tracking-wider text-amber-600">
               Remaining Balance
             </p>
-            <p className="text-xs font-bold text-amber-700">
+            <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-amber-700">
               {remaining > 0 ? formatMoney(remaining) : "—"}
             </p>
           </div>
         )}
+        {bankRef && (
+          <div className="min-w-0">
+            <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+              Bank Reference
+            </p>
+            <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-900">{bankRef}</p>
+          </div>
+        )}
       </div>
-
-      {bankRef && (
-        <div className="mt-3 border-t border-slate-100 pt-3">
-          <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
-            Bank Reference
-          </p>
-          <p className="mt-0.5 text-xs font-bold text-slate-900">{bankRef}</p>
-        </div>
-      )}
     </div>
   )
 }
@@ -651,7 +637,7 @@ function BookingDetailsModal({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent
         showCloseButton={false}
-        className="flex max-h-[calc(100vh-32px)] max-h-[calc(100dvh-32px)] w-[calc(100vw-2rem)] max-w-[950px] flex-col gap-0 overflow-hidden rounded-2xl border-0 bg-white p-0 shadow-xl"
+        className="flex max-h-[calc(100vh-32px)] max-h-[calc(100dvh-32px)] w-[calc(100vw-48px)] max-w-[1100px] flex-col gap-0 overflow-hidden rounded-2xl border-0 bg-white p-0 shadow-xl min-w-0"
       >
         <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-100 bg-white px-6 pt-6 pb-4">
           <div className="min-w-0">
@@ -678,7 +664,7 @@ function BookingDetailsModal({
           </DialogClose>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4 py-4 pb-4 sm:px-6 sm:py-5 sm:pb-6">
+        <div className="min-w-0 flex-1 overflow-y-auto px-4 py-4 pb-6 sm:px-6 sm:py-5 sm:pb-10">
           <div className="mb-5 flex flex-wrap items-center gap-2">
             <span
               className={cn(
@@ -711,92 +697,51 @@ function BookingDetailsModal({
               )}
           </div>
 
-          {isPaymentVerified && (
-            <div className="mb-5 rounded-xl border border-slate-200 bg-white p-4">
-              <div className="mb-3 flex items-center gap-2">
-                <FileText className="h-4 w-4 text-slate-500" />
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                  Contract
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2 mb-3">
-                <span
-                  className={cn(
-                    "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
-                    booking.contractStatus === "Signed"
-                      ? "border-emerald-100 bg-emerald-50 text-emerald-700"
-                      : "border-orange-100 bg-orange-50 text-orange-700",
-                  )}
-                >
-                  {booking.contractStatus === "Signed" ? "Signed" : "Pending Signature"}
-                </span>
-              </div>
-              {booking.contractStatus === "Signed" ? (
-                <div className="space-y-1">
-                  <p className="text-xs font-semibold text-emerald-700">
-                    {booking.contractSignedDate
-                      ? `Signed on ${formatDate(booking.contractSignedDate)}`
-                      : "Contract has been signed."}
-                  </p>
-                  <p className="text-[11px] font-semibold text-slate-500">
-                    Your contract has been marked as signed by the administrator.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <p className="text-xs font-semibold text-orange-700">
-                    Contract signing must be completed onsite at the One Estela Place office.
-                  </p>
-                  <p className="text-[11px] font-semibold text-slate-500">
-                    Please visit the One Estela Place office to personally sign the official contract. This preview is for review purposes only and does not replace onsite contract signing.
-                  </p>
-                  <Button
-                    onClick={() => setShowContractPreview(true)}
-                    className="h-9 rounded-lg bg-emerald-600 px-4 text-[11px] font-bold text-white shadow-sm hover:bg-emerald-700 sm:w-auto w-full"
-                  >
-                    <FileText className="mr-1.5 h-3.5 w-3.5" />
-                    Preview Contract
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
-            <div className="rounded-xl border border-slate-100 p-4">
+          <div className="min-w-0 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
+            <div className="min-w-0 rounded-xl border border-slate-100 p-4">
               <div className="mb-3 flex items-center gap-2">
                 <div className="h-1.5 w-1.5 rounded-full bg-slate-400" />
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                   Booking Information
                 </p>
               </div>
-              <div className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-                <DetailItem
-                  label="Booking Date"
-                  value={formatDate(booking.createdAt) || "—"}
-                />
-                <DetailItem
-                  label={isOfficeRental ? "Start Date" : "Event Date"}
-                  value={startDate || "—"}
-                />
-                <DetailItem label="End Date" value={endDate || "—"} />
-                <DetailItem
-                  label="Venue / Office"
-                  value={booking.venue || "—"}
-                />
-                <DetailItem
-                  label="Guests"
-                  value={
-                    booking.guestCount ? `${booking.guestCount} pax` : "—"
-                  }
-                />
-                <DetailItem label="Time" value={timeValue} />
-                <DetailItem label="Booking ID" value={`#${booking.id}`} />
-                <DetailItem label="Event Type" value={typeLabel} />
+              <div className="space-y-3">
+                <div className="min-w-0">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Booking Date</p>
+                  <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{formatDate(booking.createdAt) || "—"}</p>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">{isOfficeRental ? "Start Date" : "Event Date"}</p>
+                  <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{startDate || "—"}</p>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">End Date</p>
+                  <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{endDate || "—"}</p>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Venue / Office</p>
+                  <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{booking.venue || "—"}</p>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Guests</p>
+                  <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{booking.guestCount ? `${booking.guestCount} pax` : "—"}</p>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Time</p>
+                  <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{timeValue}</p>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Booking ID</p>
+                  <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">#{booking.id}</p>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Event Type</p>
+                  <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{typeLabel}</p>
+                </div>
               </div>
             </div>
 
-            <div className="rounded-xl border border-slate-100">
+            <div className="min-w-0 rounded-xl border border-slate-100">
               <PaymentSummaryCard booking={booking} bankRef={bankRef} />
             </div>
           </div>
@@ -892,68 +837,123 @@ function BookingDetailsModal({
                       Decline Reason: {booking.cancellationDeclineReason}
                     </div>
                   )}
-                </div>
               </div>
+            </div>
             )}
-        </div>
 
-        <div className="space-y-3 border-t border-slate-100 bg-white px-4 py-3 sm:px-6 sm:py-4">
-          {(showModify || showReceipt || showPay) && (
-            <div className="grid grid-cols-2 gap-3">
-              {showModify && (
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    if (onEdit) {
-                      onEdit(booking)
-                      onClose()
-                    }
-                  }}
-                  className="h-10 rounded-lg border-slate-200 px-4 text-xs font-bold text-slate-700 hover:bg-slate-100"
+          {isPaymentVerified && (
+            <div className="mt-5 rounded-xl border border-slate-200 bg-white p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <FileText className="h-4 w-4 text-slate-500" />
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  Contract
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <span
+                  className={cn(
+                    "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
+                    booking.contractStatus === "Signed"
+                      ? "border-emerald-100 bg-emerald-50 text-emerald-700"
+                      : "border-orange-100 bg-orange-50 text-orange-700",
+                  )}
                 >
-                  <Pencil className="mr-1.5 h-3.5 w-3.5" />
-                  Modify Booking
-                </Button>
+                  {booking.contractStatus === "Signed" ? "Signed" : "Pending Signature"}
+                </span>
+              </div>
+              {booking.contractStatus === "Signed" ? (
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-emerald-700">
+                    {booking.contractSignedDate
+                      ? `Signed on ${formatDate(booking.contractSignedDate)}`
+                      : "Contract has been signed."}
+                  </p>
+                  <p className="text-[11px] font-semibold text-slate-500">
+                    Your contract has been marked as signed by the administrator.
+                  </p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0 space-y-2">
+                    <p className="text-xs font-semibold text-orange-700">
+                      Contract signing must be completed onsite at the One Estela Place office.
+                    </p>
+                    <p className="text-[11px] font-semibold text-slate-500">
+                      Please visit the One Estela Place office to personally sign the official contract. This preview is for review purposes only and does not replace onsite contract signing.
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => setShowContractPreview(true)}
+                    className="shrink-0 h-9 rounded-lg bg-emerald-600 px-4 text-[11px] font-bold text-white shadow-sm hover:bg-emerald-700 sm:w-auto w-full"
+                  >
+                    <FileText className="mr-1.5 h-3.5 w-3.5" />
+                    Preview Contract
+                  </Button>
+                </div>
               )}
-              {showReceipt ? (
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    onViewReceipt(booking)
-                    onClose()
-                  }}
-                  className="h-10 rounded-lg border-slate-200 px-4 text-xs font-bold text-slate-700 hover:bg-slate-100"
-                >
-                  <Receipt className="mr-1.5 h-3.5 w-3.5" />
-                  View Receipt
-                </Button>
-              ) : showPay ? (
-                <Button
-                  onClick={() => {
-                    onPay(booking)
-                    onClose()
-                  }}
-                  className="h-10 rounded-lg bg-[#ea580c] hover:bg-[#c2410c] px-5 text-xs font-bold text-white shadow-sm"
-                >
-                  <CreditCard className="mr-1.5 h-3.5 w-3.5" />
-                  Pay Now
-                </Button>
-              ) : null}
             </div>
           )}
-          {showCancelAction && (
-            <Button
-              variant="outline"
-              onClick={() => {
-                onCancel(booking)
-                onClose()
-              }}
-              className="w-full h-10 rounded-lg border-rose-200 px-4 text-xs font-bold text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-            >
-              <X className="mr-1.5 h-3.5 w-3.5" />
-              Cancel Booking
-            </Button>
-          )}
+        </div>
+
+        <div className="border-t border-slate-100 bg-white px-4 py-3 sm:px-6 sm:py-4">
+          <div className="flex flex-col gap-3 sm:items-end">
+            {(showModify || showReceipt || showPay) && (
+              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                {showModify && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      if (onEdit) {
+                        onEdit(booking)
+                        onClose()
+                      }
+                    }}
+                    className="h-10 rounded-lg border-slate-200 px-4 text-xs font-bold text-slate-700 hover:bg-slate-100 w-full sm:w-auto"
+                  >
+                    <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                    Modify Booking
+                  </Button>
+                )}
+                {showReceipt ? (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      onViewReceipt(booking)
+                      onClose()
+                    }}
+                    className="h-10 rounded-lg border-slate-200 px-4 text-xs font-bold text-slate-700 hover:bg-slate-100 w-full sm:w-auto"
+                  >
+                    <Receipt className="mr-1.5 h-3.5 w-3.5" />
+                    View Receipt
+                  </Button>
+                ) : showPay ? (
+                  <Button
+                    onClick={() => {
+                      onPay(booking)
+                      onClose()
+                    }}
+                    className="h-10 rounded-lg bg-[#ea580c] hover:bg-[#c2410c] px-5 text-xs font-bold text-white shadow-sm w-full sm:w-auto"
+                  >
+                    <CreditCard className="mr-1.5 h-3.5 w-3.5" />
+                    Pay Now
+                  </Button>
+                ) : null}
+              </div>
+            )}
+            {showCancelAction && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  onCancel(booking)
+                  onClose()
+                }}
+                className="w-full sm:w-auto h-10 rounded-lg border-rose-200 px-4 text-xs font-bold text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+              >
+                <X className="mr-1.5 h-3.5 w-3.5" />
+                Cancel Booking
+              </Button>
+            )}
+          </div>
         </div>
       </DialogContent>
 
