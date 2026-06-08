@@ -257,27 +257,38 @@ function getStatusLabel(status?: string) {
   return formatTextLabel(status || "Unknown")
 }
 
-function getPaymentStatusLabel(paymentStatus?: string, paymentStage?: string) {
+function getPaymentStatusLabel(paymentStatus?: string, paymentStage?: string, remainingBalance?: number) {
   const v = String(paymentStatus || "").toLowerCase()
   const stage = String(paymentStage || "").toLowerCase()
-  if (stage === "fully paid") return "Fully Paid"
-  if (v === "verified" || v === "paid" || v === "slot_verified") return v === "paid" ? "Fully Paid" : "Verified"
+  const hasRemaining = typeof remainingBalance === "number" ? remainingBalance > 0 : false
+
+  if (hasRemaining && v !== "unpaid" && v !== "rejected" && v !== "for_review" && v !== "cash_pending" && v !== "slot_pending") {
+    return "Partial Payment"
+  }
+  if ((stage === "fully paid" || v === "paid" || v === "fully paid") && !hasRemaining) return "Fully Paid"
+  if (v === "verified" || v === "slot_verified") return "Verified"
   if (v === "for_review" || v === "cash_pending" || v === "slot_pending") return "For Review"
   if (v === "partial") return "Partial Payment"
   if (v === "rejected") return "Rejected"
   if (v === "incomplete") return "Incomplete Payment"
-  if (v === "fully paid") return "Fully Paid"
   if (v === "unpaid") return "Unpaid"
   if (!v) return "Not Set"
   return formatTextLabel(paymentStatus)
 }
 
-function getPaymentBadgeClass(paymentStatus?: string, paymentStage?: string) {
+function getPaymentBadgeClass(paymentStatus?: string, paymentStage?: string, remainingBalance?: number) {
   const v = String(paymentStatus || "").toLowerCase()
   const stage = String(paymentStage || "").toLowerCase()
-  if (stage === "fully paid") return "border-emerald-100 bg-emerald-50 text-emerald-700"
-  if (["verified", "paid", "slot_verified"].includes(v)) {
-    return v === "paid" ? "border-emerald-100 bg-emerald-50 text-emerald-700" : "border-emerald-100 bg-emerald-50 text-emerald-700"
+  const hasRemaining = typeof remainingBalance === "number" ? remainingBalance > 0 : false
+
+  if (hasRemaining && v !== "unpaid" && v !== "rejected" && v !== "for_review" && v !== "cash_pending" && v !== "slot_pending") {
+    return "border-amber-100 bg-amber-50 text-amber-700"
+  }
+  if ((stage === "fully paid" || v === "paid" || v === "fully paid") && !hasRemaining) {
+    return "border-emerald-100 bg-emerald-50 text-emerald-700"
+  }
+  if (["verified", "slot_verified"].includes(v)) {
+    return "border-emerald-100 bg-emerald-50 text-emerald-700"
   }
   if (v === "partial" || stage === "complete downpayment" || stage === "settle remaining balance") {
     return "border-amber-100 bg-amber-50 text-amber-700"
@@ -703,10 +714,10 @@ function BookingDetailsModal({
             <span
               className={cn(
                 "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
-                getPaymentBadgeClass(booking.paymentStatus),
+                getPaymentBadgeClass(booking.paymentStatus, (booking as any).paymentStage, remainingBalance),
               )}
             >
-              {getPaymentStatusLabel(booking.paymentStatus, (booking as any).paymentStage)}
+              {getPaymentStatusLabel(booking.paymentStatus, (booking as any).paymentStage, remainingBalance)}
             </span>
             {booking.cancellationStatus &&
               booking.cancellationStatus !== "None" && (

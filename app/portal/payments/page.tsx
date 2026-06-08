@@ -216,10 +216,15 @@ function isDateInRange(value: string, from?: string, to?: string) {
   return true;
 }
 
-function getStatusBadgeClass(status?: string, paymentStage?: string) {
-  const v = String(status || "").toLowerCase();
+function getStatusBadgeClass(paymentStatus?: string, paymentStage?: string, remainingBalance?: number) {
+  const v = String(paymentStatus || "").toLowerCase();
   const stage = String(paymentStage || "").toLowerCase();
-  if (stage === "fully paid" || v === "paid") return "border-emerald-100 bg-emerald-50 text-emerald-700";
+  const hasRemaining = typeof remainingBalance === "number" ? remainingBalance > 0 : false;
+
+  if (hasRemaining && v !== "unpaid" && v !== "rejected" && v !== "for_review" && v !== "cash_pending" && v !== "slot_pending" && v !== "pending_verification") {
+    return "border-amber-100 bg-amber-50 text-amber-700";
+  }
+  if ((stage === "fully paid" || v === "paid") && !hasRemaining) return "border-emerald-100 bg-emerald-50 text-emerald-700";
   if (["verified", "slot_verified"].includes(v)) return "border-emerald-100 bg-emerald-50 text-emerald-700";
   if (v === "partial" || stage === "complete downpayment" || stage === "settle remaining balance") return "border-amber-100 bg-amber-50 text-amber-700";
   if (["for_review", "cash_pending", "slot_pending", "pending_verification", "incomplete"].includes(v)) return "border-amber-100 bg-amber-50 text-amber-700";
@@ -227,10 +232,15 @@ function getStatusBadgeClass(status?: string, paymentStage?: string) {
   return "border-slate-200 bg-slate-50 text-slate-700";
 }
 
-function getStatusLabel(paymentStatus?: string, status?: string, paymentStage?: string) {
+function getStatusLabel(paymentStatus?: string, status?: string, paymentStage?: string, remainingBalance?: number) {
   const v = String(paymentStatus || "").toLowerCase();
   const stage = String(paymentStage || "").toLowerCase();
-  if (stage === "fully paid" || v === "paid") return "Fully Paid";
+  const hasRemaining = typeof remainingBalance === "number" ? remainingBalance > 0 : false;
+
+  if (hasRemaining && v !== "unpaid" && v !== "rejected" && v !== "for_review" && v !== "cash_pending" && v !== "slot_pending" && v !== "pending_verification") {
+    return "Partial Payment";
+  }
+  if ((stage === "fully paid" || v === "paid") && !hasRemaining) return "Fully Paid";
   if (["verified", "slot_verified"].includes(v)) return "Verified";
   if (v === "partial" || stage === "complete downpayment" || stage === "settle remaining balance") return "Partial Payment";
   if (["for_review", "cash_pending", "slot_pending", "pending_verification"].includes(v)) return "For Review";
@@ -343,10 +353,10 @@ function CurrentTransactionCard({
             <span
               className={cn(
                 "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest",
-                getStatusBadgeClass(booking.paymentStatus, (booking as any).paymentStage),
+                getStatusBadgeClass(booking.paymentStatus, (booking as any).paymentStage, (booking as any).remainingBalance),
               )}
             >
-              {getStatusLabel(booking.paymentStatus, booking.status, (booking as any).paymentStage)}
+              {getStatusLabel(booking.paymentStatus, booking.status, (booking as any).paymentStage, (booking as any).remainingBalance)}
             </span>
           </div>
         </div>
@@ -453,10 +463,10 @@ function HistoryRow({
           <span
             className={cn(
               "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest",
-              getStatusBadgeClass(booking.paymentStatus, (booking as any).paymentStage),
+              getStatusBadgeClass(booking.paymentStatus, (booking as any).paymentStage, (booking as any).remainingBalance),
             )}
           >
-            {getStatusLabel(booking.paymentStatus, booking.status, (booking as any).paymentStage)}
+            {getStatusLabel(booking.paymentStatus, booking.status, (booking as any).paymentStage, (booking as any).remainingBalance)}
           </span>
           {expanded ? (
             <ChevronDown className="h-4 w-4 -rotate-180 text-slate-400 transition" />
@@ -1586,10 +1596,10 @@ function TransactionsContent() {
                         <span
                           className={cn(
                             "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest",
-                            getStatusBadgeClass(booking.paymentStatus, (booking as any).paymentStage),
+                            getStatusBadgeClass(booking.paymentStatus, (booking as any).paymentStage, (booking as any).remainingBalance),
                           )}
                         >
-                          {getStatusLabel(booking.paymentStatus, booking.status, (booking as any).paymentStage)}
+                          {getStatusLabel(booking.paymentStatus, booking.status, (booking as any).paymentStage, (booking as any).remainingBalance)}
                         </span>
                         {hasPaymentRecord(booking) && (
                           <Button

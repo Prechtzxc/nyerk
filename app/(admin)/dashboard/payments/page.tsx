@@ -6,7 +6,6 @@ import {
   AlertCircle,
   Banknote,
   CheckCircle2,
-  DollarSign,
   Eye,
   FileImage,
   FileText,
@@ -48,7 +47,7 @@ const VENUE_OPTIONS = [
   "Office B",
 ]
 
-type PaymentAction = "verify" | "reject" | "incomplete" | "mark_paid" | "record_onsite" | "send_reminder"
+type PaymentAction = "verify" | "reject" | "incomplete"
 type BookingRecord = any
 
 type PendingPaymentAction = {
@@ -67,10 +66,7 @@ export default function AdminPaymentsPage() {
   const [selectedPayment, setSelectedPayment] = useState<BookingRecord | null>(null)
   const [pendingAction, setPendingAction] = useState<PendingPaymentAction>(null)
   const [actionNote, setActionNote] = useState("")
-  const [contractSigningTarget, setContractSigningTarget] = useState<BookingRecord | null>(null)
-  const [manualMarkTarget, setManualMarkTarget] = useState<BookingRecord | null>(null)
   const [incompletePaymentTarget, setIncompletePaymentTarget] = useState<BookingRecord | null>(null)
-  const [sendReminderTarget, setSendReminderTarget] = useState<BookingRecord | null>(null)
   const [paymentPage, setPaymentPage] = useState(1)
   const PAYMENTS_PER_PAGE = 10
 
@@ -180,10 +176,6 @@ export default function AdminPaymentsPage() {
       setIncompletePaymentTarget(payment)
       return
     }
-    if (type === "send_reminder") {
-      setSendReminderTarget(payment)
-      return
-    }
     setPendingAction({ payment, type })
     setActionNote("")
   }
@@ -222,8 +214,6 @@ export default function AdminPaymentsPage() {
         if (type === "verify") return buildVerifiedPaymentBooking(booking)
         if (type === "reject") return buildRejectedPaymentBooking(booking, note)
         if (type === "incomplete") return buildIncompletePaymentBooking(booking, note)
-        if (type === "mark_paid") return buildCompletePaymentBooking(booking, note)
-        if (type === "record_onsite") return buildCompletePaymentBooking(booking, note)
 
         return booking
       })
@@ -269,19 +259,6 @@ export default function AdminPaymentsPage() {
           onCancel={closeActionModal}
           onConfirm={handleConfirmPaymentAction}
         />
-        <ManualMarkAsPaidModal
-          booking={manualMarkTarget}
-          onClose={() => setManualMarkTarget(null)}
-          onConfirm={(updatedBooking) => {
-            const baseBookings = readStoredBookings()
-            const sourceBookings = baseBookings.length > 0 ? baseBookings : bookings
-            const nextBookings = sourceBookings.map((b) =>
-              b.id === updatedBooking.id ? updatedBooking : b
-            )
-            persistBookings(nextBookings)
-            setManualMarkTarget(null)
-          }}
-        />
         <IncompletePaymentModal
           booking={incompletePaymentTarget}
           onClose={() => setIncompletePaymentTarget(null)}
@@ -302,25 +279,6 @@ export default function AdminPaymentsPage() {
             })
           }}
         />
-        <SendBalanceReminderModal
-          booking={sendReminderTarget}
-          onClose={() => setSendReminderTarget(null)}
-          onConfirm={(updatedBooking) => {
-            const baseBookings = readStoredBookings()
-            const sourceBookings = baseBookings.length > 0 ? baseBookings : bookings
-            const nextBookings = sourceBookings.map((b) =>
-              b.id === updatedBooking.id ? updatedBooking : b
-            )
-            persistBookings(nextBookings)
-            setSendReminderTarget(null)
-            toast({
-              title: "Balance Reminder Sent",
-              description: `Reminder has been recorded for booking ${updatedBooking.id}.`,
-              className: "border-none bg-blue-500 text-white",
-            })
-          }}
-        />
-
         <section className="border-b border-slate-200 pb-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="min-w-0">
@@ -371,8 +329,6 @@ export default function AdminPaymentsPage() {
                     All
                   </SelectItem>
                   <SelectItem value="for_review">For Review</SelectItem>
-                  <SelectItem value="verified">Verified</SelectItem>
-                  <SelectItem value="partial">Partial Payment</SelectItem>
                   <SelectItem value="rejected">Rejected</SelectItem>
                   <SelectItem value="incomplete">Incomplete</SelectItem>
                 </SelectContent>
@@ -458,7 +414,6 @@ export default function AdminPaymentsPage() {
                 payment={selectedPayment}
                 onClose={() => setSelectedPayment(null)}
                 onAction={(type) => openActionModal(selectedPayment, type)}
-                onMarkAsPaid={() => setManualMarkTarget(selectedPayment)}
               />
             )}
           </DialogContent>
@@ -487,31 +442,24 @@ function PaymentActionConfirmModal({
   const isReject = actionType === "reject"
   const isIncomplete = actionType === "incomplete"
   const isVerify = actionType === "verify"
-  const isMarkPaid = actionType === "mark_paid"
 
   const title = isReject
     ? "Reject Payment?"
     : isIncomplete
       ? "Mark Payment as Incomplete?"
-      : isMarkPaid
-        ? "Mark Payment as Complete?"
-        : "Verify Payment?"
+      : "Verify Payment?"
 
   const description = isReject
     ? "Are you sure you want to reject this payment? Please provide a reason for rejection."
     : isIncomplete
       ? "Are you sure you want to mark this payment as incomplete? Please provide a note for the customer."
-      : isMarkPaid
-        ? "Are you sure you want to mark this payment as complete? This will update the payment record."
-        : "Are you sure you want to verify this payment? This action will secure the customer’s slot and update the booking status."
+      : "Are you sure you want to verify this payment? This action will secure the customer's slot and update the booking status."
 
   const confirmLabel = isReject
     ? "Reject Payment"
     : isIncomplete
       ? "Mark as Incomplete"
-      : isMarkPaid
-        ? "Mark Complete Payment"
-        : "Yes, Verify Payment"
+      : "Yes, Verify Payment"
 
   const confirmColor = isReject
     ? "bg-rose-600 hover:bg-rose-700"
@@ -604,68 +552,6 @@ function ConfirmLine({ label, value }: { label: string; value: string }) {
       <p className="text-xs font-bold text-slate-500">{label}</p>
       <p className="text-right text-xs font-black text-slate-900">{value}</p>
     </div>
-  )
-}
-
-function ContractSigningConfirmModal({
-  booking,
-  onCancel,
-  onConfirm,
-}: {
-  booking: BookingRecord
-  onCancel: () => void
-  onConfirm: () => void
-}) {
-  const getContractStatusLabel = (b: BookingRecord) => {
-    if (b.contractStatus === "Signed") return "Signed"
-    if (b.contractStatus === "Pending Signature" || b.contractSigned) return "Pending Signature"
-    return "Not Available"
-  }
-
-  return (
-    <Dialog open={!!booking} onOpenChange={(open) => !open && onCancel()}>
-      <DialogContent className="w-[calc(100vw-28px)] max-w-[520px] rounded-[1.75rem] border-0 bg-white p-0 shadow-2xl [&>button]:hidden">
-        <div className="p-6 sm:p-7">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
-            <FileText className="h-8 w-8" />
-          </div>
-
-          <DialogTitle className="text-2xl font-black text-slate-950">
-            Mark Contract as Signed?
-          </DialogTitle>
-
-          <p className="mt-2 text-sm leading-6 text-slate-500">
-            Are you sure you want to mark this contract as signed? This should only be done after
-            the customer has signed the official contract at the One Estela Place office.
-          </p>
-
-          {booking && (
-            <div className="mt-5 space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left">
-              <ConfirmLine label="Booking ID" value={booking.id || "No ID"} />
-              <ConfirmLine label="Customer" value={booking.userInfo?.name || "No Name"} />
-              <ConfirmLine label="Event" value={booking.eventName || "Untitled"} />
-              <ConfirmLine label="Contract Status" value={getContractStatusLabel(booking)} />
-            </div>
-          )}
-
-          <div className="mt-6 grid grid-cols-2 gap-3">
-            <Button
-              variant="outline"
-              onClick={onCancel}
-              className="h-11 rounded-xl border-slate-200 text-sm font-black text-slate-700"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={onConfirm}
-              className="h-11 rounded-xl bg-blue-600 text-sm font-black text-white hover:bg-blue-700"
-            >
-              Yes, Mark as Signed
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
   )
 }
 
@@ -786,22 +672,15 @@ function PaymentReviewModal({
   payment,
   onClose,
   onAction,
-  onMarkAsPaid,
 }: {
   payment: BookingRecord
   onClose: () => void
   onAction: (type: PaymentAction) => void
-  onMarkAsPaid?: () => void
 }) {
   const totalAmount = getSafePrice(payment.totalPrice)
   const amountPaid = getAmountPaid(payment)
   const remainingBalance = Math.max(totalAmount - amountPaid, 0)
   const isActionable = isForReviewPayment(payment)
-  const isCashMethod = String(payment.paymentMethod || "").toLowerCase() === "cash"
-  const canMarkPaid = isVerifiedPayment(payment) && Number(payment.remainingBalance || 0) > 0 && !isPaymentFullyPaid(payment)
-  const isPartialPayment = String(payment.paymentStatus || "").toLowerCase() === "partial" || (isVerifiedPayment(payment) && remainingBalance > 0)
-  const isFullyPaidStatus = isPaymentFullyPaid(payment)
-  const showSendReminder = isPartialPayment && remainingBalance > 0 && !isFullyPaidStatus && payment.status !== "cancelled" && payment.status !== "completed"
   const hasImageProof = isImageProof(payment.paymentProof || payment.proofOfPayment || payment.proofImage || payment.receiptImage)
 
   return (
@@ -972,7 +851,7 @@ function PaymentReviewModal({
       </div>
 
       <div className="shrink-0 border-t border-slate-100 bg-white px-5 py-4 sm:px-6">
-        {isActionable && !isCashMethod ? (
+        {isActionable ? (
           <div className="grid gap-3 sm:grid-cols-3">
             <Button
               onClick={() => onAction("reject")}
@@ -997,73 +876,6 @@ function PaymentReviewModal({
               Verify Payment
             </Button>
           </div>
-        ) : isActionable && isCashMethod ? (
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Button
-              onClick={() => onMarkAsPaid?.()}
-              variant="outline"
-              className="h-11 rounded-xl border-emerald-200 text-sm font-black text-emerald-600 hover:bg-emerald-50"
-            >
-              <Banknote className="mr-1.5 h-4 w-4" />
-              Record Onsite Payment
-            </Button>
-
-            <Button
-              onClick={() => onAction("verify")}
-              className="h-11 rounded-xl bg-emerald-500 text-sm font-black text-white hover:bg-emerald-600"
-            >
-              Verify Payment
-            </Button>
-          </div>
-        ) : showSendReminder ? (
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Button
-              onClick={onClose}
-              variant="outline"
-              className="h-11 rounded-xl border-slate-200 text-sm font-black text-slate-700 hover:bg-slate-50"
-            >
-              Close Window
-            </Button>
-            <Button
-              onClick={() => onAction("send_reminder")}
-              className="h-11 rounded-xl bg-blue-600 text-sm font-black text-white hover:bg-blue-700"
-            >
-              Send Balance Reminder
-            </Button>
-          </div>
-        ) : canMarkPaid ? (
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Button
-              onClick={onClose}
-              variant="outline"
-              className="h-11 rounded-xl border-slate-200 text-sm font-black text-slate-700 hover:bg-slate-50"
-            >
-              Close Window
-            </Button>
-            <Button
-              onClick={() => onAction("mark_paid")}
-              className="h-11 rounded-xl bg-blue-600 text-sm font-black text-white hover:bg-blue-700"
-            >
-              Mark Complete Payment
-            </Button>
-          </div>
-        ) : !isFullyPaidStatus && onMarkAsPaid ? (
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Button
-              onClick={onClose}
-              variant="outline"
-              className="h-11 rounded-xl border-slate-200 text-sm font-black text-slate-700 hover:bg-slate-50"
-            >
-              Close Window
-            </Button>
-            <Button
-              onClick={() => onMarkAsPaid()}
-              className="h-11 rounded-xl bg-emerald-600 text-sm font-black text-white hover:bg-emerald-700"
-            >
-              <DollarSign className="mr-1.5 h-4 w-4" />
-              Mark as Paid
-            </Button>
-          </div>
         ) : (
           <Button
             onClick={onClose}
@@ -1073,7 +885,6 @@ function PaymentReviewModal({
             Close Window
           </Button>
         )}
-
       </div>
     </div>
   )
@@ -1095,10 +906,18 @@ function PaymentMethodLabel({ payment }: { payment: BookingRecord }) {
 }
 
 function PaymentBadge({ payment }: { payment: BookingRecord }) {
-  const status = String(payment?.status || "").toLowerCase()
   const paymentStatus = String(payment?.paymentStatus || "").toLowerCase()
   const balanceStatus = String(payment?.balanceStatus || "").toLowerCase()
   const paymentStage = String(payment?.paymentStage || "").toLowerCase()
+  const totalAmount = getSafePrice(
+    (payment as any).totalAmount || payment.totalPrice || (payment as any).amount || (payment as any).price
+  )
+  const amountPaid = getSafePrice(
+    (payment as any).amountPaid || (payment as any).paymentAmount || (payment as any).paidAmount
+  )
+  const remainingBalance = getSafePrice(
+    (payment as any).remainingBalance || Math.max(totalAmount - amountPaid, 0)
+  )
   const baseClass = "inline-flex w-fit items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest"
 
   if (paymentStatus === "rejected") {
@@ -1109,11 +928,7 @@ function PaymentBadge({ payment }: { payment: BookingRecord }) {
     return <span className={`${baseClass} border-purple-100 bg-purple-50 text-purple-600`}><ShieldCheck className="h-3 w-3" />For Review</span>
   }
 
-  if (paymentStage === "complete downpayment" || paymentStage === "settle remaining balance") {
-    return <span className={`${baseClass} border-amber-100 bg-amber-50 text-amber-600`}><AlertCircle className="h-3 w-3" />Partial Payment</span>
-  }
-
-  if (paymentStatus === "partial" || balanceStatus === "with remaining balance") {
+  if (remainingBalance > 0 && amountPaid > 0) {
     return <span className={`${baseClass} border-amber-100 bg-amber-50 text-amber-600`}><AlertCircle className="h-3 w-3" />Partial Payment</span>
   }
 
@@ -1121,7 +936,10 @@ function PaymentBadge({ payment }: { payment: BookingRecord }) {
     return <span className={`${baseClass} border-amber-100 bg-amber-50 text-amber-600`}><AlertCircle className="h-3 w-3" />Incomplete Payment</span>
   }
 
-  if (paymentStage === "fully paid" || paymentStatus === "paid" || paymentStatus === "completed") {
+  const isRemainingZero = remainingBalance === 0
+  const isAmountSufficient = totalAmount > 0 && amountPaid >= totalAmount
+
+  if ((paymentStage === "fully paid" || paymentStatus === "paid" || paymentStatus === "completed") && isRemainingZero && isAmountSufficient) {
     return <span className={`${baseClass} border-emerald-100 bg-emerald-50 text-emerald-600`}><CheckCircle2 className="h-3 w-3" />Fully Paid</span>
   }
 
@@ -1129,7 +947,11 @@ function PaymentBadge({ payment }: { payment: BookingRecord }) {
     return <span className={`${baseClass} border-emerald-100 bg-emerald-50 text-emerald-600`}><CheckCircle2 className="h-3 w-3" />Verified</span>
   }
 
-  return <span className={`${baseClass} border-slate-200 bg-slate-50 text-slate-600`}>{paymentStatus || status || "Unknown"}</span>
+  if (amountPaid === 0) {
+    return <span className={`${baseClass} border-slate-200 bg-slate-50 text-slate-600`}>Unpaid</span>
+  }
+
+  return <span className={`${baseClass} border-slate-200 bg-slate-50 text-slate-600`}>{paymentStatus || "Unknown"}</span>
 }
 
 function InfoLine({ label, value }: { label: string; value: string }) {
@@ -1255,8 +1077,6 @@ function isImageProof(proof: unknown) {
 function isPaymentRecord(booking: BookingRecord) {
   const status = String(booking?.status || "").toLowerCase()
   const paymentStatus = String(booking?.paymentStatus || "").toLowerCase()
-  const paymentMethod = String(booking?.paymentMethod || "").toLowerCase()
-  const paymentType = String(booking?.paymentType || "").toLowerCase()
   const hasProof = Boolean(
     booking?.paymentProof ||
       booking?.proofOfPayment ||
@@ -1266,10 +1086,6 @@ function isPaymentRecord(booking: BookingRecord) {
 
   return (
     status === "verifying" ||
-    status === "confirmed" ||
-    status === "completed" ||
-    status === "reservation_secured" ||
-    status === "slot_secured" ||
     paymentStatus === "for_review" ||
     paymentStatus === "cash_pending" ||
     paymentStatus === "slot_pending" ||
@@ -1277,13 +1093,6 @@ function isPaymentRecord(booking: BookingRecord) {
     paymentStatus === "pending verification" ||
     paymentStatus === "for verification" ||
     paymentStatus === "incomplete" ||
-    paymentStatus === "verified" ||
-    paymentStatus === "paid" ||
-    paymentStatus === "slot_verified" ||
-    paymentStatus === "rejected" ||
-    paymentMethod === "cash" ||
-    paymentMethod === "bank" ||
-    paymentType === "slot_reservation" ||
     hasProof
   )
 }
@@ -1317,24 +1126,31 @@ function isVerifiedPayment(booking: BookingRecord) {
 function getPaymentStatusText(payment: BookingRecord) {
   const ps = String(payment.paymentStatus || "").toLowerCase()
   const stage = String(payment.paymentStage || "").toLowerCase()
-  if (stage === "complete downpayment") return "Partial Payment"
-  if (stage === "settle remaining balance") return "Partial Payment"
-  if (stage === "fully paid") return "Fully Paid"
+  const totalAmount = getSafePrice(
+    (payment as any).totalAmount || payment.totalPrice || (payment as any).amount || (payment as any).price
+  )
+  const amountPaid = getSafePrice(
+    (payment as any).amountPaid || (payment as any).paymentAmount || (payment as any).paidAmount
+  )
+  const remainingBalance = getSafePrice(
+    (payment as any).remainingBalance || Math.max(totalAmount - amountPaid, 0)
+  )
+
+  if (stage === "complete downpayment" || stage === "settle remaining balance") return "Partial Payment"
+  if ((stage === "fully paid" || ps === "paid" || ps === "completed") && remainingBalance === 0 && amountPaid >= totalAmount) return "Fully Paid"
   if (ps === "for_review") return "For Review"
   if (ps === "cash_pending") return "Cash Pending"
   if (ps === "slot_pending") return "Slot Pending"
   if (ps === "incomplete") return "Incomplete Payment"
   if (ps === "rejected") return "Rejected"
-  if (ps === "partial") return "Partial Payment"
-  if (ps === "paid" || ps === "completed") return "Fully Paid"
+  if (remainingBalance > 0 && amountPaid > 0) return "Partial Payment"
   if (isVerifiedPayment(payment)) return "Verified"
   if (isForReviewPayment(payment)) return "For Review"
+  if (amountPaid === 0) return "Unpaid"
   return String(ps || String(payment.status || "Unknown"))
 }
 
 function isPaymentFullyPaid(booking: BookingRecord) {
-  const ps = String(booking?.paymentStatus || "").trim().toLowerCase()
-  const stage = String(booking?.paymentStage || "").trim().toLowerCase()
   const totalAmount = getSafePrice(
     (booking as any).totalAmount || booking.totalPrice || (booking as any).amount || (booking as any).price
   )
@@ -1344,34 +1160,22 @@ function isPaymentFullyPaid(booking: BookingRecord) {
   const remainingBalance = getSafePrice(
     (booking as any).remainingBalance || Math.max(totalAmount - amountPaid, 0)
   )
-  const balanceStatus = String(booking?.balanceStatus || "").toLowerCase()
 
-  return (
-    stage === "fully paid" ||
-    ps === "paid" ||
-    ps === "completed" ||
-    balanceStatus === "settled" ||
-    remainingBalance === 0 ||
-    (totalAmount > 0 && amountPaid >= totalAmount)
-  )
+  return remainingBalance === 0 && totalAmount > 0 && amountPaid >= totalAmount
 }
 
 function getActionLabel(action: PaymentAction) {
   if (action === "verify") return "Verify / Accept Payment"
   if (action === "reject") return "Reject Payment"
   if (action === "incomplete") return "Record Incomplete Payment"
-  if (action === "record_onsite") return "Record Onsite Payment"
-  if (action === "send_reminder") return "Send Balance Reminder"
-  return "Mark as Complete Payment"
+  return "Verify Payment"
 }
 
 function getActionSuccessTitle(action: PaymentAction) {
   if (action === "verify") return "Payment Verified"
   if (action === "reject") return "Payment Rejected"
   if (action === "incomplete") return "Payment Marked Incomplete"
-  if (action === "record_onsite") return "Onsite Payment Recorded"
-  if (action === "send_reminder") return "Balance Reminder Sent"
-  return "Payment Marked Complete"
+  return "Payment Updated"
 }
 
 function getActionSuccessDescription(action: PaymentAction, bookingId: string) {
@@ -1387,15 +1191,7 @@ function getActionSuccessDescription(action: PaymentAction, bookingId: string) {
     return `Booking ${bookingId} payment was recorded as incomplete with partial amount.`
   }
 
-  if (action === "record_onsite") {
-    return `Booking ${bookingId} onsite payment was recorded.`
-  }
-
-  if (action === "send_reminder") {
-    return `Balance reminder was sent for booking ${bookingId}.`
-  }
-
-  return `Booking ${bookingId} payment record was marked as complete.`
+  return `Booking ${bookingId} payment record was updated.`
 }
 
 function isOfficeRental(booking: BookingRecord) {
@@ -1549,60 +1345,6 @@ function buildIncompletePaymentBooking(booking: BookingRecord, note: string) {
     incompletePaymentAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     adminLogs: appendAdminLog(booking, "PAYMENT_INCOMPLETE", `Admin marked payment as incomplete. Note: ${note}`),
-  }
-}
-
-function buildCompletePaymentBooking(booking: BookingRecord, note: string) {
-  const totalAmount = getSafePrice(booking.totalPrice)
-  const isDownpayment = String(booking.paymentType || "").toLowerCase() === "downpayment"
-  const currentAmountPaid = getSafePrice(booking.amountPaid)
-  const paymentAmount = getSafePrice(booking.paymentAmount || Math.max(totalAmount - currentAmountPaid, 0))
-  const newAmountPaid = currentAmountPaid + paymentAmount
-
-  if (isDownpayment) {
-    const selectedDP = getSafePrice(booking.selectedDownpaymentAmount) || totalAmount * 0.5
-    const currentDownpaymentPaid = getSafePrice(booking.downpaymentPaid)
-    const newDownpaymentPaid = currentDownpaymentPaid + paymentAmount
-
-    let paymentStatus = "partial"
-    let balanceStatus = "With Remaining Balance"
-    let remainingBalance = Math.max(totalAmount - newAmountPaid, 0)
-    let downpaymentRemaining = Math.max(selectedDP - newDownpaymentPaid, 0)
-
-    if (newAmountPaid >= totalAmount) {
-      paymentStatus = "paid"
-      balanceStatus = "Settled"
-      remainingBalance = 0
-      downpaymentRemaining = 0
-    } else if (newDownpaymentPaid >= selectedDP) {
-      downpaymentRemaining = 0
-    }
-
-    return {
-      ...booking,
-      paymentStatus,
-      balanceStatus,
-      amountPaid: newAmountPaid,
-      downpaymentPaid: newDownpaymentPaid,
-      downpaymentRemaining,
-      remainingBalance,
-      remainingBalancePaid: newAmountPaid >= totalAmount,
-      remainingBalancePaidAt: newAmountPaid >= totalAmount ? new Date().toISOString() : undefined,
-      updatedAt: new Date().toISOString(),
-      adminLogs: appendAdminLog(booking, "PAYMENT_COMPLETED", note || `Admin marked payment as complete. Amount: ₱${paymentAmount.toLocaleString()}. Status: ${paymentStatus === "paid" ? "Fully Paid" : "Partial Payment"}.`),
-    }
-  }
-
-  return {
-    ...booking,
-    paymentStatus: newAmountPaid >= totalAmount ? "paid" : "partial",
-    balanceStatus: newAmountPaid >= totalAmount ? "Settled" : "With Remaining Balance",
-    amountPaid: newAmountPaid,
-    remainingBalance: Math.max(totalAmount - newAmountPaid, 0),
-    remainingBalancePaid: newAmountPaid >= totalAmount,
-    remainingBalancePaidAt: newAmountPaid >= totalAmount ? new Date().toISOString() : undefined,
-    updatedAt: new Date().toISOString(),
-    adminLogs: appendAdminLog(booking, "PAYMENT_COMPLETED", note || `Admin marked payment as complete. Amount: ₱${paymentAmount.toLocaleString()}.`),
   }
 }
 
@@ -1878,408 +1620,9 @@ function IncompletePaymentModal({
   )
 }
 
-function SendBalanceReminderModal({
-  booking,
-  onClose,
-  onConfirm,
-}: {
-  booking: BookingRecord | null
-  onClose: () => void
-  onConfirm: (updated: BookingRecord) => void
-}) {
-  const [confirmStep, setConfirmStep] = useState(false)
-
-  useEffect(() => {
-    setConfirmStep(false)
-  }, [booking])
-
-  if (!booking) return null
-
-  const totalAmount = getAmountValue(
-    (booking as any).totalAmount || booking.totalPrice || (booking as any).amount || (booking as any).price
-  )
-  const amountPaid = getAmountValue(
-    (booking as any).amountPaid || (booking as any).paymentAmount || (booking as any).paidAmount
-  )
-  const remainingBalance = Math.max(totalAmount - amountPaid, 0)
-
-  const handleConfirm = () => {
-    const updatedBooking: BookingRecord = {
-      ...booking,
-      balanceReminderSent: true,
-      balanceReminderSentAt: new Date().toISOString(),
-      balanceReminderSentBy: "Administrator",
-      updatedAt: new Date().toISOString(),
-      adminLogs: appendAdminLog(
-        booking,
-        "BALANCE_REMINDER_SENT",
-        `Admin sent balance reminder. Remaining balance: ₱${remainingBalance.toLocaleString()}.`
-      ),
-    }
-    onConfirm(updatedBooking)
-    setConfirmStep(false)
-  }
-
-  return (
-    <Dialog open={!!booking} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="w-[calc(100vw-28px)] max-w-[520px] rounded-[1.75rem] border-0 bg-white p-0 shadow-2xl [&>button]:hidden">
-        <div className="p-6 sm:p-7">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
-            <AlertCircle className="h-8 w-8" />
-          </div>
-
-          <DialogTitle className="text-2xl font-black text-slate-950">
-            Send Balance Reminder?
-          </DialogTitle>
-
-          <p className="mt-2 text-sm leading-6 text-slate-500">
-            Send balance reminder to this customer?
-          </p>
-
-          <div className="mt-5 space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left">
-            <p className="flex justify-between text-xs">
-              <span className="font-semibold text-slate-400">Booking ID</span>
-              <span className="font-bold text-slate-900">{booking.id}</span>
-            </p>
-            <p className="flex justify-between text-xs">
-              <span className="font-semibold text-slate-400">Customer</span>
-              <span className="font-bold text-slate-900">{booking.userInfo?.name || "No Name"}</span>
-            </p>
-            <p className="flex justify-between text-xs">
-              <span className="font-semibold text-slate-400">Remaining Balance</span>
-              <span className="font-bold text-blue-700">₱{remainingBalance.toLocaleString()}</span>
-            </p>
-          </div>
-
-          <div className="mt-6 grid grid-cols-2 gap-3">
-            <Button
-              variant="outline"
-              onClick={onClose}
-              className="h-11 rounded-xl border-slate-200 text-sm font-black text-slate-700"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleConfirm}
-              className="h-11 rounded-xl bg-blue-600 text-sm font-black text-white hover:bg-blue-700"
-            >
-              Send Reminder
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
 function getAmountValue(value: any) {
   const num = Number(String(value || 0).replace(/[^0-9.-]+/g, ""))
   return Number.isFinite(num) ? num : 0
 }
 
-function ManualMarkAsPaidModal({
-  booking,
-  onClose,
-  onConfirm,
-}: {
-  booking: BookingRecord | null
-  onClose: () => void
-  onConfirm: (updated: BookingRecord) => void
-}) {
-  const [paymentAmount, setPaymentAmount] = useState("")
-  const [paymentType, setPaymentType] = useState("remaining_balance")
-  const [paymentMethod, setPaymentMethod] = useState("cash")
-  const [adminNote, setAdminNote] = useState("")
-  const [confirmStep, setConfirmStep] = useState(false)
 
-  useEffect(() => {
-    if (booking) {
-      const totalAmount = getAmountValue(
-        (booking as any).totalAmount || booking.totalPrice || (booking as any).amount || (booking as any).price
-      )
-      const currentAmountPaid = getAmountValue(
-        (booking as any).amountPaid || (booking as any).paymentAmount || (booking as any).paidAmount
-      )
-      const remainingBalance = Math.max(totalAmount - currentAmountPaid, 0)
-      setPaymentAmount(String(remainingBalance))
-      setPaymentType("remaining_balance")
-      setPaymentMethod("cash")
-      setAdminNote("")
-      setConfirmStep(false)
-    }
-  }, [booking])
-
-  if (!booking) return null
-
-  const totalAmount = getAmountValue(
-    (booking as any).totalAmount || booking.totalPrice || (booking as any).amount || (booking as any).price
-  )
-  const currentAmountPaid = getAmountValue(
-    (booking as any).amountPaid || (booking as any).paymentAmount || (booking as any).paidAmount
-  )
-  const enteredAmount = getAmountValue(paymentAmount)
-
-  const handleConfirm = () => {
-    if (enteredAmount <= 0) return
-
-    const isDownpayment = String(booking.paymentType || "").toLowerCase() === "downpayment" || paymentType === "downpayment"
-    const selectedDP = getAmountValue(booking.selectedDownpaymentAmount) || (isDownpayment ? totalAmount * 0.5 : 0)
-    const currentDownpaymentPaid = getAmountValue(booking.downpaymentPaid)
-
-    let newAmountPaid: number
-    let newDownpaymentPaid: number
-    let newRemainingBalance: number
-    let newPaymentStatus: string
-    let newBalanceStatus: string
-    let newDPRemaining = 0
-
-    if (paymentType === "full_payment") {
-      newAmountPaid = totalAmount
-      newDownpaymentPaid = selectedDP
-      newRemainingBalance = 0
-      newPaymentStatus = "Fully Paid"
-      newBalanceStatus = "Settled"
-    } else if (paymentType === "remaining_balance") {
-      newAmountPaid = currentAmountPaid + enteredAmount
-      newDownpaymentPaid = isDownpayment ? Math.min(selectedDP, currentDownpaymentPaid + enteredAmount) : 0
-      newRemainingBalance = Math.max(totalAmount - newAmountPaid, 0)
-      newPaymentStatus = newRemainingBalance === 0 ? "Fully Paid" : "Partial"
-      newBalanceStatus = newRemainingBalance === 0 ? "Settled" : "With Remaining Balance"
-      newDPRemaining = isDownpayment ? Math.max(selectedDP - newDownpaymentPaid, 0) : 0
-    } else {
-      newAmountPaid = enteredAmount
-      newDownpaymentPaid = enteredAmount
-      newRemainingBalance = Math.max(totalAmount - enteredAmount, 0)
-      newPaymentStatus = "Partial"
-      newBalanceStatus = "With Remaining Balance"
-      newDPRemaining = Math.max(selectedDP - enteredAmount, 0)
-    }
-
-    const updatedBooking: BookingRecord = {
-      ...booking,
-      amountPaid: newAmountPaid,
-      downpaymentPaid: newDownpaymentPaid,
-      downpaymentRemaining: newDPRemaining,
-      selectedDownpaymentAmount: selectedDP,
-      paymentAmount: enteredAmount,
-      lastPaymentAmount: enteredAmount,
-      paymentMethod: paymentMethod,
-      paymentType: paymentType === "full_payment" ? "full" : paymentType === "downpayment" ? "downpayment" : (booking as any).paymentType || "full",
-      paymentStatus: newPaymentStatus,
-      remainingBalance: newRemainingBalance,
-      balanceStatus: newBalanceStatus,
-      manualPaymentMarked: true,
-      manualPaymentMarkedAt: new Date().toISOString(),
-      manualPaymentMarkedBy: "Administrator",
-      manualPaymentNote: adminNote.trim(),
-      paymentVerifiedAt: new Date().toISOString(),
-      paymentVerifiedBy: "Administrator",
-      updatedAt: new Date().toISOString(),
-      adminLogs: appendAdminLog(
-        booking,
-        "MANUAL_MARK_PAID",
-        `Admin manually marked payment as ${newPaymentStatus}. Type: ${paymentType}. Amount: ₱${enteredAmount.toLocaleString()}. Note: ${adminNote.trim() || "N/A"}.`
-      ),
-    }
-
-    onConfirm(updatedBooking)
-    setConfirmStep(false)
-  }
-
-  const remainingBalance = Math.max(totalAmount - currentAmountPaid, 0)
-  const typeLabel =
-    paymentType === "full_payment"
-      ? "Full Payment"
-      : paymentType === "remaining_balance"
-        ? "Remaining Balance"
-        : "Downpayment"
-
-  return (
-    <Dialog open={!!booking} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="w-[calc(100vw-28px)] max-w-[520px] rounded-[1.75rem] border-0 bg-white p-0 shadow-2xl [&>button]:hidden">
-        <div className="p-6 sm:p-7">
-          {!confirmStep ? (
-            <>
-              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
-                <DollarSign className="h-8 w-8" />
-              </div>
-
-              <DialogTitle className="text-2xl font-black text-slate-950">
-                {booking?.paymentMethod === "cash" ? "Record Onsite Payment" : "Mark Payment as Paid"}
-              </DialogTitle>
-
-              <p className="mt-2 text-sm leading-6 text-slate-500">
-                {booking?.paymentMethod === "cash"
-                  ? "Record the actual cash payment received at the One Estela Place office. This should only be done after physically receiving the payment."
-                  : "Use this only if the customer has already paid at the One Estela Place office or through an officially confirmed onsite payment."
-                }
-              </p>
-
-              <div className="mt-5 space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left">
-                <p className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">Booking ID</span>
-                  <span className="font-bold text-slate-900">{booking.id}</span>
-                </p>
-                <p className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">Customer</span>
-                  <span className="font-bold text-slate-900">{booking.userInfo?.name || "No Name"}</span>
-                </p>
-                <p className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">Total Amount</span>
-                  <span className="font-bold text-slate-900">₱{totalAmount.toLocaleString()}</span>
-                </p>
-                <p className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">Current Paid</span>
-                  <span className="font-bold text-slate-900">₱{currentAmountPaid.toLocaleString()}</span>
-                </p>
-                <p className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">Remaining</span>
-                  <span className="font-bold text-amber-700">₱{remainingBalance.toLocaleString()}</span>
-                </p>
-              </div>
-
-              <div className="mt-5 space-y-4">
-                <div>
-                  <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-slate-500">
-                    Payment Amount *
-                  </label>
-                  <Input
-                    value={paymentAmount}
-                    onChange={(e) => setPaymentAmount(e.target.value)}
-                    placeholder="Enter amount paid"
-                    className="h-10 rounded-xl border-slate-200 text-xs font-bold focus-visible:ring-emerald-600"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-slate-500">
-                    Payment Type *
-                  </label>
-                  <Select value={paymentType} onValueChange={setPaymentType}>
-                    <SelectTrigger className="h-10 w-full rounded-xl border-slate-200 bg-white text-xs font-bold text-slate-700 focus:ring-emerald-600">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl border-slate-200 shadow-xl">
-                      <SelectItem value="downpayment">Downpayment</SelectItem>
-                      <SelectItem value="remaining_balance">Remaining Balance</SelectItem>
-                      <SelectItem value="full_payment">Full Payment</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-slate-500">
-                    Payment Method *
-                  </label>
-                  <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                    <SelectTrigger className="h-10 w-full rounded-xl border-slate-200 bg-white text-xs font-bold text-slate-700 focus:ring-emerald-600">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl border-slate-200 shadow-xl">
-                      <SelectItem value="cash">Cash / Pay at the Office</SelectItem>
-                      <SelectItem value="bank">Bank Transfer</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-slate-500">
-                    Admin Note / Reference
-                  </label>
-                  <Textarea
-                    value={adminNote}
-                    onChange={(e) => setAdminNote(e.target.value)}
-                    placeholder="Example: Paid onsite, verified by staff."
-                    className="min-h-[80px] resize-none rounded-xl border-slate-200 text-xs focus-visible:ring-emerald-600"
-                  />
-                </div>
-              </div>
-
-              <div className="mt-6 grid grid-cols-2 gap-3">
-                <Button
-                  variant="outline"
-                  onClick={onClose}
-                  className="h-11 rounded-xl border-slate-200 text-sm font-black text-slate-700"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  disabled={enteredAmount <= 0}
-                  onClick={() => setConfirmStep(true)}
-                  className="h-11 rounded-xl bg-emerald-600 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-50"
-                >
-                  Continue
-                </Button>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
-                <AlertCircle className="h-8 w-8" />
-              </div>
-
-              <DialogTitle className="text-2xl font-black text-slate-950">
-                Confirm {typeLabel}
-              </DialogTitle>
-
-              <p className="mt-2 text-sm leading-6 text-slate-500">
-                {booking?.paymentMethod === "cash"
-                  ? "Are you sure you want to record this onsite payment? This should only be done after confirming the actual cash payment received at the One Estela Place office."
-                  : `Are you sure you want to mark this as ${typeLabel}? Please confirm that the customer has already paid this amount.`
-                }
-              </p>
-
-              <div className="mt-5 space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left">
-                <p className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">Booking ID</span>
-                  <span className="font-bold text-slate-900">{booking.id}</span>
-                </p>
-                <p className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">Customer</span>
-                  <span className="font-bold text-slate-900">{booking.userInfo?.name || "No Name"}</span>
-                </p>
-                <p className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">Amount</span>
-                  <span className="font-bold text-slate-900">₱{enteredAmount.toLocaleString()}</span>
-                </p>
-                <p className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">Type</span>
-                  <span className="font-bold text-slate-900">{typeLabel}</span>
-                </p>
-                <p className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">Method</span>
-                  <span className="font-bold text-slate-900">
-                    {paymentMethod === "cash" ? "Cash / Pay at the Office" : paymentMethod === "bank" ? "Bank Transfer" : "Other"}
-                  </span>
-                </p>
-                {adminNote.trim() && (
-                  <p className="flex justify-between text-xs">
-                    <span className="font-semibold text-slate-400">Note</span>
-                    <span className="font-bold text-slate-900">{adminNote.trim()}</span>
-                  </p>
-                )}
-              </div>
-
-              <div className="mt-6 grid grid-cols-2 gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => setConfirmStep(false)}
-                  className="h-11 rounded-xl border-slate-200 text-sm font-black text-slate-700"
-                >
-                  Back
-                </Button>
-                <Button
-                  onClick={handleConfirm}
-                  className="h-11 rounded-xl bg-emerald-600 text-sm font-black text-white hover:bg-emerald-700"
-                >
-                  {booking?.paymentMethod === "cash" ? "Confirm Onsite Payment" : "Yes, Mark as Paid"}
-                </Button>
-              </div>
-            </>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
-  )
-}

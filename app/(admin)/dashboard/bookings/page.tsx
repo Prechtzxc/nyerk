@@ -4,8 +4,10 @@ import type React from "react"
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import {
+  AlertCircle,
   Calendar,
   CheckCircle2,
+  DollarSign,
   FileText,
   Filter,
   Inbox,
@@ -35,6 +37,8 @@ import { useToast } from "@/src/modules/shared/hooks/use-toast"
 import { cn } from "@/src/modules/shared/lib/utils"
 import { useBookings, type Booking } from "@/src/modules/client/contexts/booking-context"
 import { getPaymentMethodLabel } from "@/src/modules/shared/lib/labels"
+import { Textarea } from "@/src/modules/shared/components/ui/textarea"
+import { Label } from "@/src/modules/shared/components/ui/label"
 
 const BOOKING_STORAGE_KEY = "oneestela_global_bookings_v2"
 
@@ -186,6 +190,7 @@ export default function AdminBookingsPage() {
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
   const [showContractConfirm, setShowContractConfirm] = useState(false)
   const [sendReminderTarget, setSendReminderTarget] = useState<Booking | null>(null)
+  const [onsitePaymentTarget, setOnsitePaymentTarget] = useState<Booking | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const ITEMS_PER_PAGE = 10
 
@@ -270,6 +275,39 @@ export default function AdminBookingsPage() {
     })
   }
 
+  const handleApproveCancellation = (id: string) => {
+    const next = bookings.map((b) =>
+      b.id === id
+        ? { ...b, status: "cancelled" as const, bookingStatus: "Cancelled" as const, cancellationStatus: "Approved" as const, updatedAt: new Date().toISOString() }
+        : b,
+    )
+    persistBookings(next)
+    setSelectedBooking(next.find((b) => b.id === id) || null)
+    toast({
+      title: "Cancellation Approved",
+      description: `Booking ${id} has been cancelled.`,
+      className: "border-none bg-rose-500 text-white",
+    })
+  }
+
+  const handleContinueBooking = (id: string) => {
+    const target = bookings.find((b) => b.id === id)
+    if (!target) return
+    const prevStatus = (target as any).previousBookingStatus || "confirmed"
+    const next: Booking[] = bookings.map((b) =>
+      b.id === id
+        ? { ...b, status: prevStatus, cancellationStatus: "Declined" as const, updatedAt: new Date().toISOString() }
+        : b,
+    ) as Booking[]
+    persistBookings(next)
+    setSelectedBooking(next.find((b) => b.id === id) || null)
+    toast({
+      title: "Cancellation Declined",
+      description: `Booking ${id} will continue. Cancellation request has been declined.`,
+      className: "border-none bg-emerald-500 text-white",
+    })
+  }
+
   const handleMarkContractSigned = () => {
     if (!selectedBooking || !markContractSigned) return
     const id = selectedBooking.id
@@ -334,6 +372,12 @@ export default function AdminBookingsPage() {
             const target = bookings.find((b) => b.id === id)
             if (target) setSendReminderTarget(target)
           }}
+          onRecordOnsitePayment={(id) => {
+            const target = bookings.find((b) => b.id === id)
+            if (target) setOnsitePaymentTarget(target)
+          }}
+          onApproveCancellation={handleApproveCancellation}
+          onContinueBooking={handleContinueBooking}
         />
 
         <ContractSigningConfirmModal
@@ -341,6 +385,22 @@ export default function AdminBookingsPage() {
           open={showContractConfirm}
           onCancel={() => setShowContractConfirm(false)}
           onConfirm={handleMarkContractSigned}
+        />
+        <RecordOnsitePaymentModal
+          booking={onsitePaymentTarget}
+          open={!!onsitePaymentTarget}
+          onClose={() => setOnsitePaymentTarget(null)}
+          onRecorded={(updated) => {
+            const next = bookings.map((b) => (b.id === updated.id ? updated : b))
+            persistBookings(next)
+            setSelectedBooking(updated)
+            setOnsitePaymentTarget(null)
+            toast({
+              title: "Onsite Payment Recorded",
+              description: `Onsite payment has been recorded for booking ${updated.id}.`,
+              className: "border-none bg-emerald-500 text-white",
+            })
+          }}
         />
         <BalanceReminderModal
           booking={sendReminderTarget}
@@ -544,6 +604,9 @@ function BookingDetailsModal({
   onMarkCompleted,
   onMarkContractSigned,
   onSendReminder,
+  onRecordOnsitePayment,
+  onApproveCancellation,
+  onContinueBooking,
 }: {
   booking: Booking | null
   open: boolean
@@ -551,6 +614,9 @@ function BookingDetailsModal({
   onMarkCompleted: (id: string) => void
   onMarkContractSigned: () => void
   onSendReminder?: (id: string) => void
+  onRecordOnsitePayment?: (id: string) => void
+  onApproveCancellation?: (id: string) => void
+  onContinueBooking?: (id: string) => void
 }) {
   if (!booking) return null
 
@@ -597,19 +663,60 @@ function BookingDetailsModal({
   const balanceStatus = normalizeStatus((booking as any).balanceStatus)
   const paymentStage = normalizeStatus((booking as any).paymentStage)
 
+  const bookingStatus = normalizeStatus((booking as any).bookingStatus || booking.status)
+  const isCancellationRequested = normalizeStatus(booking.status) === "cancellation_requested"
+
+  const hasActiveProof = (() => {
+    const proofExists = Boolean(
+      booking?.paymentProof ||
+      (booking as any)?.proofOfPayment ||
+      (booking as any)?.proofImage ||
+      (booking as any)?.receiptImage
+    )
+    const isUnderReview =
+      paymentStatus === "for_review" ||
+      paymentStatus === "cash_pending" ||
+      paymentStatus === "slot_pending" ||
+      paymentStatus === "pending_verification" ||
+      normalizeStatus(booking.status) === "verifying"
+    return proofExists && isUnderReview
+  })()
+
+  const isEventFinished = (() => {
+    if (!booking.date) return false
+    const eventDate = new Date(booking.date)
+    const endTime = booking.endTime || (booking as any)?.endDate
+    if (endTime) {
+      const [hours, minutes] = String(endTime).split(":").map(Number)
+      if (!isNaN(hours)) eventDate.setHours(hours, minutes || 0, 0, 0)
+    }
+    return eventDate.getTime() < Date.now()
+  })()
+
   const isPartialPayment = paymentStatus === "partial" || (balanceStatus === "with remaining balance" && amountPaid > 0) ||
     paymentStage === "complete downpayment" || paymentStage === "settle remaining balance"
 
   const isFullyPaid =
-    (paymentStage === "fully paid" || paymentStatus === "paid" || paymentStatus === "completed" || balanceStatus === "settled") &&
-    !isPartialPayment &&
-    remainingBalance === 0
+    remainingBalance === 0 &&
+    amountPaid >= totalAmount &&
+    (paymentStage === "fully paid" || paymentStatus === "paid" || balanceStatus === "settled")
 
   const canComplete =
     isFullyPaid &&
     remainingBalance === 0 &&
-    normalizeStatus((booking as any).bookingStatus) !== "completed" &&
-    normalizeStatus((booking as any).bookingStatus) !== "cancelled"
+    !isCompleted &&
+    !isCancelled &&
+    isEventFinished
+
+  const canRecordOnsite =
+    onRecordOnsitePayment &&
+    !isFullyPaid &&
+    !isCompleted &&
+    !isCancelled &&
+    !isCancellationRequested &&
+    remainingBalance > 0 &&
+    !hasActiveProof &&
+    ["pending", "confirmed", "reservation_secured"].includes(normalizeStatus(booking.status))
 
   const timeValue =
     booking.time ||
@@ -908,7 +1015,7 @@ function BookingDetailsModal({
                 <p className="mt-1 text-xl font-black text-amber-700">₱{remainingBalance.toLocaleString()}</p>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                {onSendReminder && (
+                {onSendReminder && ["confirmed", "reservation_secured"].includes(normalizeStatus(booking.status)) && (
                   <Button
                     onClick={() => onSendReminder(booking.id)}
                     variant="outline"
@@ -918,30 +1025,64 @@ function BookingDetailsModal({
                     Send Balance Reminder
                   </Button>
                 )}
-                <Button
-                  onClick={() => router.push(`/dashboard/payments?search=${booking.id}`)}
-                  variant="outline"
-                  className="h-10 w-full rounded-lg border-orange-200 px-4 text-xs font-bold text-orange-700 hover:bg-orange-50"
-                >
-                  Go to Payment Verification
-                  <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-                </Button>
+                {canRecordOnsite && (
+                  <Button
+                    onClick={() => onRecordOnsitePayment(booking.id)}
+                    className="h-10 w-full rounded-lg border-emerald-200 bg-emerald-50 px-4 text-xs font-bold text-emerald-700 hover:bg-emerald-100"
+                  >
+                    <DollarSign className="mr-1.5 h-3.5 w-3.5" />
+                    Record Onsite Payment
+                  </Button>
+                )}
               </div>
             </div>
           </div>
         )}
 
-        {!isFullyPaid && !isPartialPayment && !isCompleted && !isCancelled && (
+        {isCancellationRequested && !isCompleted && !isCancelled && (
           <div className="border-t border-slate-100 bg-white px-4 py-3 sm:px-6 sm:py-4">
-            <div className="flex sm:justify-end">
-              <Button
-                onClick={() => router.push(`/dashboard/payments?search=${booking.id}`)}
-                variant="outline"
-                className="h-10 w-full rounded-lg border-orange-200 px-4 text-xs font-bold text-orange-700 hover:bg-orange-50 sm:w-auto"
-              >
-                Go to Payment Verification
-                <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-              </Button>
+            <div className="rounded-xl bg-amber-50 p-3 text-center mb-3">
+              <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">Cancellation Under Review</p>
+              <p className="mt-1 text-xs font-semibold text-amber-700">
+                The customer has requested to cancel this booking. Please review and take action.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {onContinueBooking && (
+                <Button
+                  onClick={() => onContinueBooking(booking.id)}
+                  variant="outline"
+                  className="h-10 w-full rounded-lg border-emerald-200 px-4 text-xs font-bold text-emerald-700 hover:bg-emerald-50"
+                >
+                  <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
+                  Continue Booking
+                </Button>
+              )}
+              {onApproveCancellation && (
+                <Button
+                  onClick={() => onApproveCancellation(booking.id)}
+                  className="h-10 w-full rounded-lg border-rose-200 bg-rose-50 px-4 text-xs font-bold text-rose-700 hover:bg-rose-100"
+                >
+                  <AlertCircle className="mr-1.5 h-3.5 w-3.5" />
+                  Approve Cancellation
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {!isFullyPaid && !isPartialPayment && !isCompleted && !isCancelled && !isCancellationRequested && (
+          <div className="border-t border-slate-100 bg-white px-4 py-3 sm:px-6 sm:py-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+              {canRecordOnsite && (
+                <Button
+                  onClick={() => onRecordOnsitePayment(booking.id)}
+                  className="h-10 w-full rounded-lg border-emerald-200 bg-emerald-50 px-4 text-xs font-bold text-emerald-700 hover:bg-emerald-100 sm:w-auto"
+                >
+                  <DollarSign className="mr-1.5 h-3.5 w-3.5" />
+                  Record Onsite Payment
+                </Button>
+              )}
             </div>
           </div>
         )}
@@ -957,6 +1098,296 @@ function BookingDetailsModal({
             </Button>
           </div>
         )}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function RecordOnsitePaymentModal({
+  booking,
+  open,
+  onClose,
+  onRecorded,
+}: {
+  booking: Booking | null
+  open: boolean
+  onClose: () => void
+  onRecorded: (updated: Booking) => void
+}) {
+  const { manualRecordOnsitePayment } = useBookings()
+  const [step, setStep] = useState<"form" | "confirm">("form")
+  const [paymentType, setPaymentType] = useState("downpayment")
+  const [amountReceived, setAmountReceived] = useState("")
+  const [adminNote, setAdminNote] = useState("")
+
+  useEffect(() => {
+    if (open) {
+      setStep("form")
+      setPaymentType("downpayment")
+      setAmountReceived("")
+      setAdminNote("")
+    }
+  }, [open])
+
+  if (!booking) return null
+
+  const totalAmount = (() => {
+    const val = (booking as any).totalAmount || booking.totalPrice || (booking as any).amount || (booking as any).price
+    const num = Number(String(val || 0).replace(/[^0-9.-]+/g, ""))
+    return Number.isFinite(num) ? num : 0
+  })()
+
+  const currentAmountPaid = (() => {
+    const val = (booking as any).amountPaid || (booking as any).paymentAmount || (booking as any).paidAmount
+    const num = Number(String(val || 0).replace(/[^0-9.-]+/g, ""))
+    return Number.isFinite(num) ? num : 0
+  })()
+
+  const remainingBalance = Math.max(totalAmount - currentAmountPaid, 0)
+  const enteredAmount = (() => {
+    const num = Number(String(amountReceived || "0").replace(/[^0-9.-]+/g, ""))
+    return Number.isFinite(num) ? num : 0
+  })()
+
+  const getNewPaymentSummary = () => {
+    if (paymentType === "full_payment") {
+      return {
+        newAmountPaid: totalAmount,
+        newRemainingBalance: 0,
+        newPaymentStatus: "Fully Paid",
+      }
+    }
+
+    if (paymentType === "remaining_balance") {
+      const newAmount = currentAmountPaid + enteredAmount
+      const newRemaining = Math.max(totalAmount - newAmount, 0)
+      return {
+        newAmountPaid: newAmount,
+        newRemainingBalance: newRemaining,
+        newPaymentStatus: newRemaining === 0 ? "Fully Paid" : "Partial Payment",
+      }
+    }
+
+    const newAmount = currentAmountPaid + enteredAmount
+    const remaining = totalAmount - newAmount
+    return {
+      newAmountPaid: newAmount,
+      newRemainingBalance: remaining,
+      newPaymentStatus: remaining === 0 ? "Fully Paid" : "Partial Payment",
+    }
+  }
+
+  const handleConfirm = () => {
+    if (enteredAmount <= 0) return
+
+    manualRecordOnsitePayment(booking.id, {
+      paymentType: paymentType as "downpayment" | "remaining_balance" | "full_payment",
+      amountReceived: enteredAmount,
+      adminNote: adminNote.trim(),
+      adminName: "Administrator",
+    })
+
+    const updated = {
+      ...booking,
+      amountPaid: getNewPaymentSummary().newAmountPaid,
+      remainingBalance: getNewPaymentSummary().newRemainingBalance,
+      manualPaymentMarked: true,
+      manualPaymentMarkedAt: new Date().toISOString(),
+      manualPaymentMarkedBy: "Administrator",
+      manualPaymentNote: adminNote.trim(),
+      updatedAt: new Date().toISOString(),
+    }
+    onRecorded(updated as Booking)
+  }
+
+  const summary = getNewPaymentSummary()
+  const typeLabel = paymentType === "full_payment" ? "Full Payment" : paymentType === "remaining_balance" ? "Remaining Balance" : "Downpayment"
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="w-[calc(100vw-28px)] max-w-[520px] rounded-2xl border-0 bg-white p-0 shadow-2xl [&>button]:hidden">
+        <div className="p-6 sm:p-7">
+          {step === "form" ? (
+            <>
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+                <DollarSign className="h-8 w-8" />
+              </div>
+
+              <DialogTitle className="text-2xl font-black text-slate-950">
+                Record Onsite Payment
+              </DialogTitle>
+
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                Use this only if the customer has already paid at the One Estela Place office.
+              </p>
+
+              <div className="mt-5 space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left">
+                <div className="flex justify-between text-xs">
+                  <span className="font-semibold text-slate-400">Booking ID</span>
+                  <span className="font-bold text-slate-900">{booking.id}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="font-semibold text-slate-400">Customer</span>
+                  <span className="font-bold text-slate-900">{booking.userInfo?.name || "No Name"}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="font-semibold text-slate-400">Total Amount</span>
+                  <span className="font-bold text-slate-900">₱{totalAmount.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="font-semibold text-slate-400">Current Paid</span>
+                  <span className="font-bold text-slate-900">₱{currentAmountPaid.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="font-semibold text-slate-400">Remaining</span>
+                  <span className="font-bold text-amber-700">₱{remainingBalance.toLocaleString()}</span>
+                </div>
+              </div>
+
+              <div className="mt-5 space-y-4">
+                <div>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    Payment Type *
+                  </Label>
+                  <Select value={paymentType} onValueChange={setPaymentType}>
+                    <SelectTrigger className="mt-1.5 h-10 w-full rounded-xl border-slate-200 bg-white text-xs font-bold text-slate-700 focus:ring-emerald-600">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                      <SelectItem value="downpayment">Downpayment</SelectItem>
+                      <SelectItem value="remaining_balance">Remaining Balance</SelectItem>
+                      <SelectItem value="full_payment">Full Payment</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    Actual Method *
+                  </Label>
+                  <div className="mt-1.5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-xs font-bold text-slate-700">
+                    Cash / Onsite
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    Amount Received *
+                  </Label>
+                  <Input
+                    value={amountReceived}
+                    onChange={(e) => {
+                      const digitsOnly = e.target.value.replace(/[^0-9.]/g, "")
+                      setAmountReceived(digitsOnly)
+                    }}
+                    placeholder="Enter amount received"
+                    className="mt-1.5 h-10 rounded-xl border-slate-200 text-xs font-bold focus-visible:ring-emerald-600"
+                  />
+                </div>
+
+                <div>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    Admin Note / Reference
+                  </Label>
+                  <Textarea
+                    value={adminNote}
+                    onChange={(e) => setAdminNote(e.target.value)}
+                    placeholder="Example: Paid onsite and received by staff."
+                    className="mt-1.5 min-h-[80px] resize-none rounded-xl border-slate-200 text-xs focus-visible:ring-emerald-600"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-6 grid grid-cols-2 gap-3">
+                <Button
+                  variant="outline"
+                  onClick={onClose}
+                  className="h-11 rounded-xl border-slate-200 text-sm font-black text-slate-700"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  disabled={enteredAmount <= 0}
+                  onClick={() => setStep("confirm")}
+                  className="h-11 rounded-xl bg-emerald-600 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-50"
+                >
+                  Continue
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
+                <AlertCircle className="h-8 w-8" />
+              </div>
+
+              <DialogTitle className="text-2xl font-black text-slate-950">
+                Confirm Onsite Payment
+              </DialogTitle>
+
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                Are you sure you want to record this onsite payment? This should only be done after confirming the actual payment received at the One Estela Place office.
+              </p>
+
+              <div className="mt-5 space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left">
+                <div className="flex justify-between text-xs">
+                  <span className="font-semibold text-slate-400">Booking ID</span>
+                  <span className="font-bold text-slate-900">{booking.id}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="font-semibold text-slate-400">Customer</span>
+                  <span className="font-bold text-slate-900">{booking.userInfo?.name || "No Name"}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="font-semibold text-slate-400">Type</span>
+                  <span className="font-bold text-slate-900">{typeLabel}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="font-semibold text-slate-400">Method</span>
+                  <span className="font-bold text-slate-900">Cash / Onsite</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="font-semibold text-slate-400">Amount Received</span>
+                  <span className="font-bold text-emerald-700">₱{enteredAmount.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="font-semibold text-slate-400">New Amount Paid</span>
+                  <span className="font-bold text-slate-900">₱{summary.newAmountPaid.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="font-semibold text-slate-400">New Remaining Balance</span>
+                  <span className="font-bold text-amber-700">₱{summary.newRemainingBalance.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="font-semibold text-slate-400">New Status</span>
+                  <span className="font-bold text-slate-900">{summary.newPaymentStatus}</span>
+                </div>
+                {adminNote.trim() && (
+                  <div className="flex justify-between text-xs">
+                    <span className="font-semibold text-slate-400">Note</span>
+                    <span className="font-bold text-slate-900">{adminNote.trim()}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-6 grid grid-cols-2 gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setStep("form")}
+                  className="h-11 rounded-xl border-slate-200 text-sm font-black text-slate-700"
+                >
+                  Back
+                </Button>
+                <Button
+                  onClick={handleConfirm}
+                  className="h-11 rounded-xl bg-emerald-600 text-sm font-black text-white hover:bg-emerald-700"
+                >
+                  Confirm Onsite Payment
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   )

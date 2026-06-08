@@ -321,6 +321,12 @@ interface BookingContextType {
 
   verifyCashPayment: (id: string, paymentType?: "downpayment" | "full") => void;
   settleRemainingBalance: (id: string, method?: "cash" | "bank") => void;
+  manualRecordOnsitePayment: (id: string, paymentData: {
+    paymentType: "downpayment" | "remaining_balance" | "full_payment";
+    amountReceived: number;
+    adminNote?: string;
+    adminName?: string;
+  }) => void;
   verifyPayment: (id: string) => void;
   rejectPayment: (id: string) => void;
   toggleMaintenanceDate: (date: string, venueId: string) => void;
@@ -558,36 +564,14 @@ function getSelectedDownpaymentAmount(booking: Booking) {
 }
 
 function recalculatePaymentStage(booking: Booking): Booking {
-  if (booking.paymentType !== "downpayment" || isOfficeBooking(booking)) {
+  if (isOfficeBooking(booking)) {
     return booking;
   }
 
   const total = getSafePrice(booking.totalPrice);
-  const selectedDP = getSelectedDownpaymentAmount(booking);
   const amountPaid = typeof booking.amountPaid === "number" ? booking.amountPaid : 0;
   const downpaymentPaid = typeof booking.downpaymentPaid === "number" ? booking.downpaymentPaid : 0;
-
-  if (downpaymentPaid < selectedDP) {
-    return {
-      ...booking,
-      paymentStage: "Complete Downpayment",
-      paymentStatus: "partial" as PaymentStatus,
-      balanceStatus: "With Remaining Balance",
-      downpaymentRemaining: selectedDP - downpaymentPaid,
-      remainingBalance: total - amountPaid,
-    };
-  }
-
-  if (downpaymentPaid >= selectedDP && amountPaid < total) {
-    return {
-      ...booking,
-      paymentStage: "Settle Remaining Balance",
-      paymentStatus: "partial" as PaymentStatus,
-      balanceStatus: "With Remaining Balance",
-      downpaymentRemaining: 0,
-      remainingBalance: total - amountPaid,
-    };
-  }
+  const selectedDP = getSelectedDownpaymentAmount(booking);
 
   if (amountPaid >= total) {
     return {
@@ -596,8 +580,22 @@ function recalculatePaymentStage(booking: Booking): Booking {
       paymentStatus: "paid" as PaymentStatus,
       balanceStatus: "Settled",
       downpaymentRemaining: 0,
+      downpaymentPaid: downpaymentPaid,
       remainingBalance: 0,
       remainingBalancePaid: true,
+    };
+  }
+
+  if (amountPaid > 0) {
+    const isDownpaymentComplete = downpaymentPaid >= selectedDP;
+    return {
+      ...booking,
+      paymentStage: isDownpaymentComplete ? "Settle Remaining Balance" : "Complete Downpayment",
+      paymentStatus: "partial" as PaymentStatus,
+      balanceStatus: "With Remaining Balance",
+      downpaymentRemaining: isDownpaymentComplete ? 0 : Math.max(selectedDP - downpaymentPaid, 0),
+      downpaymentPaid: downpaymentPaid,
+      remainingBalance: total - amountPaid,
     };
   }
 
@@ -1716,6 +1714,122 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     saveBookings(updatedBookings);
   };
 
+  const manualRecordOnsitePayment = (
+    id: string,
+    paymentData: {
+      paymentType: "downpayment" | "remaining_balance" | "full_payment";
+      amountReceived: number;
+      adminNote?: string;
+      adminName?: string;
+    },
+  ) => {
+    const updatedBookings = bookings.map((booking) => {
+      if (booking.id !== id) return booking;
+
+      const total = getSafePrice(booking.totalPrice);
+      const currentAmountPaid = typeof booking.amountPaid === "number" ? booking.amountPaid : 0;
+      const amountReceived = paymentData.amountReceived;
+
+      let newAmountPaid: number;
+      let newDownpaymentPaid: number;
+      let newRemainingBalance: number;
+      let newPaymentStatus: PaymentStatus;
+      let newBalanceStatus: string;
+      let newPaymentStage: "Initial Payment" | "Complete Downpayment" | "Settle Remaining Balance" | "Fully Paid";
+
+      if (paymentData.paymentType === "full_payment") {
+        newAmountPaid = total;
+        newDownpaymentPaid = total;
+        newRemainingBalance = 0;
+        newPaymentStatus = "paid" as PaymentStatus;
+        newBalanceStatus = "Settled";
+        newPaymentStage = "Fully Paid";
+      } else if (paymentData.paymentType === "remaining_balance") {
+        newAmountPaid = currentAmountPaid + amountReceived;
+        newDownpaymentPaid = (typeof booking.downpaymentPaid === "number" ? booking.downpaymentPaid : 0) + amountReceived;
+        newRemainingBalance = Math.max(total - newAmountPaid, 0);
+        if (newRemainingBalance === 0) {
+          newPaymentStatus = "paid" as PaymentStatus;
+          newBalanceStatus = "Settled";
+          newPaymentStage = "Fully Paid";
+        } else {
+          newPaymentStatus = "partial" as PaymentStatus;
+          newBalanceStatus = "With Remaining Balance";
+          newPaymentStage = "Settle Remaining Balance";
+        }
+      } else {
+        const downpaymentTarget = typeof booking.selectedDownpaymentAmount === "number" && booking.selectedDownpaymentAmount > 0
+          ? booking.selectedDownpaymentAmount
+          : total * 0.5;
+        const currentDownpaymentPaid = typeof booking.downpaymentPaid === "number" ? booking.downpaymentPaid : 0;
+        newDownpaymentPaid = currentDownpaymentPaid + amountReceived;
+        newAmountPaid = currentAmountPaid + amountReceived;
+
+        if (newDownpaymentPaid >= downpaymentTarget) {
+          if (newAmountPaid >= total) {
+            newRemainingBalance = 0;
+            newPaymentStatus = "paid" as PaymentStatus;
+            newBalanceStatus = "Settled";
+            newPaymentStage = "Fully Paid";
+          } else {
+            newRemainingBalance = total - newAmountPaid;
+            newPaymentStatus = "partial" as PaymentStatus;
+            newBalanceStatus = "With Remaining Balance";
+            newPaymentStage = "Settle Remaining Balance";
+          }
+        } else {
+          newRemainingBalance = total - newAmountPaid;
+          newPaymentStatus = "partial" as PaymentStatus;
+          newBalanceStatus = "With Remaining Balance";
+          newPaymentStage = "Complete Downpayment";
+        }
+      }
+
+      return {
+        ...booking,
+        amountPaid: newAmountPaid,
+        lastPaymentAmount: amountReceived,
+        downpaymentPaid: newDownpaymentPaid,
+        downpaymentRemaining: Math.max(
+          (typeof booking.selectedDownpaymentAmount === "number" && booking.selectedDownpaymentAmount > 0
+            ? booking.selectedDownpaymentAmount
+            : total * 0.5) - newDownpaymentPaid,
+          0,
+        ),
+        remainingBalance: newRemainingBalance,
+        remainingBalancePaid: newRemainingBalance === 0,
+        paymentStatus: newPaymentStatus,
+        balanceStatus: newBalanceStatus,
+        paymentStage: newPaymentStage,
+        paymentMethod: "cash" as const,
+        actualPaymentMethod: "Cash / Onsite",
+        paymentType: paymentData.paymentType === "full_payment" ? "full" as const : paymentData.paymentType === "downpayment" ? "downpayment" as const : booking.paymentType,
+        manualPaymentMarked: true,
+        manualPaymentMarkedAt: new Date().toISOString(),
+        manualPaymentMarkedBy: paymentData.adminName || "Administrator",
+        manualPaymentNote: paymentData.adminNote || "",
+        paymentVerifiedAt: new Date().toISOString(),
+        paymentVerifiedBy: paymentData.adminName || "Administrator",
+        verifiedByAdmin: true,
+        verifiedAt: new Date().toISOString(),
+        status: newRemainingBalance === 0 ? "confirmed" as BookingStatus : "confirmed" as BookingStatus,
+        bookingStatus: "Confirmed",
+        isSlotSecured: true,
+        contractSigningRequired: true,
+        contractSigned: booking.contractSigned || false,
+        contractStatus: booking.contractSigned ? "Signed" as ContractStatus : "Pending Signature" as ContractStatus,
+        updatedAt: new Date().toISOString(),
+        adminLogs: makeAdminLog(
+          booking,
+          "RECORD_ONSITE_PAYMENT",
+          `Admin recorded onsite payment of ₱${amountReceived.toLocaleString()}. Payment stage: ${newPaymentStage}. Remaining balance: ₱${newRemainingBalance.toLocaleString()}. ${paymentData.adminNote ? `Note: ${paymentData.adminNote}` : ""}`,
+        ),
+      } as Booking;
+    });
+
+    saveBookings(updatedBookings);
+  };
+
   const settleRemainingBalance = (
     id: string,
     method: "cash" | "bank" = "cash",
@@ -2515,6 +2629,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         issueReceipt,
         verifyCashPayment,
         settleRemainingBalance,
+        manualRecordOnsitePayment,
         verifyPayment,
         rejectPayment,
         toggleMaintenanceDate,
