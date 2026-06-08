@@ -13,6 +13,7 @@ import {
   X,
   ShieldCheck,
   ArrowRight,
+  Bell,
 } from "lucide-react"
 
 import { Button } from "@/src/modules/shared/components/ui/button"
@@ -61,9 +62,74 @@ function getStatusBadgeClass(status?: string) {
   return "border-slate-200 bg-slate-50 text-slate-600"
 }
 
+function BalanceReminderModal({
+  booking,
+  open,
+  onCancel,
+  onConfirm,
+}: {
+  booking: Booking | null
+  open: boolean
+  onCancel: () => void
+  onConfirm: () => void
+}) {
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onCancel()}>
+      <DialogContent className="w-[calc(100vw-28px)] max-w-[520px] rounded-2xl border-0 bg-white p-0 shadow-2xl [&>button]:hidden">
+        <div className="p-6 sm:p-7">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+            <Bell className="h-8 w-8" />
+          </div>
+          <DialogTitle className="text-2xl font-black text-slate-950">
+            Send Balance Reminder?
+          </DialogTitle>
+          <p className="mt-2 text-sm leading-6 text-slate-500">
+            Send balance reminder to this customer?
+          </p>
+          {booking && (
+            <div className="mt-5 space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left">
+              <div className="flex justify-between text-xs">
+                <span className="font-semibold text-slate-400">Booking ID</span>
+                <span className="font-bold text-slate-900">{booking.id}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="font-semibold text-slate-400">Customer</span>
+                <span className="font-bold text-slate-900">{booking.userInfo?.name || "No Name"}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="font-semibold text-slate-400">Remaining Balance</span>
+                <span className="font-bold text-blue-700">₱{Number(
+                  (booking as any).remainingBalance || 
+                  Math.max(Number(booking.totalPrice || 0) - Number((booking as any).amountPaid || 0), 0)
+                ).toLocaleString()}</span>
+              </div>
+            </div>
+          )}
+          <div className="mt-6 grid grid-cols-2 gap-3">
+            <Button
+              variant="outline"
+              onClick={onCancel}
+              className="h-11 rounded-xl border-slate-200 text-sm font-black text-slate-700"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={onConfirm}
+              className="h-11 rounded-xl bg-blue-600 text-sm font-black text-white hover:bg-blue-700"
+            >
+              Send Reminder
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 function getPaymentBadgeClass(paymentStatus?: string) {
   const v = String(paymentStatus || "").toLowerCase()
-  if (["verified", "paid", "slot_verified", "partial"].includes(v)) return "border-emerald-100 bg-emerald-50 text-emerald-700"
+  if (["verified", "paid", "slot_verified"].includes(v)) return "border-emerald-100 bg-emerald-50 text-emerald-700"
+  if (v === "partial") return "border-amber-100 bg-amber-50 text-amber-700"
   if (["for_review", "cash_pending", "slot_pending"].includes(v)) return "border-amber-100 bg-amber-50 text-amber-700"
   if (v === "rejected") return "border-rose-100 bg-rose-50 text-rose-700"
   return "border-slate-200 bg-slate-50 text-slate-600"
@@ -86,7 +152,9 @@ function getPaymentStatusLabel(paymentStatus?: string) {
   const v = String(paymentStatus || "").toLowerCase()
   if (v === "verified" || v === "paid" || v === "slot_verified") return "Verified"
   if (v === "for_review" || v === "cash_pending" || v === "slot_pending") return "For Review"
-  if (v === "partial") return "Partial"
+  if (v === "partial") return "Partial Payment"
+  if (v === "incomplete") return "Incomplete Payment"
+  if (v === "fully paid") return "Fully Paid"
   if (v === "rejected") return "Rejected"
   if (v === "unpaid") return "Unpaid"
   if (!v) return "Not Set"
@@ -117,6 +185,7 @@ export default function AdminBookingsPage() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
   const [showContractConfirm, setShowContractConfirm] = useState(false)
+  const [sendReminderTarget, setSendReminderTarget] = useState<Booking | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const ITEMS_PER_PAGE = 10
 
@@ -261,6 +330,10 @@ export default function AdminBookingsPage() {
           onClose={() => { setSelectedBooking(null); setShowContractConfirm(false) }}
           onMarkCompleted={handleMarkCompleted}
           onMarkContractSigned={() => setShowContractConfirm(true)}
+          onSendReminder={(id) => {
+            const target = bookings.find((b) => b.id === id)
+            if (target) setSendReminderTarget(target)
+          }}
         />
 
         <ContractSigningConfirmModal
@@ -268,6 +341,33 @@ export default function AdminBookingsPage() {
           open={showContractConfirm}
           onCancel={() => setShowContractConfirm(false)}
           onConfirm={handleMarkContractSigned}
+        />
+        <BalanceReminderModal
+          booking={sendReminderTarget}
+          open={!!sendReminderTarget}
+          onCancel={() => setSendReminderTarget(null)}
+          onConfirm={() => {
+            if (!sendReminderTarget) return
+            const id = sendReminderTarget.id
+            const next = bookings.map((b) =>
+              b.id === id
+                ? {
+                    ...b,
+                    balanceReminderSent: true,
+                    balanceReminderSentAt: new Date().toISOString(),
+                    balanceReminderSentBy: "Administrator",
+                    updatedAt: new Date().toISOString(),
+                  }
+                : b,
+            )
+            persistBookings(next)
+            setSendReminderTarget(null)
+            toast({
+              title: "Balance Reminder Sent",
+              description: `Reminder has been recorded for booking ${id}.`,
+              className: "border-none bg-blue-500 text-white",
+            })
+          }}
         />
 
         <section className="border-b border-slate-200 pb-5">
@@ -443,12 +543,14 @@ function BookingDetailsModal({
   onClose,
   onMarkCompleted,
   onMarkContractSigned,
+  onSendReminder,
 }: {
   booking: Booking | null
   open: boolean
   onClose: () => void
   onMarkCompleted: (id: string) => void
   onMarkContractSigned: () => void
+  onSendReminder?: (id: string) => void
 }) {
   if (!booking) return null
 
@@ -492,16 +594,20 @@ function BookingDetailsModal({
   )
 
   const paymentStatus = normalizeStatus((booking as any).paymentStatus)
+  const balanceStatus = normalizeStatus((booking as any).balanceStatus)
+  const paymentStage = normalizeStatus((booking as any).paymentStage)
+
+  const isPartialPayment = paymentStatus === "partial" || (balanceStatus === "with remaining balance" && amountPaid > 0) ||
+    paymentStage === "complete downpayment" || paymentStage === "settle remaining balance"
 
   const isFullyPaid =
-    paymentStatus === "fully paid" ||
-    paymentStatus === "paid" ||
-    paymentStatus === "completed" ||
-    remainingBalance === 0 ||
-    (totalAmount > 0 && amountPaid >= totalAmount)
+    (paymentStage === "fully paid" || paymentStatus === "paid" || paymentStatus === "completed" || balanceStatus === "settled") &&
+    !isPartialPayment &&
+    remainingBalance === 0
 
   const canComplete =
     isFullyPaid &&
+    remainingBalance === 0 &&
     normalizeStatus((booking as any).bookingStatus) !== "completed" &&
     normalizeStatus((booking as any).bookingStatus) !== "cancelled"
 
@@ -794,7 +900,38 @@ function BookingDetailsModal({
           )}
         </div>
 
-        {!isFullyPaid && !isCompleted && !isCancelled && (
+        {isPartialPayment && remainingBalance > 0 && !isCompleted && !isCancelled && (
+          <div className="border-t border-slate-100 bg-white px-4 py-3 sm:px-6 sm:py-4">
+            <div className="flex flex-col gap-3">
+              <div className="rounded-xl bg-amber-50 p-3 text-center">
+                <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">Remaining Balance</p>
+                <p className="mt-1 text-xl font-black text-amber-700">₱{remainingBalance.toLocaleString()}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {onSendReminder && (
+                  <Button
+                    onClick={() => onSendReminder(booking.id)}
+                    variant="outline"
+                    className="h-10 w-full rounded-lg border-blue-200 px-4 text-xs font-bold text-blue-700 hover:bg-blue-50"
+                  >
+                    <Bell className="mr-1.5 h-3.5 w-3.5" />
+                    Send Balance Reminder
+                  </Button>
+                )}
+                <Button
+                  onClick={() => router.push(`/dashboard/payments?search=${booking.id}`)}
+                  variant="outline"
+                  className="h-10 w-full rounded-lg border-orange-200 px-4 text-xs font-bold text-orange-700 hover:bg-orange-50"
+                >
+                  Go to Payment Verification
+                  <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!isFullyPaid && !isPartialPayment && !isCompleted && !isCancelled && (
           <div className="border-t border-slate-100 bg-white px-4 py-3 sm:px-6 sm:py-4">
             <div className="flex sm:justify-end">
               <Button
@@ -832,12 +969,18 @@ function PaymentSummaryCard({
   booking: Booking
   bankRef: string | null
 }) {
-  const rawAmountPaid = (booking as any)?.amountPaid || (booking as any)?.downPayment || 0
+  const rawAmountPaid = (booking as any)?.amountPaid || 0
   const amountPaid = Number(rawAmountPaid) || 0
   const totalPrice = Number(booking.totalPrice) || 0
   const hasPaid = amountPaid > 0
   const hasTotal = totalPrice > 0
-  const remaining = hasTotal && hasPaid ? Math.max(0, totalPrice - amountPaid) : null
+  const remaining = hasTotal ? Math.max(0, totalPrice - amountPaid) : null
+  const selectedDP = Number((booking as any).selectedDownpaymentAmount || 0)
+  const downpaymentPaid = Number((booking as any).downpaymentPaid || 0)
+  const downpaymentRemaining = Number((booking as any).downpaymentRemaining || 0)
+  const paymentStage = String((booking as any).paymentStage || "")
+  const isDownpayment = String(booking.paymentType || "").toLowerCase() === "downpayment"
+  const showDP = isDownpayment && selectedDP > 0
 
   return (
     <div className="p-4">
@@ -863,14 +1006,38 @@ function PaymentSummaryCard({
           <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Total Amount</p>
           <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{hasTotal ? formatMoney(totalPrice) : "—"}</p>
         </div>
+        {showDP && (
+          <div className="min-w-0">
+            <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Selected Downpayment</p>
+            <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{formatMoney(selectedDP)}</p>
+          </div>
+        )}
+        {showDP && (
+          <div className="min-w-0">
+            <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Downpayment Paid</p>
+            <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{formatMoney(downpaymentPaid)}</p>
+          </div>
+        )}
+        {showDP && downpaymentRemaining > 0 && (
+          <div className="min-w-0">
+            <p className="text-[9px] font-bold uppercase tracking-wider text-amber-600">Downpayment Remaining</p>
+            <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-amber-700">{formatMoney(downpaymentRemaining)}</p>
+          </div>
+        )}
         <div className="min-w-0">
           <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Amount Paid</p>
           <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{hasPaid ? formatMoney(amountPaid) : "—"}</p>
         </div>
-        {remaining !== null && (
+        {remaining !== null && remaining > 0 && (
           <div className="min-w-0">
             <p className="text-[9px] font-bold uppercase tracking-wider text-amber-600">Remaining Balance</p>
-            <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-amber-700">{remaining > 0 ? formatMoney(remaining) : "—"}</p>
+            <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-amber-700">{formatMoney(remaining)}</p>
+          </div>
+        )}
+        {paymentStage && (
+          <div className="min-w-0">
+            <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Payment Stage</p>
+            <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{paymentStage}</p>
           </div>
         )}
         {bankRef && (

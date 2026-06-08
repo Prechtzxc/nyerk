@@ -257,21 +257,30 @@ function getStatusLabel(status?: string) {
   return formatTextLabel(status || "Unknown")
 }
 
-function getPaymentStatusLabel(paymentStatus?: string) {
+function getPaymentStatusLabel(paymentStatus?: string, paymentStage?: string) {
   const v = String(paymentStatus || "").toLowerCase()
-  if (v === "verified" || v === "paid" || v === "slot_verified") return "Verified"
+  const stage = String(paymentStage || "").toLowerCase()
+  if (stage === "fully paid") return "Fully Paid"
+  if (v === "verified" || v === "paid" || v === "slot_verified") return v === "paid" ? "Fully Paid" : "Verified"
   if (v === "for_review" || v === "cash_pending" || v === "slot_pending") return "For Review"
-  if (v === "partial") return "Partial"
+  if (v === "partial") return "Partial Payment"
   if (v === "rejected") return "Rejected"
+  if (v === "incomplete") return "Incomplete Payment"
+  if (v === "fully paid") return "Fully Paid"
   if (v === "unpaid") return "Unpaid"
   if (!v) return "Not Set"
   return formatTextLabel(paymentStatus)
 }
 
-function getPaymentBadgeClass(paymentStatus?: string) {
+function getPaymentBadgeClass(paymentStatus?: string, paymentStage?: string) {
   const v = String(paymentStatus || "").toLowerCase()
-  if (["verified", "paid", "slot_verified", "partial"].includes(v)) {
-    return "border-emerald-100 bg-emerald-50 text-emerald-700"
+  const stage = String(paymentStage || "").toLowerCase()
+  if (stage === "fully paid") return "border-emerald-100 bg-emerald-50 text-emerald-700"
+  if (["verified", "paid", "slot_verified"].includes(v)) {
+    return v === "paid" ? "border-emerald-100 bg-emerald-50 text-emerald-700" : "border-emerald-100 bg-emerald-50 text-emerald-700"
+  }
+  if (v === "partial" || stage === "complete downpayment" || stage === "settle remaining balance") {
+    return "border-amber-100 bg-amber-50 text-amber-700"
   }
   if (["for_review", "cash_pending", "slot_pending"].includes(v)) {
     return "border-amber-100 bg-amber-50 text-amber-700"
@@ -477,13 +486,18 @@ function PaymentSummaryCard({
   booking: Booking
   bankRef: string | null
 }) {
-  const rawAmountPaid =
-    (booking as any)?.amountPaid || (booking as any)?.downPayment || 0
+  const rawAmountPaid = (booking as any)?.amountPaid || 0
   const amountPaid = Number(rawAmountPaid) || 0
   const totalPrice = Number(booking.totalPrice) || 0
   const hasPaid = amountPaid > 0
   const hasTotal = totalPrice > 0
-  const remaining = hasTotal && hasPaid ? Math.max(0, totalPrice - amountPaid) : null
+  const remaining = hasTotal ? Math.max(0, totalPrice - amountPaid) : null
+  const selectedDP = Number((booking as any).selectedDownpaymentAmount || 0)
+  const downpaymentPaid = Number((booking as any).downpaymentPaid || 0)
+  const downpaymentRemaining = Number((booking as any).downpaymentRemaining || 0)
+  const paymentStage = String((booking as any).paymentStage || "")
+  const isDownpayment = String(booking.paymentType || "").toLowerCase() === "downpayment"
+  const showDP = isDownpayment && selectedDP > 0
 
   return (
     <div className="p-4">
@@ -496,56 +510,58 @@ function PaymentSummaryCard({
 
       <div className="space-y-3">
         <div className="min-w-0">
-          <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
-            Method
-          </p>
+          <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Method</p>
           <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">
-            {booking.paymentMethod
-              ? getPaymentMethodLabel(booking.paymentMethod)
-              : "—"}
+            {booking.paymentMethod ? getPaymentMethodLabel(booking.paymentMethod) : "—"}
           </p>
         </div>
         <div className="min-w-0">
-          <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
-            Type
-          </p>
+          <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Type</p>
           <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">
-            {booking.paymentType
-              ? formatTextLabel(booking.paymentType)
-              : "—"}
+            {booking.paymentType ? formatTextLabel(booking.paymentType) : "—"}
           </p>
         </div>
         <div className="min-w-0">
-          <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
-            Total Amount
-          </p>
-          <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">
-            {hasTotal ? formatMoney(totalPrice) : "—"}
-          </p>
+          <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Total Amount</p>
+          <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{hasTotal ? formatMoney(totalPrice) : "—"}</p>
         </div>
-        <div className="min-w-0">
-          <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
-            Amount Paid
-          </p>
-          <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">
-            {hasPaid ? formatMoney(amountPaid) : "—"}
-          </p>
-        </div>
-        {remaining !== null && (
+        {showDP && (
           <div className="min-w-0">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-amber-600">
-              Remaining Balance
-            </p>
-            <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-amber-700">
-              {remaining > 0 ? formatMoney(remaining) : "—"}
-            </p>
+            <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Selected Downpayment</p>
+            <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{formatMoney(selectedDP)}</p>
+          </div>
+        )}
+        {showDP && (
+          <div className="min-w-0">
+            <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Downpayment Paid</p>
+            <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{formatMoney(downpaymentPaid)}</p>
+          </div>
+        )}
+        {showDP && downpaymentRemaining > 0 && (
+          <div className="min-w-0">
+            <p className="text-[9px] font-bold uppercase tracking-wider text-amber-600">Downpayment Remaining</p>
+            <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-amber-700">{formatMoney(downpaymentRemaining)}</p>
+          </div>
+        )}
+        <div className="min-w-0">
+          <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Amount Paid</p>
+          <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{hasPaid ? formatMoney(amountPaid) : "—"}</p>
+        </div>
+        {remaining !== null && remaining > 0 && (
+          <div className="min-w-0">
+            <p className="text-[9px] font-bold uppercase tracking-wider text-amber-600">Remaining Balance</p>
+            <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-amber-700">{formatMoney(remaining)}</p>
+          </div>
+        )}
+        {paymentStage && (
+          <div className="min-w-0">
+            <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Payment Stage</p>
+            <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{paymentStage}</p>
           </div>
         )}
         {bankRef && (
           <div className="min-w-0">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
-              Bank Reference
-            </p>
+            <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Bank Reference</p>
             <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-900">{bankRef}</p>
           </div>
         )}
@@ -595,6 +611,16 @@ function BookingDetailsModal({
   const bankRef =
     (booking as any)?.bankReferenceNumber || (booking as any)?.referenceNumber || null
   const payStatus = String(booking.paymentStatus || "").toLowerCase()
+  const balanceStatus = String((booking as any).balanceStatus || "").toLowerCase()
+  const paymentStage = String((booking as any).paymentStage || "").toLowerCase()
+  const remainingBalance = Number((booking as any).remainingBalance || 0)
+  const hasRemainingPayment =
+    payStatus === "partial" ||
+    payStatus === "incomplete" ||
+    balanceStatus === "with remaining balance" ||
+    paymentStage === "complete downpayment" ||
+    paymentStage === "settle remaining balance"
+  const showBalanceReminderNotice = (booking as any).balanceReminderSent === true && hasRemainingPayment
 
   const showPay =
     onPay &&
@@ -680,7 +706,7 @@ function BookingDetailsModal({
                 getPaymentBadgeClass(booking.paymentStatus),
               )}
             >
-              {getPaymentStatusLabel(booking.paymentStatus)}
+              {getPaymentStatusLabel(booking.paymentStatus, (booking as any).paymentStage)}
             </span>
             {booking.cancellationStatus &&
               booking.cancellationStatus !== "None" && (
@@ -782,6 +808,27 @@ function BookingDetailsModal({
                       before the event date.
                     </li>
                   </ul>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {hasRemainingPayment && remainingBalance > 0 && (
+            <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+                <div>
+                  <p className="text-xs font-black text-amber-900">
+                    {payStatus === "incomplete" ? "Incomplete Payment" : "Partial Payment"}
+                  </p>
+                  <p className="mt-1 text-sm font-black text-amber-700">
+                    Remaining Balance: ₱{remainingBalance.toLocaleString()}
+                  </p>
+                  {showBalanceReminderNotice && (
+                    <p className="mt-2 text-[11px] font-semibold text-amber-600">
+                      Reminder: Please settle your remaining balance of ₱{remainingBalance.toLocaleString()}.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -897,8 +944,12 @@ function BookingDetailsModal({
 
         <div className="border-t border-slate-100 bg-white px-4 py-3 sm:px-6 sm:py-4">
           <div className="flex flex-col gap-3 w-full">
-            {(showModify || showReceipt || showPay) && (
-              <div className={cn("w-full", (showModify && (showReceipt || showPay)) ? "grid grid-cols-2 gap-3" : "flex flex-col gap-3")}>
+            {(showModify || showReceipt || showPay || hasRemainingPayment) && (
+              <div className={cn("w-full",
+                showModify && (showPay || showReceipt || (hasRemainingPayment && !showPay && !showReceipt))
+                  ? "grid grid-cols-2 gap-3"
+                  : "flex flex-col gap-3"
+              )}>
                 {showModify && (
                   <Button
                     variant="outline"
@@ -936,6 +987,19 @@ function BookingDetailsModal({
                   >
                     <CreditCard className="mr-1.5 h-3.5 w-3.5" />
                     Pay Now
+                  </Button>
+                ) : hasRemainingPayment && !showPay && !showReceipt ? (
+                  <Button
+                    onClick={() => {
+                      if (onPay) {
+                        onPay(booking)
+                        onClose()
+                      }
+                    }}
+                    className="w-full h-10 rounded-lg bg-emerald-600 hover:bg-emerald-700 px-5 text-xs font-bold text-white shadow-sm"
+                  >
+                    <CreditCard className="mr-1.5 h-3.5 w-3.5" />
+                    {paymentStage === "complete downpayment" || payStatus === "incomplete" ? "Submit Remaining Downpayment" : "Settle Remaining Balance"}
                   </Button>
                 ) : null}
               </div>

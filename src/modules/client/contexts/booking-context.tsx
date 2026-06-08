@@ -30,6 +30,8 @@ export type PaymentStatus =
   | "rejected"
   | "slot_pending"
   | "slot_verified"
+  | "incomplete"
+  | "fully paid"
   | "cancelled";
 
 export type CancellationStatus =
@@ -226,12 +228,29 @@ export interface Booking {
   paymentRejectedReason?: string;
   paymentRejectionReason?: string;
   incompletePaymentNote?: string;
+  incompletePaymentReason?: string;
   paymentStatus?: PaymentStatus;
+  balanceStatus?: string;
   amountPaid?: number;
+  lastPaymentAmount?: number;
   remainingBalance?: number;
   remainingBalancePaid?: boolean;
   verifiedByAdmin?: boolean;
   verifiedAt?: string;
+  paymentReviewedAt?: string;
+  paymentReviewedBy?: string;
+  paymentVerifiedBy?: string;
+  manualPaymentMarked?: boolean;
+  manualPaymentMarkedAt?: string;
+  manualPaymentMarkedBy?: string;
+  manualPaymentNote?: string;
+  balanceReminderSent?: boolean;
+  balanceReminderSentAt?: string;
+  balanceReminderSentBy?: string;
+  selectedDownpaymentAmount?: number;
+  downpaymentPaid?: number;
+  downpaymentRemaining?: number;
+  paymentStage?: "Initial Payment" | "Complete Downpayment" | "Settle Remaining Balance" | "Fully Paid";
   adminLogs?: AdminLog[];
 }
 
@@ -531,6 +550,60 @@ function getDownpaymentAmount(booking: Booking) {
   return getSafePrice(booking.totalPrice) * 0.5;
 }
 
+function getSelectedDownpaymentAmount(booking: Booking) {
+  if (typeof booking.selectedDownpaymentAmount === "number" && booking.selectedDownpaymentAmount > 0) {
+    return booking.selectedDownpaymentAmount;
+  }
+  return getDownpaymentAmount(booking);
+}
+
+function recalculatePaymentStage(booking: Booking): Booking {
+  if (booking.paymentType !== "downpayment" || isOfficeBooking(booking)) {
+    return booking;
+  }
+
+  const total = getSafePrice(booking.totalPrice);
+  const selectedDP = getSelectedDownpaymentAmount(booking);
+  const amountPaid = typeof booking.amountPaid === "number" ? booking.amountPaid : 0;
+  const downpaymentPaid = typeof booking.downpaymentPaid === "number" ? booking.downpaymentPaid : 0;
+
+  if (downpaymentPaid < selectedDP) {
+    return {
+      ...booking,
+      paymentStage: "Complete Downpayment",
+      paymentStatus: "partial" as PaymentStatus,
+      balanceStatus: "With Remaining Balance",
+      downpaymentRemaining: selectedDP - downpaymentPaid,
+      remainingBalance: total - amountPaid,
+    };
+  }
+
+  if (downpaymentPaid >= selectedDP && amountPaid < total) {
+    return {
+      ...booking,
+      paymentStage: "Settle Remaining Balance",
+      paymentStatus: "partial" as PaymentStatus,
+      balanceStatus: "With Remaining Balance",
+      downpaymentRemaining: 0,
+      remainingBalance: total - amountPaid,
+    };
+  }
+
+  if (amountPaid >= total) {
+    return {
+      ...booking,
+      paymentStage: "Fully Paid",
+      paymentStatus: "paid" as PaymentStatus,
+      balanceStatus: "Settled",
+      downpaymentRemaining: 0,
+      remainingBalance: 0,
+      remainingBalancePaid: true,
+    };
+  }
+
+  return booking;
+}
+
 function getCurrentAmountPaid(booking: Booking) {
   if (typeof booking.amountPaid === "number") return booking.amountPaid;
 
@@ -677,7 +750,8 @@ function getReceiptPaymentPurpose(booking: Booking) {
 
 function getReceiptAmount(booking: Booking) {
   if (isOfficeBooking(booking)) return getOfficeReservationFee(booking);
-  return getCurrentAmountPaid(booking) || getSafePrice(booking.totalPrice);
+  if (typeof booking.amountPaid === "number" && booking.amountPaid > 0) return booking.amountPaid;
+  return getSafePrice(booking.totalPrice);
 }
 
 function buildAutoReceipt(booking: Booking, generatedAt = new Date().toISOString()) {
@@ -741,6 +815,10 @@ function normalizeBookingForNewFields(booking: Booking): Booking {
 
   return {
     ...booking,
+    selectedDownpaymentAmount: booking.selectedDownpaymentAmount ?? 0,
+    downpaymentPaid: booking.downpaymentPaid ?? 0,
+    downpaymentRemaining: booking.downpaymentRemaining ?? 0,
+    paymentStage: booking.paymentStage ?? "Initial Payment",
     receipt: booking.receipt || savedReceipt,
     receiptIssued: booking.receiptIssued ?? Boolean(savedReceipt),
     receiptNumber: booking.receiptNumber || savedReceipt?.receiptNumber,
@@ -904,6 +982,10 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       refundStatus: bookingData.refundStatus || "Not Applicable",
       paymentStatus: bookingData.paymentStatus || "unpaid",
       amountPaid: bookingData.amountPaid || 0,
+      selectedDownpaymentAmount: 0,
+      downpaymentPaid: 0,
+      downpaymentRemaining: 0,
+      paymentStage: "Initial Payment",
       remainingBalance:
         bookingData.remainingBalance || getSafePrice(bookingData.totalPrice),
       remainingBalancePaid: bookingData.remainingBalancePaid || false,
@@ -987,46 +1069,72 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       const downpayment = getDownpaymentAmount(booking);
       const isDownpayment = booking.paymentType === "downpayment";
 
-      const updatedBooking = {
+      let verifiedBooking = {
         ...booking,
         status,
         bookingStatus: status === "confirmed" ? "Confirmed" : getDisplayBookingStatus({ ...booking, status }),
         isSlotSecured: shouldVerifyPayment || booking.isSlotSecured || status === "confirmed" || status === "reservation_secured",
-        paymentStatus: shouldVerifyPayment
-          ? isDownpayment
-            ? ("partial" as PaymentStatus)
-            : ("paid" as PaymentStatus)
-          : booking.paymentStatus,
-        amountPaid: shouldVerifyPayment
-          ? isDownpayment
-            ? downpayment
-            : total
-          : booking.amountPaid,
-        remainingBalance: shouldVerifyPayment
-          ? isDownpayment
-            ? total - downpayment
-            : 0
-          : booking.remainingBalance,
-        remainingBalancePaid: shouldVerifyPayment
-          ? !isDownpayment
-          : booking.remainingBalancePaid,
         verifiedByAdmin: shouldVerifyPayment ? true : booking.verifiedByAdmin,
         verifiedAt: shouldVerifyPayment
           ? new Date().toISOString()
           : booking.verifiedAt,
-        adminLogs: shouldVerifyPayment
-          ? makeAdminLog(
-              booking,
-              "VERIFY_PAYMENT",
-              isDownpayment
-                ? "Admin verified downpayment. Remaining balance is still unpaid."
-                : "Admin verified full payment and confirmed booking.",
-            )
-          : booking.adminLogs,
         updatedAt: new Date().toISOString(),
       } as Booking;
 
-      return shouldVerifyPayment ? attachAutoReceipt(updatedBooking) : updatedBooking;
+      if (shouldVerifyPayment) {
+        if (isDownpayment) {
+          const currentDownpaymentPaid = typeof booking.downpaymentPaid === "number" ? booking.downpaymentPaid : 0;
+          const paymentAmount = typeof booking.paymentAmount === "number" ? booking.paymentAmount : downpayment;
+          const newDownpaymentPaid = currentDownpaymentPaid + paymentAmount;
+          const newAmountPaid = (typeof booking.amountPaid === "number" ? booking.amountPaid : 0) + paymentAmount;
+          const selectedDP = typeof booking.selectedDownpaymentAmount === "number" && booking.selectedDownpaymentAmount > 0
+            ? booking.selectedDownpaymentAmount
+            : downpayment;
+
+          verifiedBooking = {
+            ...verifiedBooking,
+            amountPaid: newAmountPaid,
+            downpaymentPaid: newDownpaymentPaid,
+            selectedDownpaymentAmount: selectedDP,
+          };
+
+          verifiedBooking = recalculatePaymentStage(verifiedBooking);
+          verifiedBooking = {
+            ...verifiedBooking,
+            adminLogs: makeAdminLog(
+              booking,
+              "VERIFY_PAYMENT",
+              newDownpaymentPaid < selectedDP
+                ? `Admin verified downpayment of ₱${paymentAmount.toLocaleString()}. Downpayment remaining: ₱${(selectedDP - newDownpaymentPaid).toLocaleString()}.`
+                : newAmountPaid < total
+                  ? `Admin verified payment of ₱${paymentAmount.toLocaleString()}. Remaining balance: ₱${(total - newAmountPaid).toLocaleString()}.`
+                  : "Admin verified full payment and confirmed booking.",
+            ),
+          };
+        } else {
+          const paymentAmount = typeof booking.paymentAmount === "number" ? booking.paymentAmount : total;
+          const newAmountPaid = (typeof booking.amountPaid === "number" ? booking.amountPaid : 0) + paymentAmount;
+
+          verifiedBooking = {
+            ...verifiedBooking,
+            paymentStatus: "paid" as PaymentStatus,
+            amountPaid: newAmountPaid,
+            downpaymentPaid: 0,
+            downpaymentRemaining: 0,
+            remainingBalance: Math.max(total - newAmountPaid, 0),
+            remainingBalancePaid: newAmountPaid >= total,
+            adminLogs: makeAdminLog(
+              booking,
+              "VERIFY_PAYMENT",
+              newAmountPaid >= total
+                ? "Admin verified full payment and confirmed booking."
+                : `Admin verified payment of ₱${paymentAmount.toLocaleString()}.`,
+            ),
+          };
+        }
+      }
+
+      return shouldVerifyPayment ? attachAutoReceipt(verifiedBooking) : verifiedBooking;
     });
 
     saveBookings(updatedBookings);
@@ -1522,22 +1630,73 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       const total = getSafePrice(booking.totalPrice);
       const downpayment = getDownpaymentAmount(booking);
       const isDownpayment = paymentType === "downpayment";
-      const paidAmount = isDownpayment ? downpayment : total;
-      const remainingBalance = Math.max(total - paidAmount, 0);
+
+      const currentDownpaymentPaid = typeof booking.downpaymentPaid === "number" ? booking.downpaymentPaid : 0;
+      const currentAmountPaid = typeof booking.amountPaid === "number" ? booking.amountPaid : 0;
+
+      if (isDownpayment) {
+        const selectedDP = typeof booking.selectedDownpaymentAmount === "number" && booking.selectedDownpaymentAmount > 0
+          ? booking.selectedDownpaymentAmount
+          : downpayment;
+        const remainingDP = selectedDP - currentDownpaymentPaid;
+        const paidAmount = Math.min(remainingDP, total);
+        const newDownpaymentPaid = currentDownpaymentPaid + paidAmount;
+        const newAmountPaid = currentAmountPaid + paidAmount;
+
+        const updated = recalculatePaymentStage({
+          ...booking,
+          paymentType: "downpayment",
+          paymentMethod: "cash" as const,
+          amountPaid: newAmountPaid,
+          downpaymentPaid: newDownpaymentPaid,
+          selectedDownpaymentAmount: selectedDP,
+          downpaymentRemaining: Math.max(selectedDP - newDownpaymentPaid, 0),
+          verifiedByAdmin: true,
+          verifiedAt: new Date().toISOString(),
+          contractSigningRequired: true,
+          contractSigned: booking.contractSigned || false,
+          contractStatus: booking.contractSigned ? "Signed" : "Pending Signature",
+          updatedAt: new Date().toISOString(),
+        });
+
+        return attachAutoReceipt({
+          ...updated,
+          status: "confirmed" as BookingStatus,
+          bookingStatus: "Confirmed",
+          isSlotSecured: true,
+          paymentMethod: "cash" as const,
+          verifiedByAdmin: true,
+          verifiedAt: new Date().toISOString(),
+          contractSigningRequired: true,
+          contractSigned: booking.contractSigned || false,
+          contractStatus: booking.contractSigned ? "Signed" : "Pending Signature",
+          updatedAt: new Date().toISOString(),
+          adminLogs: makeAdminLog(
+            booking,
+            "VERIFY_CASH_DOWNPAYMENT",
+            newDownpaymentPaid < selectedDP
+              ? `Admin manually verified cash downpayment of ₱${paidAmount.toLocaleString()}. Downpayment remaining: ₱${(selectedDP - newDownpaymentPaid).toLocaleString()}.`
+              : `Admin manually verified cash downpayment of ₱${paidAmount.toLocaleString()}. Downpayment complete. Remaining balance: ₱${Math.max(total - newAmountPaid, 0).toLocaleString()}.`,
+          ),
+        });
+      }
+
+      const paidAmount = total - currentAmountPaid;
+      const newAmountPaid = currentAmountPaid + paidAmount;
 
       return attachAutoReceipt({
         ...booking,
         status: "confirmed" as BookingStatus,
         bookingStatus: "Confirmed",
         isSlotSecured: true,
-        paymentStatus: isDownpayment
-          ? ("partial" as PaymentStatus)
-          : ("paid" as PaymentStatus),
+        paymentStatus: "paid" as PaymentStatus,
         paymentType,
         paymentMethod: "cash" as const,
-        amountPaid: paidAmount,
-        remainingBalance,
-        remainingBalancePaid: !isDownpayment,
+        amountPaid: newAmountPaid,
+        downpaymentPaid: currentDownpaymentPaid,
+        downpaymentRemaining: 0,
+        remainingBalance: Math.max(total - newAmountPaid, 0),
+        remainingBalancePaid: newAmountPaid >= total,
         verifiedByAdmin: true,
         verifiedAt: new Date().toISOString(),
         contractSigningRequired: true,
@@ -1546,10 +1705,10 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         updatedAt: new Date().toISOString(),
         adminLogs: makeAdminLog(
           booking,
-          isDownpayment ? "VERIFY_CASH_DOWNPAYMENT" : "VERIFY_CASH_PAYMENT",
-          isDownpayment
-            ? `Admin manually verified cash downpayment of ₱${downpayment.toLocaleString()}. Remaining balance is ₱${remainingBalance.toLocaleString()}. Contract signing is still required.`
-            : "Admin manually verified full cash payment. Contract signing is still required.",
+          "VERIFY_CASH_PAYMENT",
+          newAmountPaid >= total
+            ? "Admin manually verified full cash payment. Contract signing is still required."
+            : `Admin manually verified cash payment of ₱${paidAmount.toLocaleString()}.`,
         ),
       });
     });
@@ -1565,20 +1724,27 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       if (booking.id !== id) return booking;
 
       const total = getSafePrice(booking.totalPrice);
-      const previousPaid = getCurrentAmountPaid(booking);
-      const balance = Math.max(total - previousPaid, 0);
+      const currentAmountPaid = typeof booking.amountPaid === "number" ? booking.amountPaid : 0;
+      const balance = Math.max(total - currentAmountPaid, 0);
+      const newAmountPaid = currentAmountPaid + balance;
+
+      const updated = recalculatePaymentStage({
+        ...booking,
+        amountPaid: newAmountPaid,
+        paymentMethod: method,
+        remainingBalance: 0,
+        remainingBalancePaid: true,
+        verifiedByAdmin: true,
+        verifiedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
 
       return attachAutoReceipt({
-        ...booking,
+        ...updated,
         status: "confirmed" as BookingStatus,
         bookingStatus: "Confirmed",
         isSlotSecured: true,
-        paymentStatus: "paid" as PaymentStatus,
-        paymentType: "full" as const,
         paymentMethod: method,
-        amountPaid: total,
-        remainingBalance: 0,
-        remainingBalancePaid: true,
         verifiedByAdmin: true,
         verifiedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -1628,20 +1794,69 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       const total = getSafePrice(booking.totalPrice);
       const downpayment = getDownpaymentAmount(booking);
       const isDownpayment = booking.paymentType === "downpayment";
-      const paidAmount = isDownpayment ? downpayment : total;
-      const remainingBalance = Math.max(total - paidAmount, 0);
+
+      const currentDownpaymentPaid = typeof booking.downpaymentPaid === "number" ? booking.downpaymentPaid : 0;
+      const currentAmountPaid = typeof booking.amountPaid === "number" ? booking.amountPaid : 0;
+
+      if (isDownpayment) {
+        const paymentAmount = typeof booking.paymentAmount === "number" ? booking.paymentAmount : downpayment;
+        const selectedDP = typeof booking.selectedDownpaymentAmount === "number" && booking.selectedDownpaymentAmount > 0
+          ? booking.selectedDownpaymentAmount
+          : downpayment;
+        const newDownpaymentPaid = currentDownpaymentPaid + paymentAmount;
+        const newAmountPaid = currentAmountPaid + paymentAmount;
+
+        const updated = recalculatePaymentStage({
+          ...booking,
+          amountPaid: newAmountPaid,
+          downpaymentPaid: newDownpaymentPaid,
+          selectedDownpaymentAmount: selectedDP,
+          downpaymentRemaining: Math.max(selectedDP - newDownpaymentPaid, 0),
+          verifiedByAdmin: true,
+          verifiedAt: new Date().toISOString(),
+          contractSigningRequired: true,
+          contractSigned: booking.contractSigned || false,
+          contractStatus: booking.contractSigned ? "Signed" : "Pending Signature",
+          updatedAt: new Date().toISOString(),
+        });
+
+        return attachAutoReceipt({
+          ...updated,
+          status: "confirmed" as BookingStatus,
+          bookingStatus: "Confirmed",
+          isSlotSecured: true,
+          verifiedByAdmin: true,
+          verifiedAt: new Date().toISOString(),
+          contractSigningRequired: true,
+          contractSigned: booking.contractSigned || false,
+          contractStatus: booking.contractSigned ? "Signed" : "Pending Signature",
+          updatedAt: new Date().toISOString(),
+          adminLogs: makeAdminLog(
+            booking,
+            "VERIFY_PAYMENT",
+            newDownpaymentPaid < selectedDP
+              ? `Admin verified downpayment of ₱${paymentAmount.toLocaleString()}. Downpayment remaining: ₱${(selectedDP - newDownpaymentPaid).toLocaleString()}. Contract signing is still required.`
+              : newAmountPaid < total
+                ? `Admin verified payment of ₱${paymentAmount.toLocaleString()}. Remaining balance: ₱${(total - newAmountPaid).toLocaleString()}. Contract signing is still required.`
+                : "Admin verified full payment and confirmed booking. Contract signing is still required.",
+          ),
+        });
+      }
+
+      const paymentAmount = typeof booking.paymentAmount === "number" ? booking.paymentAmount : total;
+      const newAmountPaid = currentAmountPaid + paymentAmount;
 
       return attachAutoReceipt({
         ...booking,
         status: "confirmed" as BookingStatus,
         bookingStatus: "Confirmed",
         isSlotSecured: true,
-        paymentStatus: isDownpayment
-          ? ("partial" as PaymentStatus)
-          : ("paid" as PaymentStatus),
-        amountPaid: paidAmount,
-        remainingBalance,
-        remainingBalancePaid: !isDownpayment,
+        paymentStatus: newAmountPaid >= total ? ("paid" as PaymentStatus) : ("partial" as PaymentStatus),
+        amountPaid: newAmountPaid,
+        downpaymentPaid: 0,
+        downpaymentRemaining: 0,
+        remainingBalance: Math.max(total - newAmountPaid, 0),
+        remainingBalancePaid: newAmountPaid >= total,
         verifiedByAdmin: true,
         verifiedAt: new Date().toISOString(),
         contractSigningRequired: true,
@@ -1651,9 +1866,9 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         adminLogs: makeAdminLog(
           booking,
           "VERIFY_PAYMENT",
-          isDownpayment
-            ? "Admin verified downpayment. Remaining balance is still unpaid. Contract signing is still required."
-            : "Admin verified full payment and confirmed booking. Contract signing is still required.",
+          newAmountPaid >= total
+            ? "Admin verified full payment and confirmed booking. Contract signing is still required."
+            : `Admin verified payment of ₱${paymentAmount.toLocaleString()}. Contract signing is still required.`,
         ),
       });
     });
@@ -1768,7 +1983,50 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         booking.paymentType === "downpayment" &&
         currentPaid < total;
 
-      if (isSettlingBalance) {
+      const isRemainingPaymentFlow =
+        !isOfficeBooking(booking) &&
+        !isSettlingBalance &&
+        (String(booking.paymentStatus || "").toLowerCase() === "partial" ||
+         String(booking.paymentStatus || "").toLowerCase() === "incomplete" ||
+         String((booking as any).balanceStatus || "").toLowerCase() === "with remaining balance") &&
+        currentPaid > 0 &&
+        currentPaid < total;
+
+      if (paymentData.type === "downpayment") {
+        const dpAmount = paymentData.amount || getDownpaymentAmount(booking);
+        return {
+          ...booking,
+          status: isCash
+            ? ("pending" as BookingStatus)
+            : ("verifying" as BookingStatus),
+          bookingStatus: "Pending Verification",
+          isSlotSecured: false,
+          paymentStatus: isCash
+            ? ("cash_pending" as PaymentStatus)
+            : ("for_review" as PaymentStatus),
+          paymentType: "downpayment",
+          paymentMethod: paymentData.method,
+          paymentProof: paymentData.proof,
+          bankReferenceNumber: paymentData.method === "bank" ? paymentData.bankReferenceNumber?.trim() : undefined,
+          paymentAmount: Number(dpAmount),
+          paymentSubmittedAt: new Date().toISOString(),
+          selectedDownpaymentAmount: Number(dpAmount),
+          amountPaid: 0,
+          remainingBalance: total,
+          remainingBalancePaid: false,
+          verifiedByAdmin: false,
+          updatedAt: new Date().toISOString(),
+        };
+      }
+
+      if (isSettlingBalance || isRemainingPaymentFlow) {
+        const paymentAmount = Number(paymentData.amount || Math.max(total - currentPaid, 0));
+        const isDownpaymentStage = booking.paymentType === "downpayment" &&
+          (typeof booking.downpaymentPaid === "number" ? booking.downpaymentPaid : 0) <
+          (typeof booking.selectedDownpaymentAmount === "number" && booking.selectedDownpaymentAmount > 0
+            ? booking.selectedDownpaymentAmount
+            : getDownpaymentAmount(booking));
+
         return {
           ...booking,
           status: isCash
@@ -1782,7 +2040,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           paymentMethod: paymentData.method,
           paymentProof: paymentData.proof,
           bankReferenceNumber: paymentData.method === "bank" ? paymentData.bankReferenceNumber?.trim() : booking.bankReferenceNumber,
-          paymentAmount: Number(paymentData.amount || Math.max(total - currentPaid, 0)),
+          paymentAmount: paymentAmount,
           paymentSubmittedAt: new Date().toISOString(),
           remainingBalance: Math.max(total - currentPaid, 0),
           remainingBalancePaid: false,

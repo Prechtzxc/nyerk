@@ -174,7 +174,7 @@ function hasPaymentRecord(booking: Booking) {
   const ps = String(booking.paymentStatus || "").toLowerCase();
   if (amt > 0 || payAmt > 0) return true;
   if (proof) return true;
-  return ["for review", "pending verification", "partial payment", "fully paid", "verified", "rejected", "incomplete"].includes(ps);
+  return ["for review", "pending verification", "partial payment", "partial", "fully paid", "verified", "rejected", "incomplete"].includes(ps);
 }
 
 function paymentMatchesFilter(paymentStatus: string, status: string, filter: TransactionFilter) {
@@ -216,24 +216,25 @@ function isDateInRange(value: string, from?: string, to?: string) {
   return true;
 }
 
-function getStatusBadgeClass(status?: string) {
+function getStatusBadgeClass(status?: string, paymentStage?: string) {
   const v = String(status || "").toLowerCase();
-  if (["verified", "paid", "slot_verified", "partial"].includes(v)) {
-    return "border-emerald-100 bg-emerald-50 text-emerald-700";
-  }
-  if (["for_review", "cash_pending", "slot_pending", "pending_verification", "incomplete"].includes(v)) {
-    return "border-amber-100 bg-amber-50 text-amber-700";
-  }
+  const stage = String(paymentStage || "").toLowerCase();
+  if (stage === "fully paid" || v === "paid") return "border-emerald-100 bg-emerald-50 text-emerald-700";
+  if (["verified", "slot_verified"].includes(v)) return "border-emerald-100 bg-emerald-50 text-emerald-700";
+  if (v === "partial" || stage === "complete downpayment" || stage === "settle remaining balance") return "border-amber-100 bg-amber-50 text-amber-700";
+  if (["for_review", "cash_pending", "slot_pending", "pending_verification", "incomplete"].includes(v)) return "border-amber-100 bg-amber-50 text-amber-700";
   if (v === "rejected") return "border-rose-100 bg-rose-50 text-rose-700";
   return "border-slate-200 bg-slate-50 text-slate-700";
 }
 
-function getStatusLabel(paymentStatus?: string, status?: string) {
+function getStatusLabel(paymentStatus?: string, status?: string, paymentStage?: string) {
   const v = String(paymentStatus || "").toLowerCase();
-  if (["verified", "paid", "slot_verified"].includes(v)) return "Verified";
-  if (v === "partial") return "Partial";
+  const stage = String(paymentStage || "").toLowerCase();
+  if (stage === "fully paid" || v === "paid") return "Fully Paid";
+  if (["verified", "slot_verified"].includes(v)) return "Verified";
+  if (v === "partial" || stage === "complete downpayment" || stage === "settle remaining balance") return "Partial Payment";
   if (["for_review", "cash_pending", "slot_pending", "pending_verification"].includes(v)) return "For Review";
-  if (v === "incomplete") return "Incomplete";
+  if (v === "incomplete") return "Incomplete Payment";
   if (v === "rejected") return "Rejected";
   if (status === "cancelled") return "Cancelled";
   if (status === "pending" && !v) return "Pending";
@@ -285,8 +286,17 @@ function CurrentTransactionCard({
   const total = (booking as any).totalPrice || 0;
   const amountPaid = (booking as any).amountPaid ?? 0;
   const remaining = (booking as any).remainingBalance ?? Math.max(total - amountPaid, 0);
+  const paymentStatus = String(booking.paymentStatus || "").toLowerCase();
+  const balanceStatus = String((booking as any).balanceStatus || "").toLowerCase();
+  const paymentStage = String((booking as any).paymentStage || "").toLowerCase();
   const isDownpaymentActive =
     booking.status === "confirmed" && booking.paymentType === "downpayment" && !["cancelled", "declined"].includes(String(booking.status).toLowerCase());
+  const hasRemainingPaymentDue =
+    paymentStatus === "partial" ||
+    paymentStatus === "incomplete" ||
+    balanceStatus === "with remaining balance" ||
+    paymentStage === "complete downpayment" ||
+    paymentStage === "settle remaining balance";
   const remainingMs = getRemainingMs(booking);
   const isExpired = booking.status === "pending" && remainingMs <= 0;
   const isCashPending = booking.paymentMethod === "cash" && booking.paymentStatus === "cash_pending";
@@ -333,10 +343,10 @@ function CurrentTransactionCard({
             <span
               className={cn(
                 "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest",
-                getStatusBadgeClass(booking.paymentStatus),
+                getStatusBadgeClass(booking.paymentStatus, (booking as any).paymentStage),
               )}
             >
-              {getStatusLabel(booking.paymentStatus, booking.status)}
+              {getStatusLabel(booking.paymentStatus, booking.status, (booking as any).paymentStage)}
             </span>
           </div>
         </div>
@@ -367,12 +377,14 @@ function CurrentTransactionCard({
               Pay Now
             </Button>
           )}
-          {isDownpaymentActive && (
+          {(isDownpaymentActive || hasRemainingPaymentDue) && (
             <Button
               onClick={() => onSettle(booking)}
               className="h-9 rounded-lg bg-emerald-600 px-3 text-[11px] font-bold text-white shadow-sm hover:bg-emerald-700"
             >
-              Settle Balance
+              {paymentStage === "complete downpayment" || paymentStatus === "incomplete"
+                ? "Submit Remaining Downpayment"
+                : "Settle Remaining Balance"}
             </Button>
           )}
         </div>
@@ -441,10 +453,10 @@ function HistoryRow({
           <span
             className={cn(
               "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest",
-              getStatusBadgeClass(booking.paymentStatus),
+              getStatusBadgeClass(booking.paymentStatus, (booking as any).paymentStage),
             )}
           >
-            {getStatusLabel(booking.paymentStatus, booking.status)}
+            {getStatusLabel(booking.paymentStatus, booking.status, (booking as any).paymentStage)}
           </span>
           {expanded ? (
             <ChevronDown className="h-4 w-4 -rotate-180 text-slate-400 transition" />
@@ -777,21 +789,37 @@ function TransactionsContent() {
       isOfficeRental &&
       (booking.status === "reservation_secured" ||
         booking.officeReservationStatus === "reservation_secured");
+    const ps = String(booking.paymentStatus || "").toLowerCase();
+    const bs = String((booking as any).balanceStatus || "").toLowerCase();
+    const paymentStage = String((booking as any).paymentStage || "").toLowerCase();
+    const totalPrice = booking.totalPrice || 15000;
+    const selectedDP = Number((booking as any).selectedDownpaymentAmount || totalPrice * 0.5);
+    const downpaymentRemaining = Number((booking as any).downpaymentRemaining || Math.max(selectedDP - Number((booking as any).downpaymentPaid || 0), 0));
     const isSettlingBalance =
       !isOfficeRental &&
       booking.status === "confirmed" &&
       booking.paymentType === "downpayment";
+    const isRemainingPaymentFlow =
+      !isOfficeRental &&
+      (ps === "partial" || ps === "incomplete" || bs === "with remaining balance" ||
+        paymentStage === "complete downpayment" || paymentStage === "settle remaining balance");
 
-    const totalPrice = booking.totalPrice || 15000;
+    const currentAmountPaid = Number((booking as any).amountPaid || 0);
+    const remainingBalance = Math.max(totalPrice - currentAmountPaid, 0);
     const officeReservationFee = getOfficeReservationFee(booking) || totalPrice;
     const downpaymentAmount = totalPrice * 0.5;
+    const isCompletingDownpayment = paymentStage === "complete downpayment" || (isSettlingBalance && downpaymentRemaining > 0);
     const amountToPay = isOfficeRental
       ? officeReservationFee
-      : isSettlingBalance
-        ? downpaymentAmount
-        : paymentType === "full"
-          ? totalPrice
-          : downpaymentAmount;
+      : isCompletingDownpayment
+        ? downpaymentRemaining
+        : isRemainingPaymentFlow
+          ? remainingBalance
+          : isSettlingBalance
+            ? remainingBalance || downpaymentAmount
+            : paymentType === "full"
+              ? totalPrice
+              : downpaymentAmount;
 
     const remainingMs = getRemainingMs(booking);
     const isExpired = booking.status === "pending" && remainingMs <= 0;
@@ -1093,16 +1121,24 @@ function TransactionsContent() {
                 <h2 className="text-xl font-black text-orange-950">
                   {isOfficeRental
                     ? "Secure Office Reservation Slot"
-                    : isSettlingBalance
-                      ? "Settle Your Balance"
-                      : "Secure Your Booking"}
+                    : isCompletingDownpayment
+                      ? "Complete Your Downpayment"
+                      : isRemainingPaymentFlow
+                        ? "Settle Remaining Balance"
+                        : isSettlingBalance
+                          ? "Settle Your Balance"
+                          : "Secure Your Booking"}
                 </h2>
                 <p className="mt-1 text-sm leading-6 text-orange-800">
                   {isOfficeRental
                     ? "This payment is for slot reservation only. After admin verification, succeeding office rental payments are settled onsite via check."
-                    : isSettlingBalance
-                      ? "Please settle your remaining balance."
-                      : "Please complete your payment within 24 hours to confirm your slot."}
+                    : isCompletingDownpayment
+                      ? `Please complete your downpayment of ₱${downpaymentRemaining.toLocaleString()}.`
+                      : isRemainingPaymentFlow
+                        ? `Please settle your remaining balance of ₱${remainingBalance.toLocaleString()}.`
+                        : isSettlingBalance
+                          ? "Please settle your remaining balance."
+                          : "Please complete your payment within 24 hours to confirm your slot."}
                 </p>
               </div>
             </div>
@@ -1153,17 +1189,27 @@ function TransactionsContent() {
                     deposit.
                   </div>
                 </div>
-              ) : isSettlingBalance ? (
+              ) : isCompletingDownpayment || isRemainingPaymentFlow || isSettlingBalance ? (
                 <div className="rounded-xl border-2 border-orange-600 bg-orange-50 p-5">
                   <div className="mb-2 flex items-center justify-between gap-3">
                     <p className="text-sm font-bold text-slate-900">
-                      Remaining Balance Settlement
+                      {isCompletingDownpayment ? "Complete Downpayment" : isRemainingPaymentFlow ? "Remaining Payment Needed" : "Remaining Balance Settlement"}
                     </p>
                     <CheckCircle2 className="h-5 w-5 shrink-0 text-orange-600" />
                   </div>
                   <p className="text-2xl font-black text-orange-600">
                     ₱{amountToPay.toLocaleString()}
                   </p>
+                  {isCompletingDownpayment && (
+                    <p className="mt-2 text-xs font-semibold text-orange-700">
+                      Complete your selected downpayment. The remaining booking balance will be settled separately.
+                    </p>
+                  )}
+                  {isRemainingPaymentFlow && (
+                    <p className="mt-2 text-xs font-semibold text-orange-700">
+                      This is the remaining balance to fully pay for this booking.
+                    </p>
+                  )}
                 </div>
               ) : (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -1540,10 +1586,10 @@ function TransactionsContent() {
                         <span
                           className={cn(
                             "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest",
-                            getStatusBadgeClass(booking.paymentStatus),
+                            getStatusBadgeClass(booking.paymentStatus, (booking as any).paymentStage),
                           )}
                         >
-                          {getStatusLabel(booking.paymentStatus, booking.status)}
+                          {getStatusLabel(booking.paymentStatus, booking.status, (booking as any).paymentStage)}
                         </span>
                         {hasPaymentRecord(booking) && (
                           <Button
