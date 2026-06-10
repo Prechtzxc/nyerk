@@ -13,6 +13,7 @@ import {
   Inbox,
   Search,
   X,
+  XCircle,
   ShieldCheck,
   ArrowRight,
   Bell,
@@ -62,6 +63,7 @@ function getStatusBadgeClass(status?: string) {
   if (["completed", "complete"].includes(v)) return "border-blue-100 bg-blue-50 text-blue-700"
   if (["pending", "verifying"].includes(v)) return "border-orange-100 bg-orange-50 text-orange-700"
   if (["cancellation_requested", "cancellation requested"].includes(v)) return "border-amber-100 bg-amber-50 text-amber-700"
+  if (["modification_under_review"].includes(v)) return "border-purple-100 bg-purple-50 text-purple-700"
   if (["cancelled", "declined"].includes(v)) return "border-rose-100 bg-rose-50 text-rose-700"
   return "border-slate-200 bg-slate-50 text-slate-600"
 }
@@ -147,7 +149,8 @@ function getStatusLabel(status?: string) {
   if (v === "completed" || v === "complete") return "Completed"
   if (v === "cancelled") return "Cancelled"
   if (v === "declined") return "Declined"
-  if (v === "cancellation_requested") return "Cancel Requested"
+  if (v === "cancellation_requested") return "Cancel Req"
+  if (v === "modification_under_review") return "Modification Req"
   if (v === "reservation_secured") return "Reservation Secured"
   return String(status || "Unknown").replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase())
 }
@@ -193,6 +196,19 @@ export default function AdminBookingsPage() {
   const [onsitePaymentTarget, setOnsitePaymentTarget] = useState<Booking | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const ITEMS_PER_PAGE = 10
+
+  const [showApproveCancellationConfirm, setShowApproveCancellationConfirm] = useState(false)
+  const [showDeclineCancellationModal, setShowDeclineCancellationModal] = useState(false)
+  const [declineCancellationReason, setDeclineCancellationReason] = useState("")
+  const [declineCancellationTarget, setDeclineCancellationTarget] = useState<Booking | null>(null)
+  const [showApproveModificationConfirm, setShowApproveModificationConfirm] = useState(false)
+  const [showDeclineModificationModal, setShowDeclineModificationModal] = useState(false)
+  const [declineModificationReason, setDeclineModificationReason] = useState("")
+  const [declineModificationTarget, setDeclineModificationTarget] = useState<Booking | null>(null)
+  const [showMarkCompletedConfirm, setShowMarkCompletedConfirm] = useState(false)
+  const [showApproveCancellationTarget, setShowApproveCancellationTarget] = useState<string | null>(null)
+  const [showApproveModificationTarget, setShowApproveModificationTarget] = useState<string | null>(null)
+  const [showMarkCompletedTarget, setShowMarkCompletedTarget] = useState<string | null>(null)
 
   const urlStatusRef = useMemo(() => {
     if (typeof window === "undefined") return null
@@ -260,29 +276,18 @@ export default function AdminBookingsPage() {
     safePage * ITEMS_PER_PAGE,
   )
 
-  const handleMarkCompleted = (id: string) => {
+  const confirmApproveCancellation = () => {
+    const id = showApproveCancellationTarget
+    if (!id) return
+    const now = new Date().toISOString()
+    setShowApproveCancellationConfirm(false)
+    setShowApproveCancellationTarget(null)
     const next = bookings.map((b) =>
       b.id === id
-        ? { ...b, status: "completed" as const, bookingStatus: "Completed" as const, updatedAt: new Date().toISOString() }
+        ? { ...b, status: "cancelled" as const, bookingStatus: "Cancelled" as const, cancellationRequested: false, cancellationStatus: "Approved" as const, cancellationStatusLabel: "Approved", cancellationReviewedAt: now, refundStatus: "Refund Eligible" as const, updatedAt: now }
         : b,
     )
     persistBookings(next)
-    setSelectedBooking(next.find((b) => b.id === id) || null)
-    toast({
-      title: "Booking Completed",
-      description: `Booking ${id} has been marked as completed.`,
-      className: "border-none bg-emerald-500 text-white",
-    })
-  }
-
-  const handleApproveCancellation = (id: string) => {
-    const next = bookings.map((b) =>
-      b.id === id
-        ? { ...b, status: "cancelled" as const, bookingStatus: "Cancelled" as const, cancellationStatus: "Approved" as const, updatedAt: new Date().toISOString() }
-        : b,
-    )
-    persistBookings(next)
-    setSelectedBooking(next.find((b) => b.id === id) || null)
     toast({
       title: "Cancellation Approved",
       description: `Booking ${id} has been cancelled.`,
@@ -290,20 +295,107 @@ export default function AdminBookingsPage() {
     })
   }
 
-  const handleContinueBooking = (id: string) => {
-    const target = bookings.find((b) => b.id === id)
-    if (!target) return
-    const prevStatus = (target as any).previousBookingStatus || "confirmed"
-    const next: Booking[] = bookings.map((b) =>
-      b.id === id
-        ? { ...b, status: prevStatus, cancellationStatus: "Declined" as const, updatedAt: new Date().toISOString() }
+  const confirmDeclineCancellation = () => {
+    if (!declineCancellationTarget || !declineCancellationReason.trim()) return
+    const target = declineCancellationTarget
+    const reason = declineCancellationReason.trim()
+    const restoredBookingStatus = target.previousBookingStatus || target.previousStatus || "confirmed"
+    const now = new Date().toISOString()
+    const next = bookings.map((b) =>
+      b.id === target.id
+        ? { ...b, status: restoredBookingStatus, bookingStatus: target.bookingStatus || "Confirmed", cancellationRequested: false, cancellationStatus: "Declined" as const, cancellationStatusLabel: "Declined", cancellationReviewedAt: now, cancellationDeclinedAt: now, cancellationDeclineReason: reason, refundStatus: "Not Applicable" as const, previousStatus: undefined, previousBookingStatus: undefined, previousPaymentStatus: undefined, updatedAt: now }
         : b,
-    ) as Booking[]
+    )
     persistBookings(next)
-    setSelectedBooking(next.find((b) => b.id === id) || null)
+    setShowDeclineCancellationModal(false)
+    setDeclineCancellationTarget(null)
+    setDeclineCancellationReason("")
     toast({
       title: "Cancellation Declined",
-      description: `Booking ${id} will continue. Cancellation request has been declined.`,
+      description: `Booking ${target.id} will continue. Cancellation request has been declined.`,
+      className: "border-none bg-emerald-500 text-white",
+    })
+  }
+
+  const confirmApproveModification = () => {
+    const id = showApproveModificationTarget
+    if (!id) return
+    const now = new Date().toISOString()
+    const next = bookings.map((b) => {
+      if (b.id !== id) return b
+      const changes = (b as any).requestedChanges as Record<string, unknown> | undefined
+      const previousStatus = (b as any).modificationPreviousStatus || "pending"
+      const paymentVerified = b.paymentStatus === "verified" || b.paymentStatus === "paid" || b.paymentStatus === "slot_verified"
+      const restoredStatus: Booking["status"] = previousStatus === "modification_under_review"
+        ? paymentVerified ? "confirmed" : "pending"
+        : previousStatus as Booking["status"]
+      return {
+        ...b,
+        ...(changes || {}),
+        status: restoredStatus,
+        bookingStatus: "Modified",
+        modificationRequested: false,
+        modificationStatus: "Approved" as const,
+        modificationReviewedAt: now,
+        modificationPreviousStatus: undefined,
+        modificationPreviousBookingStatus: undefined,
+        requestedChanges: undefined,
+        originalBookingSnapshot: undefined,
+        updatedAt: now,
+      } as unknown as Booking
+    })
+    persistBookings(next)
+    setShowApproveModificationConfirm(false)
+    setShowApproveModificationTarget(null)
+    toast({
+      title: "Modification Approved",
+      description: `Booking ${id} has been updated with the requested changes.`,
+      className: "border-none bg-blue-500 text-white",
+    })
+  }
+
+  const confirmDeclineModification = () => {
+    if (!declineModificationTarget || !declineModificationReason.trim()) return
+    const target = declineModificationTarget
+    const reason = declineModificationReason.trim()
+    const previousStatus = (target as any).modificationPreviousStatus || "pending"
+    const now = new Date().toISOString()
+    const next = bookings.map((b) =>
+      b.id === target.id
+        ? { ...b, status: previousStatus, bookingStatus: b.bookingStatus || "Confirmed", modificationRequested: false, modificationStatus: "Declined" as const, modificationDeclineReason: reason, modificationReviewedAt: now, modificationPreviousStatus: undefined, modificationPreviousBookingStatus: undefined, requestedChanges: undefined, originalBookingSnapshot: undefined, updatedAt: now }
+        : b,
+    )
+    persistBookings(next)
+    setShowDeclineModificationModal(false)
+    setDeclineModificationTarget(null)
+    setDeclineModificationReason("")
+    toast({
+      title: "Modification Declined",
+      description: `Booking ${target.id} has been declined. Original booking unchanged.`,
+      className: "border-none bg-amber-500 text-white",
+    })
+  }
+
+  const handleMarkCompleted = (id: string) => {
+    setShowMarkCompletedTarget(id)
+    setShowMarkCompletedConfirm(true)
+  }
+
+  const confirmMarkCompleted = () => {
+    const id = showMarkCompletedTarget
+    if (!id) return
+    const next = bookings.map((b) =>
+      b.id === id
+        ? { ...b, status: "completed" as const, bookingStatus: "Completed" as const, completedAt: new Date().toISOString(), completedBy: "Administrator", updatedAt: new Date().toISOString() }
+        : b,
+    )
+    persistBookings(next)
+    setShowMarkCompletedConfirm(false)
+    setShowMarkCompletedTarget(null)
+    setSelectedBooking(next.find((b) => b.id === id) || null)
+    toast({
+      title: "Booking Completed",
+      description: `Booking ${id} has been marked as completed.`,
       className: "border-none bg-emerald-500 text-white",
     })
   }
@@ -346,6 +438,7 @@ export default function AdminBookingsPage() {
       completed: bookings.filter((b) => b.status === "completed").length,
       cancelled: bookings.filter((b) => b.status === "cancelled").length,
       cancellation_requested: bookings.filter((b) => b.status === "cancellation_requested").length,
+      modification_under_review: bookings.filter((b) => b.status === "modification_under_review").length,
     }
   }, [bookings])
 
@@ -357,6 +450,7 @@ export default function AdminBookingsPage() {
     { value: "completed", label: "Completed" },
     { value: "cancelled", label: "Cancelled" },
     { value: "cancellation_requested", label: "Cancel Requested" },
+    { value: "modification_under_review", label: "Modification Requested" },
   ]
 
   return (
@@ -376,8 +470,63 @@ export default function AdminBookingsPage() {
             const target = bookings.find((b) => b.id === id)
             if (target) setOnsitePaymentTarget(target)
           }}
-          onApproveCancellation={handleApproveCancellation}
-          onContinueBooking={handleContinueBooking}
+          onApproveCancellation={(id) => {
+            setShowApproveCancellationTarget(id)
+            setShowApproveCancellationConfirm(true)
+          }}
+          onContinueBooking={(id) => {
+            const target = bookings.find((b) => b.id === id)
+            if (target) {
+              setDeclineCancellationTarget(target)
+              setShowDeclineCancellationModal(true)
+            }
+          }}
+          onApproveModification={(id) => {
+            setShowApproveModificationTarget(id)
+            setShowApproveModificationConfirm(true)
+          }}
+          onDeclineModification={(id) => {
+            const target = bookings.find((b) => b.id === id)
+            if (target) {
+              setDeclineModificationTarget(target)
+              setShowDeclineModificationModal(true)
+            }
+          }}
+        />
+
+        <ApproveCancellationConfirmModal
+          open={showApproveCancellationConfirm}
+          booking={selectedBooking}
+          onCancel={() => { setShowApproveCancellationConfirm(false); setShowApproveCancellationTarget(null) }}
+          onConfirm={confirmApproveCancellation}
+        />
+        <DeclineCancellationModal
+          open={showDeclineCancellationModal}
+          booking={declineCancellationTarget}
+          reason={declineCancellationReason}
+          onReasonChange={setDeclineCancellationReason}
+          onCancel={() => { setShowDeclineCancellationModal(false); setDeclineCancellationTarget(null); setDeclineCancellationReason("") }}
+          onConfirm={confirmDeclineCancellation}
+        />
+        <ApproveModificationConfirmModal
+          open={showApproveModificationConfirm}
+          booking={selectedBooking}
+          onCancel={() => { setShowApproveModificationConfirm(false); setShowApproveModificationTarget(null) }}
+          onConfirm={confirmApproveModification}
+        />
+        <DeclineModificationModal
+          open={showDeclineModificationModal}
+          booking={declineModificationTarget}
+          reason={declineModificationReason}
+          onReasonChange={setDeclineModificationReason}
+          onCancel={() => { setShowDeclineModificationModal(false); setDeclineModificationTarget(null); setDeclineModificationReason("") }}
+          onConfirm={confirmDeclineModification}
+        />
+        <MarkCompletedConfirmModal
+          open={showMarkCompletedConfirm}
+          booking={selectedBooking}
+          onCancel={() => { setShowMarkCompletedConfirm(false); setShowMarkCompletedTarget(null) }}
+          onConfirm={confirmMarkCompleted}
         />
 
         <ContractSigningConfirmModal
@@ -607,6 +756,8 @@ function BookingDetailsModal({
   onRecordOnsitePayment,
   onApproveCancellation,
   onContinueBooking,
+  onApproveModification,
+  onDeclineModification,
 }: {
   booking: Booking | null
   open: boolean
@@ -617,6 +768,8 @@ function BookingDetailsModal({
   onRecordOnsitePayment?: (id: string) => void
   onApproveCancellation?: (id: string) => void
   onContinueBooking?: (id: string) => void
+  onApproveModification?: (id: string) => void
+  onDeclineModification?: (id: string) => void
 }) {
   if (!booking) return null
 
@@ -665,6 +818,7 @@ function BookingDetailsModal({
 
   const bookingStatus = normalizeStatus((booking as any).bookingStatus || booking.status)
   const isCancellationRequested = normalizeStatus(booking.status) === "cancellation_requested"
+  const isModificationUnderReview = normalizeStatus(booking.status) === "modification_under_review"
 
   const hasActiveProof = (() => {
     const proofExists = Boolean(
@@ -1011,10 +1165,15 @@ function BookingDetailsModal({
             remainingBalance > 0 &&
             !isCompleted &&
             !isCancelled
-          const canDoMarkCompleted =
+          const isMarkCompletedEnabled =
             isFullyPaid &&
             remainingBalance === 0 &&
             isEventFinished &&
+            !isCompleted &&
+            !isCancelled
+          const isMarkCompletedVisible =
+            isFullyPaid &&
+            remainingBalance === 0 &&
             !isCompleted &&
             !isCancelled
 
@@ -1045,6 +1204,45 @@ function BookingDetailsModal({
                     >
                       <AlertCircle className="mr-1.5 h-3.5 w-3.5" />
                       Approve Cancellation
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )
+          }
+
+          if (isModificationUnderReview && !isCompleted && !isCancelled) {
+            return (
+              <div className="border-t border-slate-100 bg-white px-4 py-3 sm:px-6 sm:py-4">
+                <div className="rounded-xl bg-purple-50 p-3 text-center mb-3">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-purple-600">Modification Under Review</p>
+                  <p className="mt-1 text-xs font-semibold text-purple-700">
+                    The customer has requested to modify this booking. Please review and take action.
+                  </p>
+                  {booking.modificationReason && (
+                    <p className="mt-2 text-[11px] font-semibold text-purple-600">
+                      Reason: {booking.modificationReason}
+                    </p>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  {onDeclineModification && (
+                    <Button
+                      onClick={() => onDeclineModification(booking.id)}
+                      variant="outline"
+                      className="h-10 w-full rounded-lg border-amber-200 px-4 text-xs font-bold text-amber-700 hover:bg-amber-50"
+                    >
+                      <XCircle className="mr-1.5 h-3.5 w-3.5" />
+                      Decline Modification
+                    </Button>
+                  )}
+                  {onApproveModification && (
+                    <Button
+                      onClick={() => onApproveModification(booking.id)}
+                      className="h-10 w-full rounded-lg border-emerald-200 bg-emerald-50 px-4 text-xs font-bold text-emerald-700 hover:bg-emerald-100"
+                    >
+                      <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
+                      Approve Modification
                     </Button>
                   )}
                 </div>
@@ -1110,16 +1308,25 @@ function BookingDetailsModal({
           }
 
           if (isFullyPaid && !isCompleted && !isCancelled) {
-            if (!canDoMarkCompleted) return null
+            if (!isMarkCompletedVisible) return null
             return (
               <div className="border-t border-slate-100 bg-white px-4 py-3 sm:px-6 sm:py-4">
                 <Button
-                  onClick={() => onMarkCompleted(booking.id)}
-                  className="h-11 w-full rounded-lg bg-emerald-600 px-4 text-xs font-bold text-white shadow-sm hover:bg-emerald-700"
+                  onClick={() => isMarkCompletedEnabled && onMarkCompleted(booking.id)}
+                  disabled={!isMarkCompletedEnabled}
+                  className="h-11 w-full rounded-lg px-4 text-xs font-bold text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{
+                    backgroundColor: isMarkCompletedEnabled ? '#059669' : '#9ca3af',
+                  }}
                 >
                   <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
                   Mark as Completed
                 </Button>
+                {!isEventFinished && (
+                  <p className="mt-2 text-[10px] font-semibold text-slate-500 text-center">
+                    This action will be available after the event has ended.
+                  </p>
+                )}
               </div>
             )
           }
@@ -1573,6 +1780,309 @@ function ContractSigningConfirmModal({
             >
               Yes, Mark as Signed
             </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function ApproveCancellationConfirmModal({
+  open,
+  booking,
+  onCancel,
+  onConfirm,
+}: {
+  open: boolean
+  booking: Booking | null
+  onCancel: () => void
+  onConfirm: () => void
+}) {
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onCancel()}>
+      <DialogContent className="w-[calc(100vw-28px)] max-w-[520px] rounded-2xl border-0 bg-white p-0 shadow-2xl [&>button]:hidden">
+        <div className="p-6 sm:p-7">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-50 text-rose-600">
+            <AlertCircle className="h-8 w-8" />
+          </div>
+          <DialogTitle className="text-2xl font-black text-slate-950">
+            Approve Cancellation?
+          </DialogTitle>
+          <p className="mt-2 text-sm leading-6 text-slate-500">
+            Are you sure you want to approve this cancellation request? This will cancel the booking and apply the existing refund eligibility logic.
+          </p>
+          {booking && (
+            <div className="mt-5 space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left">
+              <div className="flex justify-between text-xs">
+                <span className="font-semibold text-slate-400">Booking ID</span>
+                <span className="font-bold text-slate-900">{booking.id}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="font-semibold text-slate-400">Customer</span>
+                <span className="font-bold text-slate-900">{booking.userInfo?.name || "No Name"}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="font-semibold text-slate-400">Event</span>
+                <span className="font-bold text-slate-900">{booking.eventName || "Untitled"}</span>
+              </div>
+              {booking.cancellationReason && (
+                <div className="flex justify-between text-xs">
+                  <span className="font-semibold text-slate-400">Reason</span>
+                  <span className="font-bold text-slate-900">{booking.cancellationReason}</span>
+                </div>
+              )}
+            </div>
+          )}
+          <div className="mt-6 grid grid-cols-2 gap-3">
+            <Button variant="outline" onClick={onCancel} className="h-11 rounded-xl border-slate-200 text-sm font-black text-slate-700">Cancel</Button>
+            <Button onClick={onConfirm} className="h-11 rounded-xl bg-rose-600 text-sm font-black text-white hover:bg-rose-700">Approve Cancellation</Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function DeclineCancellationModal({
+  open,
+  booking,
+  reason,
+  onReasonChange,
+  onCancel,
+  onConfirm,
+}: {
+  open: boolean
+  booking: Booking | null
+  reason: string
+  onReasonChange: (value: string) => void
+  onCancel: () => void
+  onConfirm: () => void
+}) {
+  const [reasonError, setReasonError] = useState(false)
+
+  const handleConfirm = () => {
+    if (!reason.trim()) {
+      setReasonError(true)
+      return
+    }
+    setReasonError(false)
+    onConfirm()
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onCancel()}>
+      <DialogContent className="w-[calc(100vw-28px)] max-w-[520px] rounded-2xl border-0 bg-white p-0 shadow-2xl [&>button]:hidden">
+        <div className="p-6 sm:p-7">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+            <CheckCircle2 className="h-8 w-8" />
+          </div>
+          <DialogTitle className="text-2xl font-black text-slate-950">
+            Continue Booking?
+          </DialogTitle>
+          <p className="mt-2 text-sm leading-6 text-slate-500">
+            This will decline the cancellation request and restore the booking to its previous status. Please provide a reason.
+          </p>
+          {booking && (
+            <div className="mt-5 space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left">
+              <div className="flex justify-between text-xs">
+                <span className="font-semibold text-slate-400">Booking ID</span>
+                <span className="font-bold text-slate-900">{booking.id}</span>
+              </div>
+            </div>
+          )}
+          <div className="mt-4">
+            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Decline Reason *</Label>
+            <Textarea
+              value={reason}
+              onChange={(e) => { onReasonChange(e.target.value); if (reasonError && e.target.value.trim()) setReasonError(false) }}
+              placeholder="Enter reason for declining cancellation..."
+              className={cn("mt-1.5 min-h-[80px] resize-none rounded-xl border text-xs focus-visible:ring-emerald-600", reasonError ? "border-rose-300" : "border-slate-200")}
+            />
+            {reasonError && <p className="mt-1 text-[11px] font-semibold text-rose-600">Please provide a reason.</p>}
+          </div>
+          <div className="mt-6 grid grid-cols-2 gap-3">
+            <Button variant="outline" onClick={onCancel} className="h-11 rounded-xl border-slate-200 text-sm font-black text-slate-700">Cancel</Button>
+            <Button onClick={handleConfirm} className="h-11 rounded-xl bg-emerald-600 text-sm font-black text-white hover:bg-emerald-700">Continue Booking</Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function ApproveModificationConfirmModal({
+  open,
+  booking,
+  onCancel,
+  onConfirm,
+}: {
+  open: boolean
+  booking: Booking | null
+  onCancel: () => void
+  onConfirm: () => void
+}) {
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onCancel()}>
+      <DialogContent className="w-[calc(100vw-28px)] max-w-[520px] rounded-2xl border-0 bg-white p-0 shadow-2xl [&>button]:hidden">
+        <div className="p-6 sm:p-7">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+            <CheckCircle2 className="h-8 w-8" />
+          </div>
+          <DialogTitle className="text-2xl font-black text-slate-950">
+            Approve Modification?
+          </DialogTitle>
+          <p className="mt-2 text-sm leading-6 text-slate-500">
+            Are you sure you want to approve this modification request? The requested changes will be applied to the booking.
+          </p>
+          {booking && (
+            <div className="mt-5 space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left">
+              <div className="flex justify-between text-xs">
+                <span className="font-semibold text-slate-400">Booking ID</span>
+                <span className="font-bold text-slate-900">{booking.id}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="font-semibold text-slate-400">Customer</span>
+                <span className="font-bold text-slate-900">{booking.userInfo?.name || "No Name"}</span>
+              </div>
+              {booking.modificationReason && (
+                <div className="flex justify-between text-xs">
+                  <span className="font-semibold text-slate-400">Reason</span>
+                  <span className="font-bold text-slate-900">{booking.modificationReason}</span>
+                </div>
+              )}
+              {booking.requestedChanges && (
+                <div className="mt-2 pt-2 border-t border-slate-200">
+                  <p className="text-[10px] font-semibold text-slate-500 mb-1">Requested Changes:</p>
+                  {Object.entries(booking.requestedChanges as Record<string, unknown>).map(([key, value]) => (
+                    <div key={key} className="flex justify-between text-[11px]">
+                      <span className="font-semibold text-slate-500">{key}:</span>
+                      <span className="font-bold text-slate-900">{String(value)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          <div className="mt-6 grid grid-cols-2 gap-3">
+            <Button variant="outline" onClick={onCancel} className="h-11 rounded-xl border-slate-200 text-sm font-black text-slate-700">Cancel</Button>
+            <Button onClick={onConfirm} className="h-11 rounded-xl bg-blue-600 text-sm font-black text-white hover:bg-blue-700">Approve Modification</Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function DeclineModificationModal({
+  open,
+  booking,
+  reason,
+  onReasonChange,
+  onCancel,
+  onConfirm,
+}: {
+  open: boolean
+  booking: Booking | null
+  reason: string
+  onReasonChange: (value: string) => void
+  onCancel: () => void
+  onConfirm: () => void
+}) {
+  const [reasonError, setReasonError] = useState(false)
+
+  const handleConfirm = () => {
+    if (!reason.trim()) {
+      setReasonError(true)
+      return
+    }
+    setReasonError(false)
+    onConfirm()
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onCancel()}>
+      <DialogContent className="w-[calc(100vw-28px)] max-w-[520px] rounded-2xl border-0 bg-white p-0 shadow-2xl [&>button]:hidden">
+        <div className="p-6 sm:p-7">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
+            <XCircle className="h-8 w-8" />
+          </div>
+          <DialogTitle className="text-2xl font-black text-slate-950">
+            Decline Modification?
+          </DialogTitle>
+          <p className="mt-2 text-sm leading-6 text-slate-500">
+            This will decline the modification request. The original booking details will remain unchanged. Please provide a reason.
+          </p>
+          {booking && (
+            <div className="mt-5 space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left">
+              <div className="flex justify-between text-xs">
+                <span className="font-semibold text-slate-400">Booking ID</span>
+                <span className="font-bold text-slate-900">{booking.id}</span>
+              </div>
+            </div>
+          )}
+          <div className="mt-4">
+            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Decline Reason *</Label>
+            <Textarea
+              value={reason}
+              onChange={(e) => { onReasonChange(e.target.value); if (reasonError && e.target.value.trim()) setReasonError(false) }}
+              placeholder="Enter reason for declining modification..."
+              className={cn("mt-1.5 min-h-[80px] resize-none rounded-xl border text-xs focus-visible:ring-amber-600", reasonError ? "border-rose-300" : "border-slate-200")}
+            />
+            {reasonError && <p className="mt-1 text-[11px] font-semibold text-rose-600">Please provide a reason.</p>}
+          </div>
+          <div className="mt-6 grid grid-cols-2 gap-3">
+            <Button variant="outline" onClick={onCancel} className="h-11 rounded-xl border-slate-200 text-sm font-black text-slate-700">Cancel</Button>
+            <Button onClick={handleConfirm} className="h-11 rounded-xl bg-amber-600 text-sm font-black text-white hover:bg-amber-700">Decline Modification</Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function MarkCompletedConfirmModal({
+  open,
+  booking,
+  onCancel,
+  onConfirm,
+}: {
+  open: boolean
+  booking: Booking | null
+  onCancel: () => void
+  onConfirm: () => void
+}) {
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onCancel()}>
+      <DialogContent className="w-[calc(100vw-28px)] max-w-[520px] rounded-2xl border-0 bg-white p-0 shadow-2xl [&>button]:hidden">
+        <div className="p-6 sm:p-7">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+            <CheckCircle2 className="h-8 w-8" />
+          </div>
+          <DialogTitle className="text-2xl font-black text-slate-950">
+            Mark Booking as Completed?
+          </DialogTitle>
+          <p className="mt-2 text-sm leading-6 text-slate-500">
+            Are you sure you want to mark this booking as completed? This action cannot be undone.
+          </p>
+          {booking && (
+            <div className="mt-5 space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left">
+              <div className="flex justify-between text-xs">
+                <span className="font-semibold text-slate-400">Booking ID</span>
+                <span className="font-bold text-slate-900">{booking.id}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="font-semibold text-slate-400">Customer</span>
+                <span className="font-bold text-slate-900">{booking.userInfo?.name || "No Name"}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="font-semibold text-slate-400">Event</span>
+                <span className="font-bold text-slate-900">{booking.eventName || "Untitled"}</span>
+              </div>
+            </div>
+          )}
+          <div className="mt-6 grid grid-cols-2 gap-3">
+            <Button variant="outline" onClick={onCancel} className="h-11 rounded-xl border-slate-200 text-sm font-black text-slate-700">Cancel</Button>
+            <Button onClick={onConfirm} className="h-11 rounded-xl bg-emerald-600 text-sm font-black text-white hover:bg-emerald-700">Mark as Completed</Button>
           </div>
         </div>
       </DialogContent>

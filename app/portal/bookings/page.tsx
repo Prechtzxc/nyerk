@@ -633,20 +633,25 @@ function BookingDetailsModal({
     paymentStage === "settle remaining balance"
   const showBalanceReminderNotice = (booking as any).balanceReminderSent === true && hasRemainingPayment
 
+  const isPayUnderReview = payStatus === "for_review" || payStatus === "cash_pending" || payStatus === "slot_pending"
   const showPay =
     onPay &&
+    !isPayUnderReview &&
     payStatus !== "verified" &&
     payStatus !== "paid" &&
     payStatus !== "slot_verified" &&
     booking.status !== "completed" &&
-    booking.status !== "cancelled"
+    booking.status !== "cancelled" &&
+    booking.status !== "modification_under_review" &&
+    booking.cancellationStatus !== "Under Review"
 
   const showCancelAction =
     onCancel &&
     booking.status !== "completed" &&
     booking.status !== "cancelled" &&
     booking.cancellationStatus !== "Under Review" &&
-    booking.cancellationStatus !== "Approved"
+    booking.cancellationStatus !== "Approved" &&
+    booking.modificationStatus !== "Under Review"
 
   const showModify =
     booking.status !== "completed" &&
@@ -955,6 +960,14 @@ function BookingDetailsModal({
 
         <div className="border-t border-slate-100 bg-white px-4 py-3 sm:px-6 sm:py-4">
           <div className="flex flex-col gap-3 w-full">
+            {isPayUnderReview && (
+              <div className="rounded-xl bg-amber-50 p-3 text-center">
+                <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">Payment Under Review</p>
+                <p className="mt-1 text-xs font-semibold text-amber-700">
+                  Your payment is currently being reviewed by the administrator. Pay Now is unavailable while your payment is under review.
+                </p>
+              </div>
+            )}
             {(showModify || showReceipt || showPay || hasRemainingPayment) && (
               <div className={cn("w-full",
                 showModify && (showPay || showReceipt || (hasRemainingPayment && !showPay && !showReceipt))
