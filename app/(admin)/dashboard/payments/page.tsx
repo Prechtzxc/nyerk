@@ -1075,7 +1075,6 @@ function isImageProof(proof: unknown) {
 }
 
 function isPaymentRecord(booking: BookingRecord) {
-  const status = String(booking?.status || "").toLowerCase()
   const paymentStatus = String(booking?.paymentStatus || "").toLowerCase()
   const hasProof = Boolean(
     booking?.paymentProof ||
@@ -1085,10 +1084,7 @@ function isPaymentRecord(booking: BookingRecord) {
   )
 
   return (
-    status === "verifying" ||
     paymentStatus === "for_review" ||
-    paymentStatus === "cash_pending" ||
-    paymentStatus === "slot_pending" ||
     paymentStatus === "pending_verification" ||
     paymentStatus === "pending verification" ||
     paymentStatus === "for verification" ||
@@ -1098,14 +1094,10 @@ function isPaymentRecord(booking: BookingRecord) {
 }
 
 function isForReviewPayment(booking: BookingRecord) {
-  const status = String(booking?.status || "").toLowerCase()
   const paymentStatus = String(booking?.paymentStatus || "").toLowerCase()
 
   return (
-    status === "verifying" ||
     paymentStatus === "for_review" ||
-    paymentStatus === "cash_pending" ||
-    paymentStatus === "slot_pending" ||
     paymentStatus === "pending_verification" ||
     paymentStatus === "for verification" ||
     paymentStatus === "pending verification" ||

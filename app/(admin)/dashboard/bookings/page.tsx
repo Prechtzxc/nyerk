@@ -693,30 +693,10 @@ function BookingDetailsModal({
     return eventDate.getTime() < Date.now()
   })()
 
-  const isPartialPayment = paymentStatus === "partial" || (balanceStatus === "with remaining balance" && amountPaid > 0) ||
-    paymentStage === "complete downpayment" || paymentStage === "settle remaining balance"
-
   const isFullyPaid =
     remainingBalance === 0 &&
     amountPaid >= totalAmount &&
     (paymentStage === "fully paid" || paymentStatus === "paid" || balanceStatus === "settled")
-
-  const canComplete =
-    isFullyPaid &&
-    remainingBalance === 0 &&
-    !isCompleted &&
-    !isCancelled &&
-    isEventFinished
-
-  const canRecordOnsite =
-    onRecordOnsitePayment &&
-    !isFullyPaid &&
-    !isCompleted &&
-    !isCancelled &&
-    !isCancellationRequested &&
-    remainingBalance > 0 &&
-    !hasActiveProof &&
-    ["pending", "confirmed", "reservation_secured"].includes(normalizeStatus(booking.status))
 
   const timeValue =
     booking.time ||
@@ -1007,97 +987,145 @@ function BookingDetailsModal({
           )}
         </div>
 
-        {isPartialPayment && remainingBalance > 0 && !isCompleted && !isCancelled && (
-          <div className="border-t border-slate-100 bg-white px-4 py-3 sm:px-6 sm:py-4">
-            <div className="flex flex-col gap-3">
-              <div className="rounded-xl bg-amber-50 p-3 text-center">
-                <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">Remaining Balance</p>
-                <p className="mt-1 text-xl font-black text-amber-700">₱{remainingBalance.toLocaleString()}</p>
+        {/* ── Status-Based Action Buttons ── */}
+        {(() => {
+          const normStatus = normalizeStatus(booking.status)
+          const isPencilBooking =
+            normStatus === "pending" &&
+            !["for_review", "cash_pending", "slot_pending", "pending_verification", "pending verification", "for verification"].includes(paymentStatus)
+          const isForVerificationStatus =
+            normStatus === "verifying" ||
+            ["for_review", "cash_pending", "slot_pending", "pending_verification", "pending verification", "for verification"].includes(paymentStatus)
+          const isApprovedOrConfirmed =
+            ["confirmed", "reservation_secured"].includes(normStatus)
+
+          const canDoRecordOnsite =
+            remainingBalance > 0 &&
+            !isFullyPaid &&
+            !isCompleted &&
+            !isCancelled &&
+            !isForVerificationStatus &&
+            !hasActiveProof
+          const canDoBalanceReminder =
+            isApprovedOrConfirmed &&
+            remainingBalance > 0 &&
+            !isCompleted &&
+            !isCancelled
+          const canDoMarkCompleted =
+            isFullyPaid &&
+            remainingBalance === 0 &&
+            isEventFinished &&
+            !isCompleted &&
+            !isCancelled
+
+          if (isCancellationRequested && !isCompleted && !isCancelled) {
+            return (
+              <div className="border-t border-slate-100 bg-white px-4 py-3 sm:px-6 sm:py-4">
+                <div className="rounded-xl bg-amber-50 p-3 text-center mb-3">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">Cancellation Under Review</p>
+                  <p className="mt-1 text-xs font-semibold text-amber-700">
+                    The customer has requested to cancel this booking. Please review and take action.
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  {onContinueBooking && (
+                    <Button
+                      onClick={() => onContinueBooking(booking.id)}
+                      variant="outline"
+                      className="h-10 w-full rounded-lg border-emerald-200 px-4 text-xs font-bold text-emerald-700 hover:bg-emerald-50"
+                    >
+                      <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
+                      Continue Booking
+                    </Button>
+                  )}
+                  {onApproveCancellation && (
+                    <Button
+                      onClick={() => onApproveCancellation(booking.id)}
+                      className="h-10 w-full rounded-lg border-rose-200 bg-rose-50 px-4 text-xs font-bold text-rose-700 hover:bg-rose-100"
+                    >
+                      <AlertCircle className="mr-1.5 h-3.5 w-3.5" />
+                      Approve Cancellation
+                    </Button>
+                  )}
+                </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                {onSendReminder && ["confirmed", "reservation_secured"].includes(normalizeStatus(booking.status)) && (
-                  <Button
-                    onClick={() => onSendReminder(booking.id)}
-                    variant="outline"
-                    className="h-10 w-full rounded-lg border-blue-200 px-4 text-xs font-bold text-blue-700 hover:bg-blue-50"
-                  >
-                    <Bell className="mr-1.5 h-3.5 w-3.5" />
-                    Send Balance Reminder
-                  </Button>
-                )}
-                {canRecordOnsite && (
+            )
+          }
+
+          if (isForVerificationStatus) return null
+          if (isCompleted || isCancelled) return null
+
+          if (isPencilBooking) {
+            if (!canDoRecordOnsite || !onRecordOnsitePayment) return null
+            return (
+              <div className="border-t border-slate-100 bg-white px-4 py-3 sm:px-6 sm:py-4">
+                <div className="flex sm:justify-end">
                   <Button
                     onClick={() => onRecordOnsitePayment(booking.id)}
-                    className="h-10 w-full rounded-lg border-emerald-200 bg-emerald-50 px-4 text-xs font-bold text-emerald-700 hover:bg-emerald-100"
+                    className="h-10 rounded-lg border-emerald-200 bg-emerald-50 px-4 text-xs font-bold text-emerald-700 hover:bg-emerald-100"
                   >
                     <DollarSign className="mr-1.5 h-3.5 w-3.5" />
                     Record Onsite Payment
                   </Button>
+                </div>
+              </div>
+            )
+          }
+
+          if (isApprovedOrConfirmed) {
+            if (!remainingBalance && !canDoBalanceReminder && !canDoRecordOnsite) return null
+            return (
+              <div className="border-t border-slate-100 bg-white px-4 py-3 sm:px-6 sm:py-4">
+                {remainingBalance > 0 && (
+                  <div className="rounded-xl bg-amber-50 p-3 text-center mb-3">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">Remaining Balance</p>
+                    <p className="mt-1 text-xl font-black text-amber-700">₱{remainingBalance.toLocaleString()}</p>
+                  </div>
+                )}
+                {(canDoBalanceReminder || canDoRecordOnsite) && (
+                  <div className="flex flex-wrap gap-3">
+                    {canDoBalanceReminder && onSendReminder && (
+                      <Button
+                        onClick={() => onSendReminder(booking.id)}
+                        variant="outline"
+                        className="h-10 rounded-lg border-blue-200 px-4 text-xs font-bold text-blue-700 hover:bg-blue-50"
+                      >
+                        <Bell className="mr-1.5 h-3.5 w-3.5" />
+                        Send Balance Reminder
+                      </Button>
+                    )}
+                    {canDoRecordOnsite && onRecordOnsitePayment && (
+                      <Button
+                        onClick={() => onRecordOnsitePayment(booking.id)}
+                        className="h-10 rounded-lg border-emerald-200 bg-emerald-50 px-4 text-xs font-bold text-emerald-700 hover:bg-emerald-100"
+                      >
+                        <DollarSign className="mr-1.5 h-3.5 w-3.5" />
+                        Record Onsite Payment
+                      </Button>
+                    )}
+                  </div>
                 )}
               </div>
-            </div>
-          </div>
-        )}
+            )
+          }
 
-        {isCancellationRequested && !isCompleted && !isCancelled && (
-          <div className="border-t border-slate-100 bg-white px-4 py-3 sm:px-6 sm:py-4">
-            <div className="rounded-xl bg-amber-50 p-3 text-center mb-3">
-              <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">Cancellation Under Review</p>
-              <p className="mt-1 text-xs font-semibold text-amber-700">
-                The customer has requested to cancel this booking. Please review and take action.
-              </p>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              {onContinueBooking && (
+          if (isFullyPaid && !isCompleted && !isCancelled) {
+            if (!canDoMarkCompleted) return null
+            return (
+              <div className="border-t border-slate-100 bg-white px-4 py-3 sm:px-6 sm:py-4">
                 <Button
-                  onClick={() => onContinueBooking(booking.id)}
-                  variant="outline"
-                  className="h-10 w-full rounded-lg border-emerald-200 px-4 text-xs font-bold text-emerald-700 hover:bg-emerald-50"
+                  onClick={() => onMarkCompleted(booking.id)}
+                  className="h-11 w-full rounded-lg bg-emerald-600 px-4 text-xs font-bold text-white shadow-sm hover:bg-emerald-700"
                 >
                   <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
-                  Continue Booking
+                  Mark as Completed
                 </Button>
-              )}
-              {onApproveCancellation && (
-                <Button
-                  onClick={() => onApproveCancellation(booking.id)}
-                  className="h-10 w-full rounded-lg border-rose-200 bg-rose-50 px-4 text-xs font-bold text-rose-700 hover:bg-rose-100"
-                >
-                  <AlertCircle className="mr-1.5 h-3.5 w-3.5" />
-                  Approve Cancellation
-                </Button>
-              )}
-            </div>
-          </div>
-        )}
+              </div>
+            )
+          }
 
-        {!isFullyPaid && !isPartialPayment && !isCompleted && !isCancelled && !isCancellationRequested && (
-          <div className="border-t border-slate-100 bg-white px-4 py-3 sm:px-6 sm:py-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-              {canRecordOnsite && (
-                <Button
-                  onClick={() => onRecordOnsitePayment(booking.id)}
-                  className="h-10 w-full rounded-lg border-emerald-200 bg-emerald-50 px-4 text-xs font-bold text-emerald-700 hover:bg-emerald-100 sm:w-auto"
-                >
-                  <DollarSign className="mr-1.5 h-3.5 w-3.5" />
-                  Record Onsite Payment
-                </Button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {canComplete && (
-          <div className="border-t border-slate-100 bg-white px-4 py-3 sm:px-6 sm:py-4">
-            <Button
-              onClick={() => onMarkCompleted(booking.id)}
-              className="h-11 w-full rounded-lg bg-emerald-600 px-4 text-xs font-bold text-white shadow-sm hover:bg-emerald-700"
-            >
-              <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
-              Mark as Completed
-            </Button>
-          </div>
-        )}
+          return null
+        })()}
       </DialogContent>
     </Dialog>
   )
