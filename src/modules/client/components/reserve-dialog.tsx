@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useMemo, useRef } from "react"
 import { useAuth } from "@/src/modules/shared/auth/auth-context"
 import { useRouter } from "next/navigation"
-import { useBookings, Booking } from "@/src/modules/client/contexts/booking-context"
+import { useBookings, Booking, calculateOfficeEndDate } from "@/src/modules/client/contexts/booking-context"
 import { 
   Building2, Tent, Calendar, Clock, MapPin, Users, AlertCircle, Plus, Receipt, ChevronLeft, ChevronRight, CheckCircle2, XCircle, ArrowLeft, X, DoorOpen, PartyPopper, PlayCircle, PauseCircle, Navigation, Loader2, Star, MessageSquare, Briefcase, FileText
 } from "lucide-react"
@@ -758,6 +758,7 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
       eventType: eventType === "others" ? customEventType.trim() : eventType,
       guestCount: isOfficeBooking ? 1 : Number(guests || 1),
       date: selectedDate,
+      endDate: isOfficeBooking ? calculateOfficeEndDate(selectedDate, rentalTerm as any) : undefined,
       time: selectedDuration,
       startTime: isOfficeBooking
         ? ""

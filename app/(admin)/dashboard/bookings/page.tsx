@@ -838,8 +838,13 @@ function BookingDetailsModal({
 
   const isEventFinished = (() => {
     if (!booking.date) return false
+    const bookingEndDate = (booking as any)?.endDate
+    if (bookingEndDate) {
+      const endDateObj = new Date(bookingEndDate + "T23:59:59")
+      if (!isNaN(endDateObj.getTime())) return endDateObj.getTime() < Date.now()
+    }
     const eventDate = new Date(booking.date)
-    const endTime = booking.endTime || (booking as any)?.endDate
+    const endTime = booking.endTime
     if (endTime) {
       const [hours, minutes] = String(endTime).split(":").map(Number)
       if (!isNaN(hours)) eventDate.setHours(hours, minutes || 0, 0, 0)
@@ -1271,7 +1276,7 @@ function BookingDetailsModal({
           }
 
           if (isApprovedOrConfirmed) {
-            if (!remainingBalance && !canDoBalanceReminder && !canDoRecordOnsite) return null
+            if (!remainingBalance && !canDoBalanceReminder && !canDoRecordOnsite && !isMarkCompletedVisible) return null
             return (
               <div className="border-t border-slate-100 bg-white px-4 py-3 sm:px-6 sm:py-4">
                 {remainingBalance > 0 && (
@@ -1300,6 +1305,26 @@ function BookingDetailsModal({
                         <DollarSign className="mr-1.5 h-3.5 w-3.5" />
                         Record Onsite Payment
                       </Button>
+                    )}
+                  </div>
+                )}
+                {isMarkCompletedVisible && (
+                  <div className={remainingBalance > 0 || canDoBalanceReminder || canDoRecordOnsite ? "mt-3" : ""}>
+                    <Button
+                      onClick={() => isMarkCompletedEnabled && onMarkCompleted(booking.id)}
+                      disabled={!isMarkCompletedEnabled}
+                      className="h-11 w-full rounded-lg px-4 text-xs font-bold text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{
+                        backgroundColor: isMarkCompletedEnabled ? '#059669' : '#9ca3af',
+                      }}
+                    >
+                      <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
+                      Mark as Completed
+                    </Button>
+                    {!isEventFinished && (
+                      <p className="mt-2 text-[10px] font-semibold text-slate-500 text-center">
+                        This action will be available after the event has ended.
+                      </p>
                     )}
                   </div>
                 )}

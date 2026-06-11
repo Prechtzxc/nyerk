@@ -35,7 +35,18 @@ export default function CalendarPreviewPage() {
   const [localMaint, setLocalMaint] = useState<string[]>([])
   useEffect(() => {
     if (typeof window !== "undefined") {
-      setLocalMaint(JSON.parse(localStorage.getItem(MAINTENANCE_STORAGE_KEY) || "[]"))
+      const loadMaint = () => {
+        setLocalMaint(JSON.parse(localStorage.getItem(MAINTENANCE_STORAGE_KEY) || "[]"))
+      }
+      loadMaint()
+      window.addEventListener("storage", loadMaint)
+      window.addEventListener("bookingsUpdated", loadMaint)
+      window.addEventListener("oneestela_bookings_updated", loadMaint)
+      return () => {
+        window.removeEventListener("storage", loadMaint)
+        window.removeEventListener("bookingsUpdated", loadMaint)
+        window.removeEventListener("oneestela_bookings_updated", loadMaint)
+      }
     }
   }, [])
 

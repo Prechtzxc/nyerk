@@ -145,6 +145,7 @@ export interface Booking {
   eventType: string;
   guestCount: number;
   date: string;
+  endDate?: string;
   time?: string;
   startTime: string;
   endTime: string;
@@ -220,6 +221,8 @@ export interface Booking {
   officePaymentTracker?: OfficeCheckPayment[];
   paymentType?: "full" | "downpayment" | "slot_reservation";
   paymentMethod?: "bank" | "cash";
+  actualPaymentMethod?: string;
+  hasActivePaymentSubmission?: boolean;
   paymentProof?: string;
   bankReferenceNumber?: string;
   paymentAmount?: number;
@@ -730,6 +733,23 @@ function getOfficeTermMonths(term?: OfficeRentalTerm) {
   return 0;
 }
 
+export function calculateOfficeEndDate(startDate: string, term?: OfficeRentalTerm) {
+  if (!startDate || !term) return "";
+  const date = new Date(startDate + "T00:00:00");
+  if (Number.isNaN(date.getTime())) return "";
+
+  if (term === "6_months") {
+    date.setMonth(date.getMonth() + 6);
+  } else if (term === "1_year") {
+    date.setFullYear(date.getFullYear() + 1);
+  } else if (term === "2_years") {
+    date.setFullYear(date.getFullYear() + 2);
+  }
+
+  date.setDate(date.getDate() - 1);
+  return date.toISOString().split("T")[0];
+}
+
 function getReceiptPaymentMethodLabel(method?: Booking["paymentMethod"]) {
   if (method === "cash") return "Pay at the Office";
   if (method === "bank") return "Bank Transfer";
@@ -810,9 +830,13 @@ function attachAutoReceipt(booking: Booking) {
 function normalizeBookingForNewFields(booking: Booking): Booking {
   const officeBooking = isOfficeBooking(booking);
   const savedReceipt = booking.id ? getStoredReceiptByBookingId(booking.id) : undefined;
+  const computedEndDate = officeBooking
+    ? calculateOfficeEndDate(booking.date, booking.officeRentalTerm)
+    : undefined;
 
   return {
     ...booking,
+    endDate: booking.endDate || computedEndDate,
     selectedDownpaymentAmount: booking.selectedDownpaymentAmount ?? 0,
     downpaymentPaid: booking.downpaymentPaid ?? 0,
     downpaymentRemaining: booking.downpaymentRemaining ?? 0,
@@ -972,6 +996,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     const newBooking: Booking = {
       ...bookingData,
       id: newId,
+      endDate: bookingData.endDate || (isOfficeBooking(bookingData as Booking) ? calculateOfficeEndDate(bookingData.date, (bookingData as Booking).officeRentalTerm) : undefined),
       status: bookingData.status || "pending",
       bookingStatus: bookingData.bookingStatus || "Pending Verification",
       isSlotSecured: bookingData.isSlotSecured || false,
@@ -2057,18 +2082,47 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       if (isOfficeBooking(booking)) {
         const reservationFee = getOfficeReservationFee(booking);
 
+        if (isCash) {
+          return {
+            ...booking,
+            status: "pending" as BookingStatus,
+            bookingStatus: "Pending Verification",
+            isSlotSecured: false,
+            paymentStatus: "unpaid" as PaymentStatus,
+            paymentMethod: "cash" as const,
+            actualPaymentMethod: "Cash / Onsite",
+            paymentProof: undefined,
+            bankReferenceNumber: undefined,
+            paymentAmount: 0,
+            paymentSubmittedAt: undefined,
+            amountPaid: 0,
+            remainingBalance: reservationFee,
+            remainingBalancePaid: false,
+            officeReservationFee: reservationFee,
+            officeReservationStatus: "unpaid" as OfficeReservationStatus,
+            officeContractSigningRequired: true,
+            officePaymentInstructions: "Please visit One Estela Place office to settle the reservation fee. Admin will record the payment.",
+            verifiedByAdmin: false,
+            hasActivePaymentSubmission: false,
+            updatedAt: new Date().toISOString(),
+            adminLogs: makeAdminLog(
+              booking,
+              "PAY_AT_OFFICE_SELECTED",
+              "Client selected Pay at the Office for office slot reservation. Awaiting onsite payment.",
+            ),
+          };
+        }
+
         return {
           ...booking,
           status: "verifying" as BookingStatus,
           bookingStatus: "Pending Verification",
           isSlotSecured: false,
-          paymentStatus: isCash
-            ? ("cash_pending" as PaymentStatus)
-            : ("for_review" as PaymentStatus),
+          paymentStatus: "for_review" as PaymentStatus,
           paymentType: "slot_reservation" as const,
           paymentMethod: paymentData.method,
           paymentProof: paymentData.proof,
-          bankReferenceNumber: paymentData.method === "bank" ? paymentData.bankReferenceNumber?.trim() : undefined,
+          bankReferenceNumber: paymentData.bankReferenceNumber?.trim(),
           paymentAmount: Number(paymentData.amount || reservationFee),
           paymentSubmittedAt: new Date().toISOString(),
           amountPaid: 0,
@@ -2085,9 +2139,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           adminLogs: makeAdminLog(
             booking,
             "OFFICE_SLOT_PAYMENT_SUBMITTED",
-            isCash
-              ? "Client selected cash payment at office for office slot reservation."
-              : "Client submitted proof for office slot reservation payment.",
+            "Client submitted proof for office slot reservation payment.",
           ),
         };
       }
@@ -2108,20 +2160,43 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
 
       if (paymentData.type === "downpayment") {
         const dpAmount = paymentData.amount || getDownpaymentAmount(booking);
+        if (isCash) {
+          return {
+            ...booking,
+            status: "pending" as BookingStatus,
+            bookingStatus: "Pending Verification",
+            isSlotSecured: false,
+            paymentStatus: "unpaid" as PaymentStatus,
+            paymentMethod: "cash" as const,
+            actualPaymentMethod: "Cash / Onsite",
+            paymentProof: undefined,
+            bankReferenceNumber: undefined,
+            paymentAmount: 0,
+            paymentSubmittedAt: undefined,
+            selectedDownpaymentAmount: Number(dpAmount),
+            amountPaid: 0,
+            remainingBalance: total,
+            remainingBalancePaid: false,
+            verifiedByAdmin: false,
+            hasActivePaymentSubmission: false,
+            updatedAt: new Date().toISOString(),
+            adminLogs: makeAdminLog(
+              booking,
+              "PAY_AT_OFFICE_SELECTED",
+              "Client selected Pay at the Office. Awaiting onsite payment.",
+            ),
+          };
+        }
         return {
           ...booking,
-          status: isCash
-            ? ("pending" as BookingStatus)
-            : ("verifying" as BookingStatus),
+          status: "verifying" as BookingStatus,
           bookingStatus: "Pending Verification",
           isSlotSecured: false,
-          paymentStatus: isCash
-            ? ("cash_pending" as PaymentStatus)
-            : ("for_review" as PaymentStatus),
+          paymentStatus: "for_review" as PaymentStatus,
           paymentType: "downpayment",
           paymentMethod: paymentData.method,
           paymentProof: paymentData.proof,
-          bankReferenceNumber: paymentData.method === "bank" ? paymentData.bankReferenceNumber?.trim() : undefined,
+          bankReferenceNumber: paymentData.bankReferenceNumber?.trim(),
           paymentAmount: Number(dpAmount),
           paymentSubmittedAt: new Date().toISOString(),
           selectedDownpaymentAmount: Number(dpAmount),
@@ -2141,19 +2216,36 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
             ? booking.selectedDownpaymentAmount
             : getDownpaymentAmount(booking));
 
+        if (isCash) {
+          return {
+            ...booking,
+            status: booking.status || "confirmed" as BookingStatus,
+            paymentMethod: "cash" as const,
+            actualPaymentMethod: "Cash / Onsite",
+            paymentProof: undefined,
+            bankReferenceNumber: undefined,
+            paymentAmount: 0,
+            paymentSubmittedAt: undefined,
+            verifiedByAdmin: false,
+            hasActivePaymentSubmission: false,
+            updatedAt: new Date().toISOString(),
+            adminLogs: makeAdminLog(
+              booking,
+              "PAY_AT_OFFICE_SELECTED",
+              "Client selected Pay at the Office for remaining balance. Admin will record onsite payment.",
+            ),
+          };
+        }
+
         return {
           ...booking,
-          status: isCash
-            ? ("confirmed" as BookingStatus)
-            : ("verifying" as BookingStatus),
+          status: "verifying" as BookingStatus,
           bookingStatus: "Pending Verification",
           isSlotSecured: false,
-          paymentStatus: isCash
-            ? ("cash_pending" as PaymentStatus)
-            : ("for_review" as PaymentStatus),
+          paymentStatus: "for_review" as PaymentStatus,
           paymentMethod: paymentData.method,
           paymentProof: paymentData.proof,
-          bankReferenceNumber: paymentData.method === "bank" ? paymentData.bankReferenceNumber?.trim() : booking.bankReferenceNumber,
+          bankReferenceNumber: paymentData.bankReferenceNumber?.trim(),
           paymentAmount: paymentAmount,
           paymentSubmittedAt: new Date().toISOString(),
           remainingBalance: Math.max(total - currentPaid, 0),
@@ -2163,20 +2255,43 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         };
       }
 
+      if (isCash) {
+        return {
+          ...booking,
+          status: "pending" as BookingStatus,
+          bookingStatus: "Pending Verification",
+          isSlotSecured: false,
+          paymentStatus: "unpaid" as PaymentStatus,
+          paymentMethod: "cash" as const,
+          actualPaymentMethod: "Cash / Onsite",
+          paymentProof: undefined,
+          bankReferenceNumber: undefined,
+          paymentAmount: 0,
+          paymentSubmittedAt: undefined,
+          amountPaid: 0,
+          remainingBalance: total,
+          remainingBalancePaid: false,
+          verifiedByAdmin: false,
+          hasActivePaymentSubmission: false,
+          updatedAt: new Date().toISOString(),
+          adminLogs: makeAdminLog(
+            booking,
+            "PAY_AT_OFFICE_SELECTED",
+            "Client selected Pay at the Office. Awaiting onsite payment.",
+          ),
+        };
+      }
+
       return {
         ...booking,
-        status: isCash
-          ? ("pending" as BookingStatus)
-          : ("verifying" as BookingStatus),
+        status: "verifying" as BookingStatus,
         bookingStatus: "Pending Verification",
         isSlotSecured: false,
-        paymentStatus: isCash
-          ? ("cash_pending" as PaymentStatus)
-          : ("for_review" as PaymentStatus),
+        paymentStatus: "for_review" as PaymentStatus,
         paymentType: paymentData.type,
         paymentMethod: paymentData.method,
         paymentProof: paymentData.proof,
-        bankReferenceNumber: paymentData.method === "bank" ? paymentData.bankReferenceNumber?.trim() : undefined,
+        bankReferenceNumber: paymentData.bankReferenceNumber?.trim(),
         paymentAmount: Number(paymentData.amount || total),
         paymentSubmittedAt: new Date().toISOString(),
         amountPaid: 0,

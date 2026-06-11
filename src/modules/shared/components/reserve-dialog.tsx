@@ -14,7 +14,7 @@ import { useBookings } from "@/src/modules/client/contexts/booking-context"
 import { useAuth } from "@/src/modules/shared/auth/auth-context"
 import { useToast } from "@/src/modules/shared/hooks/use-toast"
 
-const MAINTENANCE_DATES = ["2026-06-15", "2026-06-16"]
+const MAINTENANCE_STORAGE_KEY = "oneestela_global_maintenance_v2"
 
 interface ReserveDialogProps {
   open: boolean
@@ -26,10 +26,28 @@ interface ReserveDialogProps {
 }
 
 export function ReserveDialog({ open, onOpenChange, selectedVenueId, onBackToVenues, editingBooking, onSubmitSuccess }: ReserveDialogProps) {
-  const { bookings, addBooking } = useBookings()
+  const { bookings, maintenanceDates, addBooking } = useBookings()
   const { user } = useAuth()
   const { toast } = useToast()
   const allBookings = bookings || []
+  const [localMaint, setLocalMaint] = useState<string[]>([])
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const loadMaint = () => {
+        setLocalMaint(JSON.parse(localStorage.getItem(MAINTENANCE_STORAGE_KEY) || "[]"))
+      }
+      loadMaint()
+      window.addEventListener("storage", loadMaint)
+      window.addEventListener("bookingsUpdated", loadMaint)
+      window.addEventListener("oneestela_bookings_updated", loadMaint)
+      return () => {
+        window.removeEventListener("storage", loadMaint)
+        window.removeEventListener("bookingsUpdated", loadMaint)
+        window.removeEventListener("oneestela_bookings_updated", loadMaint)
+      }
+    }
+  }, [])
+  const activeMaint = maintenanceDates?.length > 0 ? maintenanceDates : localMaint
 
   const [step, setStep] = useState(1)
   
@@ -263,7 +281,7 @@ export function ReserveDialog({ open, onOpenChange, selectedVenueId, onBackToVen
 
   const getDayStatus = (d: number) => {
     const iterDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
-    if (MAINTENANCE_DATES.includes(iterDateStr)) return "maintenance"
+    if (activeMaint.some(m => m.endsWith(iterDateStr) || m === iterDateStr)) return "maintenance"
 
     const iterDate = new Date(year, month, d)
     if (iterDate < minBookableDate) return "past"
