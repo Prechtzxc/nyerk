@@ -17,6 +17,10 @@ import {
   ShieldCheck,
   ArrowRight,
   Bell,
+  ChevronLeft,
+  ChevronRight,
+  Wrench,
+  Building2,
 } from "lucide-react"
 
 import { Button } from "@/src/modules/shared/components/ui/button"
@@ -40,8 +44,11 @@ import { useBookings, type Booking } from "@/src/modules/client/contexts/booking
 import { getPaymentMethodLabel } from "@/src/modules/shared/lib/labels"
 import { Textarea } from "@/src/modules/shared/components/ui/textarea"
 import { Label } from "@/src/modules/shared/components/ui/label"
+import { getAllVenues, getAllOffices } from "@/lib/central-data"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/src/modules/shared/components/ui/tabs"
 
 const BOOKING_STORAGE_KEY = "oneestela_global_bookings_v2"
+const MAINTENANCE_STORAGE_KEY = "oneestela_global_maintenance_v2"
 
 function formatDate(date?: string) {
   if (!date) return "—"
@@ -209,6 +216,8 @@ export default function AdminBookingsPage() {
   const [showApproveCancellationTarget, setShowApproveCancellationTarget] = useState<string | null>(null)
   const [showApproveModificationTarget, setShowApproveModificationTarget] = useState<string | null>(null)
   const [showMarkCompletedTarget, setShowMarkCompletedTarget] = useState<string | null>(null)
+  const [showMaintenanceModal, setShowMaintenanceModal] = useState(false)
+  const { maintenanceDates, toggleMaintenanceDate } = bookingCtx || {}
 
   const urlStatusRef = useMemo(() => {
     if (typeof window === "undefined") return null
@@ -551,6 +560,10 @@ export default function AdminBookingsPage() {
             })
           }}
         />
+        <MaintenanceCalendarModal
+          open={showMaintenanceModal}
+          onClose={() => setShowMaintenanceModal(false)}
+        />
         <BalanceReminderModal
           booking={sendReminderTarget}
           open={!!sendReminderTarget}
@@ -581,16 +594,26 @@ export default function AdminBookingsPage() {
 
         <section className="border-b border-slate-200 pb-5">
           <div className="flex flex-col gap-4">
-            <div className="min-w-0">
-              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-orange-600">
-                Admin Booking Management
-              </p>
-              <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
-                Booking Management
-              </h1>
-              <p className="mt-1 text-xs leading-5 text-slate-500 sm:text-sm">
-                View and manage all customer bookings.
-              </p>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-[11px] font-black uppercase tracking-[0.22em] text-orange-600">
+                  Admin Booking Management
+                </p>
+                <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
+                  Booking Management
+                </h1>
+                <p className="mt-1 text-xs leading-5 text-slate-500 sm:text-sm">
+                  View and manage all customer bookings.
+                </p>
+              </div>
+              <Button
+                onClick={() => setShowMaintenanceModal(true)}
+                variant="outline"
+                className="h-10 shrink-0 whitespace-nowrap rounded-xl border-slate-200 px-3 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-orange-600 gap-1.5 self-start sm:self-auto"
+              >
+                <Wrench className="h-3.5 w-3.5" />
+                Calendar
+              </Button>
             </div>
 
             <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
@@ -2108,6 +2131,223 @@ function MarkCompletedConfirmModal({
           <div className="mt-6 grid grid-cols-2 gap-3">
             <Button variant="outline" onClick={onCancel} className="h-11 rounded-xl border-slate-200 text-sm font-black text-slate-700">Cancel</Button>
             <Button onClick={onConfirm} className="h-11 rounded-xl bg-emerald-600 text-sm font-black text-white hover:bg-emerald-700">Mark as Completed</Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function MaintenanceCalendarModal({
+  open,
+  onClose,
+}: {
+  open: boolean
+  onClose: () => void
+}) {
+  const venues = getAllVenues()
+  const offices = getAllOffices()
+  const [category, setCategory] = useState("venues")
+  const [selectedVenueId, setSelectedVenueId] = useState(venues[0]?.id || "v1")
+  const [selectedOfficeId, setSelectedOfficeId] = useState(offices[0]?.id || "o1")
+  const [maintenanceList, setMaintenanceList] = useState<string[]>([])
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const d = new Date()
+    d.setDate(1)
+    return d
+  })
+
+  const selectedId = category === "venues" ? selectedVenueId : selectedOfficeId
+
+  const loadMaint = () => {
+    if (typeof window === "undefined") return
+    try {
+      const stored = localStorage.getItem(MAINTENANCE_STORAGE_KEY)
+      const parsed = stored ? JSON.parse(stored) : []
+      setMaintenanceList(Array.isArray(parsed) ? parsed : [])
+    } catch {
+      setMaintenanceList([])
+    }
+  }
+
+  useEffect(() => {
+    if (open) loadMaint()
+  }, [open])
+
+  const saveMaint = (list: string[]) => {
+    setMaintenanceList(list)
+    if (typeof window !== "undefined") {
+      localStorage.setItem(MAINTENANCE_STORAGE_KEY, JSON.stringify(list))
+      window.dispatchEvent(new Event("bookingsUpdated"))
+      window.dispatchEvent(new Event("oneestela_bookings_updated"))
+    }
+  }
+
+  const isDateBlocked = (dateStr: string) => {
+    const key = `${selectedId}|${dateStr}`
+    return maintenanceList.includes(key)
+  }
+
+  const toggleDate = (dateStr: string) => {
+    const key = `${selectedId}|${dateStr}`
+    if (maintenanceList.includes(key)) {
+      saveMaint(maintenanceList.filter((item) => item !== key))
+    } else {
+      saveMaint([...maintenanceList, key])
+    }
+  }
+
+  const year = calendarMonth.getFullYear()
+  const month = calendarMonth.getMonth()
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const firstDay = new Date(year, month, 1).getDay()
+  const emptySlots = Array.from({ length: firstDay }).map((_, i) => null)
+  const days = Array.from({ length: daysInMonth }).map((_, i) => i + 1)
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent
+        className="flex flex-col rounded-2xl border-0 bg-white p-0 shadow-2xl gap-0"
+        style={{ maxHeight: "calc(100dvh - 32px)", maxWidth: "calc(100vw - 32px)", width: "min(100%, 520px)" }}
+      >
+        <div className="flex flex-col flex-1 min-h-0">
+          <div className="shrink-0 px-5 pt-5 pb-0">
+            <DialogTitle className="text-xl font-black text-slate-950">
+              Maintenance Calendar
+            </DialogTitle>
+            <p className="mt-1 text-xs leading-5 text-slate-500">
+              Click a date to mark it as maintenance for the selected space.
+            </p>
+          </div>
+
+          <div className="overflow-y-auto px-5 py-3 min-h-0">
+            <Tabs value={category} onValueChange={(v) => setCategory(v)}>
+              <TabsList className="mb-3 w-full bg-slate-100 rounded-xl p-0.5">
+                <TabsTrigger value="venues" className="flex-1 rounded-lg text-[11px] font-bold data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm text-slate-500 py-1.5">
+                  Event Venues
+                </TabsTrigger>
+                <TabsTrigger value="offices" className="flex-1 rounded-lg text-[11px] font-bold data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm text-slate-500 py-1.5">
+                  Office Spaces
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="venues" className="mt-0">
+                <div className="mb-3">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    Select Venue
+                  </label>
+                  <Select value={selectedVenueId} onValueChange={setSelectedVenueId}>
+                    <SelectTrigger className="mt-1 h-9 w-full rounded-xl border-slate-200 bg-white text-xs font-bold text-slate-700 focus:ring-slate-900">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-3.5 w-3.5 text-slate-400" />
+                        <SelectValue />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                      {venues.map((v) => (
+                        <SelectItem key={v.id} value={v.id} className="font-bold">
+                          {v.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="offices" className="mt-0">
+                <div className="mb-3">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    Select Office
+                  </label>
+                  <Select value={selectedOfficeId} onValueChange={setSelectedOfficeId}>
+                    <SelectTrigger className="mt-1 h-9 w-full rounded-xl border-slate-200 bg-white text-xs font-bold text-slate-700 focus:ring-slate-900">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-3.5 w-3.5 text-slate-400" />
+                        <SelectValue />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                      {offices.map((o) => (
+                        <SelectItem key={o.id} value={o.id} className="font-bold">
+                          {o.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </TabsContent>
+            </Tabs>
+
+            <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+              <div className="flex items-center justify-between mb-3">
+                <button
+                  onClick={() => setCalendarMonth(new Date(year, month - 1, 1))}
+                  className="p-1 rounded-lg hover:bg-white transition-colors"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5 text-slate-600" />
+                </button>
+                <h3 className="font-black text-slate-900 text-xs uppercase tracking-wide">
+                  {calendarMonth.toLocaleString("default", { month: "long", year: "numeric" })}
+                </h3>
+                <button
+                  onClick={() => setCalendarMonth(new Date(year, month + 1, 1))}
+                  className="p-1 rounded-lg hover:bg-white transition-colors"
+                >
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-7 gap-0.5 text-center">
+                {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
+                  <div key={d} className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pb-0.5">
+                    {d}
+                  </div>
+                ))}
+                {emptySlots.map((_, i) => <div key={`empty-${i}`} />)}
+                {days.map((day) => {
+                  const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
+                  const isBlocked = isDateBlocked(dateStr)
+                  return (
+                    <button
+                      key={day}
+                      onClick={() => toggleDate(dateStr)}
+                      className={`flex items-center justify-center rounded-lg text-xs font-bold transition-all border h-7 ${
+                        isBlocked
+                          ? "bg-slate-800 text-white border-slate-800 shadow-sm"
+                          : "bg-white text-slate-700 border-slate-200 hover:border-slate-400 hover:shadow-sm"
+                      }`}
+                    >
+                      {day}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="mt-3 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-white border border-slate-300" />
+                  <span className="text-[10px] font-bold text-slate-500">Available</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-slate-800 border border-slate-800" />
+                  <span className="text-[10px] font-bold text-slate-500">Maintenance</span>
+                </div>
+              </div>
+              <span className="text-[10px] font-semibold text-slate-400">
+                {maintenanceList.filter((m) => m.startsWith(selectedId + "|")).length}
+              </span>
+            </div>
+          </div>
+
+          <div className="shrink-0 px-5 pb-5 pt-0">
+            <Button
+              onClick={onClose}
+              className="h-10 w-full rounded-xl bg-slate-900 text-sm font-black text-white hover:bg-slate-800"
+            >
+              Done
+            </Button>
           </div>
         </div>
       </DialogContent>
