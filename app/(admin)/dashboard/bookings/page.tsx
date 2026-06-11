@@ -549,10 +549,19 @@ export default function AdminBookingsPage() {
           open={!!onsitePaymentTarget}
           onClose={() => setOnsitePaymentTarget(null)}
           onRecorded={(updated) => {
-            const next = bookings.map((b) => (b.id === updated.id ? updated : b))
-            persistBookings(next)
             setSelectedBooking(updated)
             setOnsitePaymentTarget(null)
+            try {
+              const stored = localStorage.getItem(BOOKING_STORAGE_KEY)
+              if (stored) {
+                const parsed = JSON.parse(stored)
+                if (Array.isArray(parsed)) {
+                  setBookings(parsed)
+                  localStorage.setItem(BOOKING_STORAGE_KEY, JSON.stringify(parsed))
+                  window.dispatchEvent(new Event("oneestela_bookings_updated"))
+                }
+              }
+            } catch {}
             toast({
               title: "Onsite Payment Recorded",
               description: `Onsite payment has been recorded for booking ${updated.id}.`,
@@ -1181,13 +1190,21 @@ function BookingDetailsModal({
           const isApprovedOrConfirmed =
             ["confirmed", "reservation_secured"].includes(normStatus)
 
+          const hasCustomerSubmittedPayment =
+            (booking as any).hasActivePaymentSubmission === true ||
+            paymentStatus === "for_review" ||
+            paymentStatus === "cash_pending" ||
+            paymentStatus === "slot_pending" ||
+            paymentStatus === "pending_verification" ||
+            Boolean((booking as any).paymentSubmittedAt)
           const canDoRecordOnsite =
             remainingBalance > 0 &&
             !isFullyPaid &&
             !isCompleted &&
             !isCancelled &&
             !isForVerificationStatus &&
-            !hasActiveProof
+            !hasActiveProof &&
+            !hasCustomerSubmittedPayment
           const canDoBalanceReminder =
             isApprovedOrConfirmed &&
             remainingBalance > 0 &&
@@ -1470,17 +1487,18 @@ function RecordOnsitePaymentModal({
       adminName: "Administrator",
     })
 
-    const updated = {
-      ...booking,
-      amountPaid: getNewPaymentSummary().newAmountPaid,
-      remainingBalance: getNewPaymentSummary().newRemainingBalance,
-      manualPaymentMarked: true,
-      manualPaymentMarkedAt: new Date().toISOString(),
-      manualPaymentMarkedBy: "Administrator",
-      manualPaymentNote: adminNote.trim(),
-      updatedAt: new Date().toISOString(),
-    }
-    onRecorded(updated as Booking)
+    // Read the full updated booking from localStorage after save
+    let fullUpdated: Booking = booking
+    try {
+      const stored = localStorage.getItem(BOOKING_STORAGE_KEY)
+      if (stored) {
+        const all = JSON.parse(stored)
+        const saved = Array.isArray(all) ? all.find((b: any) => b.id === booking.id) : null
+        if (saved) fullUpdated = saved as Booking
+      }
+    } catch {}
+
+    onRecorded(fullUpdated)
   }
 
   const summary = getNewPaymentSummary()

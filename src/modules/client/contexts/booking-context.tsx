@@ -2085,30 +2085,31 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         if (isCash) {
           return {
             ...booking,
-            status: "pending" as BookingStatus,
+            status: "verifying" as BookingStatus,
             bookingStatus: "Pending Verification",
             isSlotSecured: false,
-            paymentStatus: "unpaid" as PaymentStatus,
+            paymentStatus: "for_review" as PaymentStatus,
             paymentMethod: "cash" as const,
             actualPaymentMethod: "Cash / Onsite",
+            paymentType: "slot_reservation" as const,
             paymentProof: undefined,
             bankReferenceNumber: undefined,
             paymentAmount: 0,
-            paymentSubmittedAt: undefined,
+            paymentSubmittedAt: new Date().toISOString(),
             amountPaid: 0,
             remainingBalance: reservationFee,
             remainingBalancePaid: false,
             officeReservationFee: reservationFee,
-            officeReservationStatus: "unpaid" as OfficeReservationStatus,
+            officeReservationStatus: "pending_verification" as OfficeReservationStatus,
             officeContractSigningRequired: true,
-            officePaymentInstructions: "Please visit One Estela Place office to settle the reservation fee. Admin will record the payment.",
+            officePaymentInstructions: "Customer selected Pay at the Office for office slot reservation. Awaiting admin onsite payment verification.",
             verifiedByAdmin: false,
-            hasActivePaymentSubmission: false,
+            hasActivePaymentSubmission: true,
             updatedAt: new Date().toISOString(),
             adminLogs: makeAdminLog(
               booking,
               "PAY_AT_OFFICE_SELECTED",
-              "Client selected Pay at the Office for office slot reservation. Awaiting onsite payment.",
+              "Client selected Pay at the Office for office slot reservation. Payment submitted for admin verification.",
             ),
           };
         }
@@ -2135,6 +2136,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           officePaymentInstructions:
             "This payment secures your office reservation slot only. After admin verification, succeeding rental payments are settled onsite via check and recorded by admin.",
           verifiedByAdmin: false,
+          hasActivePaymentSubmission: true,
           updatedAt: new Date().toISOString(),
           adminLogs: makeAdminLog(
             booking,
@@ -2163,27 +2165,28 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         if (isCash) {
           return {
             ...booking,
-            status: "pending" as BookingStatus,
+            status: "verifying" as BookingStatus,
             bookingStatus: "Pending Verification",
             isSlotSecured: false,
-            paymentStatus: "unpaid" as PaymentStatus,
+            paymentStatus: "for_review" as PaymentStatus,
+            paymentType: "downpayment",
             paymentMethod: "cash" as const,
             actualPaymentMethod: "Cash / Onsite",
             paymentProof: undefined,
             bankReferenceNumber: undefined,
-            paymentAmount: 0,
-            paymentSubmittedAt: undefined,
+            paymentAmount: Number(dpAmount),
+            paymentSubmittedAt: new Date().toISOString(),
             selectedDownpaymentAmount: Number(dpAmount),
             amountPaid: 0,
             remainingBalance: total,
             remainingBalancePaid: false,
             verifiedByAdmin: false,
-            hasActivePaymentSubmission: false,
+            hasActivePaymentSubmission: true,
             updatedAt: new Date().toISOString(),
             adminLogs: makeAdminLog(
               booking,
               "PAY_AT_OFFICE_SELECTED",
-              "Client selected Pay at the Office. Awaiting onsite payment.",
+              "Client selected Pay at the Office. Payment submitted for admin verification.",
             ),
           };
         }
@@ -2204,6 +2207,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           remainingBalance: total,
           remainingBalancePaid: false,
           verifiedByAdmin: false,
+          hasActivePaymentSubmission: true,
           updatedAt: new Date().toISOString(),
         };
       }
@@ -2219,20 +2223,23 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         if (isCash) {
           return {
             ...booking,
-            status: booking.status || "confirmed" as BookingStatus,
+            status: "verifying" as BookingStatus,
+            bookingStatus: "Pending Verification",
+            isSlotSecured: false,
+            paymentStatus: "for_review" as PaymentStatus,
             paymentMethod: "cash" as const,
             actualPaymentMethod: "Cash / Onsite",
             paymentProof: undefined,
             bankReferenceNumber: undefined,
-            paymentAmount: 0,
-            paymentSubmittedAt: undefined,
+            paymentAmount: paymentAmount,
+            paymentSubmittedAt: new Date().toISOString(),
             verifiedByAdmin: false,
-            hasActivePaymentSubmission: false,
+            hasActivePaymentSubmission: true,
             updatedAt: new Date().toISOString(),
             adminLogs: makeAdminLog(
               booking,
               "PAY_AT_OFFICE_SELECTED",
-              "Client selected Pay at the Office for remaining balance. Admin will record onsite payment.",
+              "Client selected Pay at the Office for remaining balance. Payment submitted for admin verification.",
             ),
           };
         }
@@ -2251,6 +2258,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           remainingBalance: Math.max(total - currentPaid, 0),
           remainingBalancePaid: false,
           verifiedByAdmin: false,
+          hasActivePaymentSubmission: true,
           updatedAt: new Date().toISOString(),
         };
       }
@@ -2258,26 +2266,27 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       if (isCash) {
         return {
           ...booking,
-          status: "pending" as BookingStatus,
+          status: "verifying" as BookingStatus,
           bookingStatus: "Pending Verification",
           isSlotSecured: false,
-          paymentStatus: "unpaid" as PaymentStatus,
+          paymentStatus: "for_review" as PaymentStatus,
+          paymentType: paymentData.type,
           paymentMethod: "cash" as const,
           actualPaymentMethod: "Cash / Onsite",
           paymentProof: undefined,
           bankReferenceNumber: undefined,
-          paymentAmount: 0,
-          paymentSubmittedAt: undefined,
+          paymentAmount: Number(paymentData.amount || total),
+          paymentSubmittedAt: new Date().toISOString(),
           amountPaid: 0,
           remainingBalance: total,
           remainingBalancePaid: false,
           verifiedByAdmin: false,
-          hasActivePaymentSubmission: false,
+          hasActivePaymentSubmission: true,
           updatedAt: new Date().toISOString(),
           adminLogs: makeAdminLog(
             booking,
             "PAY_AT_OFFICE_SELECTED",
-            "Client selected Pay at the Office. Awaiting onsite payment.",
+            "Client selected Pay at the Office. Payment submitted for admin verification.",
           ),
         };
       }
@@ -2298,6 +2307,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         remainingBalance: total,
         remainingBalancePaid: false,
         verifiedByAdmin: false,
+        hasActivePaymentSubmission: true,
         updatedAt: new Date().toISOString(),
       };
     });

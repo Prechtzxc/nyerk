@@ -174,6 +174,7 @@ function hasPaymentRecord(booking: Booking) {
   const ps = String(booking.paymentStatus || "").toLowerCase();
   if (amt > 0 || payAmt > 0) return true;
   if (proof) return true;
+  if (ps === "unpaid" && (booking as any).paymentMethod === "cash") return true;
   return ["for review", "pending verification", "partial payment", "partial", "fully paid", "verified", "rejected", "incomplete"].includes(ps);
 }
 
@@ -245,6 +246,7 @@ function getStatusLabel(paymentStatus?: string, status?: string, paymentStage?: 
   if (v === "partial" || stage === "complete downpayment" || stage === "settle remaining balance") return "Partial Payment";
   if (["for_review", "cash_pending", "slot_pending", "pending_verification"].includes(v)) return "For Review";
   if (v === "incomplete") return "Incomplete Payment";
+  if (v === "unpaid") return "Pending Onsite Payment";
   if (v === "rejected") return "Rejected";
   if (status === "cancelled") return "Cancelled";
   if (status === "pending" && !v) return "Pending";

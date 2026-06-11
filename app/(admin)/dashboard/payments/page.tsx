@@ -67,6 +67,7 @@ export default function AdminPaymentsPage() {
   const [pendingAction, setPendingAction] = useState<PendingPaymentAction>(null)
   const [actionNote, setActionNote] = useState("")
   const [incompletePaymentTarget, setIncompletePaymentTarget] = useState<BookingRecord | null>(null)
+  const [onsiteVerifyTarget, setOnsiteVerifyTarget] = useState<BookingRecord | null>(null)
   const [paymentPage, setPaymentPage] = useState(1)
   const PAYMENTS_PER_PAGE = 10
 
@@ -176,6 +177,10 @@ export default function AdminPaymentsPage() {
       setIncompletePaymentTarget(payment)
       return
     }
+    if (type === "verify" && payment.paymentMethod === "cash") {
+      setOnsiteVerifyTarget(payment)
+      return
+    }
     setPendingAction({ payment, type })
     setActionNote("")
   }
@@ -259,6 +264,29 @@ export default function AdminPaymentsPage() {
           onCancel={closeActionModal}
           onConfirm={handleConfirmPaymentAction}
         />
+        <OnsiteVerifyModal
+          booking={onsiteVerifyTarget}
+          onClose={() => setOnsiteVerifyTarget(null)}
+          onConfirm={(updatedBooking) => {
+            const baseBookings = readStoredBookings()
+            const sourceBookings = baseBookings.length > 0 ? baseBookings : bookings
+            const nextBookings = sourceBookings.map((b) =>
+              b.id === updatedBooking.id ? updatedBooking : b
+            )
+            persistBookings(nextBookings)
+            const updated = nextBookings.find((b) => b.id === updatedBooking.id)
+            if (updated) {
+              setSelectedPayment(updated)
+              ensureReceiptForVerifiedBooking(updated)
+            }
+            setOnsiteVerifyTarget(null)
+            toast({
+              title: "Onsite Payment Verified",
+              description: `Onsite payment verified for booking ${updatedBooking.id}.`,
+              className: "border-none bg-emerald-500 text-white",
+            })
+          }}
+        />
         <IncompletePaymentModal
           booking={incompletePaymentTarget}
           onClose={() => setIncompletePaymentTarget(null)}
@@ -270,7 +298,10 @@ export default function AdminPaymentsPage() {
             )
             persistBookings(nextBookings)
             const updated = nextBookings.find((b) => b.id === updatedBooking.id)
-            if (updated) setSelectedPayment(updated)
+            if (updated) {
+              setSelectedPayment(updated)
+              ensureReceiptForVerifiedBooking(updated)
+            }
             setIncompletePaymentTarget(null)
             toast({
               title: "Incomplete Payment Recorded",
@@ -852,22 +883,26 @@ function PaymentReviewModal({
 
       <div className="shrink-0 border-t border-slate-100 bg-white px-5 py-4 sm:px-6">
         {isActionable ? (
-          <div className="grid gap-3 sm:grid-cols-3">
-            <Button
-              onClick={() => onAction("reject")}
-              variant="outline"
-              className="h-11 rounded-xl border-rose-200 text-sm font-black text-rose-500 hover:bg-rose-50"
-            >
-              Reject Payment
-            </Button>
+          <div className={`grid gap-3 ${payment.paymentMethod === "cash" ? "sm:grid-cols-1" : "sm:grid-cols-3"}`}>
+            {payment.paymentMethod !== "cash" && (
+              <Button
+                onClick={() => onAction("reject")}
+                variant="outline"
+                className="h-11 rounded-xl border-rose-200 text-sm font-black text-rose-500 hover:bg-rose-50"
+              >
+                Reject Payment
+              </Button>
+            )}
 
-            <Button
-              onClick={() => onAction("incomplete")}
-              variant="outline"
-              className="h-11 rounded-xl border-amber-200 text-sm font-black text-amber-600 hover:bg-amber-50"
-            >
-              Incomplete Payment
-            </Button>
+            {payment.paymentMethod !== "cash" && (
+              <Button
+                onClick={() => onAction("incomplete")}
+                variant="outline"
+                className="h-11 rounded-xl border-amber-200 text-sm font-black text-amber-600 hover:bg-amber-50"
+              >
+                Incomplete Payment
+              </Button>
+            )}
 
             <Button
               onClick={() => onAction("verify")}
@@ -1075,22 +1110,29 @@ function isImageProof(proof: unknown) {
 }
 
 function isPaymentRecord(booking: BookingRecord) {
-  const paymentStatus = String(booking?.paymentStatus || "").toLowerCase()
-  const hasProof = Boolean(
+  const normalizedStatus = String(
+    booking?.paymentStatus || booking?.status || ""
+  ).toLowerCase()
+
+  const hasPaymentProof = Boolean(
     booking?.paymentProof ||
       booking?.proofOfPayment ||
+      booking?.paymentReference ||
+      booking?.referenceNumber ||
       booking?.proofImage ||
       booking?.receiptImage
   )
 
-  return (
-    paymentStatus === "for_review" ||
-    paymentStatus === "pending_verification" ||
-    paymentStatus === "pending verification" ||
-    paymentStatus === "for verification" ||
-    paymentStatus === "incomplete" ||
-    hasProof
-  )
+  const hasActivePaymentSubmission =
+    booking?.hasActivePaymentSubmission === true ||
+    normalizedStatus === "for_review" ||
+    normalizedStatus === "for review" ||
+    normalizedStatus === "pending_verification" ||
+    normalizedStatus === "pending verification" ||
+    normalizedStatus === "incomplete" ||
+    Boolean(booking?.paymentSubmittedAt)
+
+  return hasActivePaymentSubmission || hasPaymentProof
 }
 
 function isForReviewPayment(booking: BookingRecord) {
@@ -1229,6 +1271,7 @@ function buildVerifiedPaymentBooking(booking: BookingRecord) {
       verifiedAt: new Date().toISOString(),
       verifiedByAdmin: true,
       contractStatus: "Pending Signature",
+      hasActivePaymentSubmission: false,
       updatedAt: new Date().toISOString(),
       adminLogs: appendAdminLog(booking, "PAYMENT_VERIFIED", "Admin verified the office slot reservation payment. Succeeding payments are onsite check payments."),
     }
@@ -1267,6 +1310,7 @@ function buildVerifiedPaymentBooking(booking: BookingRecord) {
       verifiedAt: new Date().toISOString(),
       verifiedByAdmin: true,
       contractStatus: "Pending Signature",
+      hasActivePaymentSubmission: false,
       updatedAt: new Date().toISOString(),
       adminLogs: appendAdminLog(booking, "PAYMENT_VERIFIED",
         newDownpaymentPaid < selectedDP
@@ -1297,6 +1341,7 @@ function buildVerifiedPaymentBooking(booking: BookingRecord) {
     verifiedAt: new Date().toISOString(),
     verifiedByAdmin: true,
     contractStatus: "Pending Signature",
+    hasActivePaymentSubmission: false,
     updatedAt: new Date().toISOString(),
     adminLogs: appendAdminLog(booking, "PAYMENT_VERIFIED",
       isFullyPaid
@@ -1316,6 +1361,7 @@ function buildRejectedPaymentBooking(booking: BookingRecord, reason: string) {
     paymentRejectedReason: reason,
     paymentRejectionReason: reason,
     paymentRejectedAt: new Date().toISOString(),
+    hasActivePaymentSubmission: false,
     updatedAt: new Date().toISOString(),
     adminLogs: appendAdminLog(
       booking,
@@ -1325,18 +1371,35 @@ function buildRejectedPaymentBooking(booking: BookingRecord, reason: string) {
   }
 }
 
-function buildIncompletePaymentBooking(booking: BookingRecord, note: string) {
+function buildIncompletePaymentBooking(booking: BookingRecord, note: string, verifiedAmount?: number) {
+  const total = getAmountValue(booking.totalAmount || booking.totalPrice || booking.amount || booking.price)
+  const currentPaid = getAmountValue(booking.amountPaid || booking.paymentAmount || booking.paidAmount)
+  const newPaid = verifiedAmount ? currentPaid + verifiedAmount : currentPaid
+  const remaining = Math.max(total - newPaid, 0)
+  const isDownpayment = String(booking.paymentType || "").toLowerCase() === "downpayment"
+  const currentDpPaid = getAmountValue(booking.downpaymentPaid)
+  const newDpPaid = isDownpayment && verifiedAmount ? currentDpPaid + verifiedAmount : currentDpPaid
+  const selectedDP = getAmountValue(booking.selectedDownpaymentAmount) || (isDownpayment ? total * 0.5 : 0)
+  const newDPRemaining = isDownpayment ? Math.max(selectedDP - newDpPaid, 0) : 0
+
   return {
     ...booking,
     status: "verifying",
     bookingStatus: "Pending Verification",
     paymentStatus: "incomplete",
     isSlotSecured: false,
+    amountPaid: verifiedAmount ? newPaid : booking.amountPaid,
+    downpaymentPaid: isDownpayment ? newDpPaid : booking.downpaymentPaid,
+    downpaymentRemaining: newDPRemaining,
+    lastPaymentAmount: verifiedAmount || booking.lastPaymentAmount,
+    remainingBalance: remaining,
+    balanceStatus: remaining === 0 ? "Settled" : "With Remaining Balance",
     incompletePaymentNote: note,
     incompletePaymentReason: note,
     incompletePaymentAt: new Date().toISOString(),
+    hasActivePaymentSubmission: false,
     updatedAt: new Date().toISOString(),
-    adminLogs: appendAdminLog(booking, "PAYMENT_INCOMPLETE", `Admin marked payment as incomplete. Note: ${note}`),
+    adminLogs: appendAdminLog(booking, "PAYMENT_INCOMPLETE", `Admin marked payment as incomplete. Note: ${note}${verifiedAmount ? `. Verified amount received: ₱${verifiedAmount.toLocaleString()}.` : ""}`),
   }
 }
 
@@ -1404,9 +1467,13 @@ function IncompletePaymentModal({
   const selectedDP = getAmountValue(booking.selectedDownpaymentAmount) || (isDownpayment ? totalAmount * 0.5 : 0)
 
   const getNewPaymentStatus = () => {
+    if (newAmountPaid >= totalAmount) return "paid"
+    return "incomplete"
+  }
+
+  const getPaymentLabel = () => {
     if (newAmountPaid >= totalAmount) return "Fully Paid"
-    if (isDownpayment && (currentDownpaymentPaid + enteredAmount) >= selectedDP) return "Partial"
-    return "Partial"
+    return "Incomplete Payment"
   }
 
   const getNewBalanceStatus = () => {
@@ -1421,6 +1488,7 @@ function IncompletePaymentModal({
     const nextStatus = office ? "reservation_secured" : "confirmed"
     const newPaymentStatus = getNewPaymentStatus()
     const newBalanceStatus = getNewBalanceStatus()
+    const paymentLabel = getPaymentLabel()
     const newDownpaymentPaid = currentDownpaymentPaid + enteredAmount
     const newDPRemaining = isDownpayment ? Math.max(selectedDP - newDownpaymentPaid, 0) : 0
 
@@ -1438,6 +1506,7 @@ function IncompletePaymentModal({
       remainingBalance: newRemainingBalance,
       balanceStatus: newBalanceStatus,
       contractStatus: "Pending Signature",
+      hasActivePaymentSubmission: false,
       incompletePaymentReason: adminReason.trim(),
       incompletePaymentNote: adminReason.trim(),
       paymentVerifiedAt: new Date().toISOString(),
@@ -1579,7 +1648,7 @@ function IncompletePaymentModal({
                 </p>
                 <p className="flex justify-between text-xs">
                   <span className="font-semibold text-slate-400">New Status</span>
-                  <span className="font-bold text-amber-700">{newRemainingBalance === 0 ? "Fully Paid" : "Partial Payment"}</span>
+                  <span className="font-bold text-amber-700">{getPaymentLabel()}</span>
                 </p>
                 {adminReason.trim() && (
                   <p className="flex justify-between text-xs">
@@ -1602,6 +1671,236 @@ function IncompletePaymentModal({
                   className="h-11 rounded-xl bg-amber-600 text-sm font-black text-white hover:bg-amber-700"
                 >
                   Confirm Incomplete Payment
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function OnsiteVerifyModal({
+  booking,
+  onClose,
+  onConfirm,
+}: {
+  booking: BookingRecord | null
+  onClose: () => void
+  onConfirm: (updated: BookingRecord) => void
+}) {
+  const [amountReceived, setAmountReceived] = useState("")
+  const [adminNote, setAdminNote] = useState("")
+  const [confirmStep, setConfirmStep] = useState(false)
+
+  useEffect(() => {
+    if (booking) {
+      const defaultAmount = getAmountValue((booking as any).paymentAmount || (booking as any).pendingPaymentAmount || 0)
+      setAmountReceived(defaultAmount > 0 ? String(defaultAmount) : "")
+      setAdminNote("")
+      setConfirmStep(false)
+    }
+  }, [booking])
+
+  if (!booking) return null
+
+  const totalAmount = getAmountValue(booking.totalAmount || booking.totalPrice || booking.amount || booking.price)
+  const currentAmountPaid = getAmountValue(booking.amountPaid || booking.paymentAmount || booking.paidAmount)
+  const enteredAmount = getAmountValue(amountReceived)
+  const newAmountPaid = currentAmountPaid + enteredAmount
+  const newRemainingBalance = Math.max(totalAmount - newAmountPaid, 0)
+  const isDownpayment = String(booking.paymentType || "").toLowerCase() === "downpayment"
+  const currentDownpaymentPaid = getAmountValue(booking.downpaymentPaid)
+  const selectedDP = getAmountValue(booking.selectedDownpaymentAmount) || (isDownpayment ? totalAmount * 0.5 : 0)
+
+  const isFullyPaidAfter = newAmountPaid >= totalAmount
+
+  const handleConfirm = () => {
+    if (enteredAmount <= 0) return
+
+    const office = isOfficeRental(booking)
+    const nextStatus = office ? "reservation_secured" : "confirmed"
+    const newDownpaymentPaid = currentDownpaymentPaid + enteredAmount
+    const newDPRemaining = isDownpayment ? Math.max(selectedDP - newDownpaymentPaid, 0) : 0
+
+    const updatedBooking: BookingRecord = {
+      ...booking,
+      status: nextStatus,
+      bookingStatus: office ? "Slot Secured" : "Confirmed",
+      isSlotSecured: true,
+      amountPaid: newAmountPaid,
+      downpaymentPaid: isDownpayment ? newDownpaymentPaid : 0,
+      downpaymentRemaining: newDPRemaining,
+      selectedDownpaymentAmount: isDownpayment ? selectedDP : 0,
+      lastPaymentAmount: enteredAmount,
+      paymentStatus: isFullyPaidAfter ? "paid" : "partial",
+      remainingBalance: newRemainingBalance,
+      balanceStatus: isFullyPaidAfter ? "Settled" : "With Remaining Balance",
+      contractStatus: "Pending Signature",
+      hasActivePaymentSubmission: false,
+      paymentVerifiedAt: new Date().toISOString(),
+      paymentReviewedAt: new Date().toISOString(),
+      paymentReviewedBy: "Administrator",
+      paymentVerifiedBy: "Administrator",
+      verifiedByAdmin: true,
+      verifiedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      adminLogs: appendAdminLog(
+        booking,
+        "ONSITE_PAYMENT_VERIFIED",
+        `Admin verified onsite payment. Amount received: ₱${enteredAmount.toLocaleString()}. Total paid: ₱${newAmountPaid.toLocaleString()}. Remaining: ₱${newRemainingBalance.toLocaleString()}.${adminNote.trim() ? ` Note: ${adminNote.trim()}` : ""}`,
+      ),
+    }
+
+    onConfirm(updatedBooking)
+    setConfirmStep(false)
+  }
+
+  return (
+    <Dialog open={!!booking} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="w-[calc(100vw-28px)] max-w-[520px] rounded-[1.75rem] border-0 bg-white p-0 shadow-2xl [&>button]:hidden">
+        <div className="p-6 sm:p-7">
+          {!confirmStep ? (
+            <>
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+                <Banknote className="h-8 w-8" />
+              </div>
+
+              <DialogTitle className="text-2xl font-black text-slate-950">
+                Verify Onsite Payment
+              </DialogTitle>
+
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                The customer selected Pay at the Office. Enter the actual amount received at the office.
+              </p>
+
+              <div className="mt-5 space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left">
+                <p className="flex justify-between text-xs">
+                  <span className="font-semibold text-slate-400">Booking ID</span>
+                  <span className="font-bold text-slate-900">{booking.id}</span>
+                </p>
+                <p className="flex justify-between text-xs">
+                  <span className="font-semibold text-slate-400">Customer</span>
+                  <span className="font-bold text-slate-900">{booking.userInfo?.name || "No Name"}</span>
+                </p>
+                <p className="flex justify-between text-xs">
+                  <span className="font-semibold text-slate-400">Total Amount</span>
+                  <span className="font-bold text-slate-900">₱{totalAmount.toLocaleString()}</span>
+                </p>
+                <p className="flex justify-between text-xs">
+                  <span className="font-semibold text-slate-400">Current Paid</span>
+                  <span className="font-bold text-slate-900">₱{currentAmountPaid.toLocaleString()}</span>
+                </p>
+              </div>
+
+              <div className="mt-5 space-y-4">
+                <div>
+                  <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    Amount Received *
+                  </label>
+                  <Input
+                    value={amountReceived}
+                    onChange={(e) => {
+                      const digitsOnly = e.target.value.replace(/[^0-9.]/g, "")
+                      setAmountReceived(digitsOnly)
+                    }}
+                    placeholder="Enter amount received"
+                    className="h-10 rounded-xl border-slate-200 text-xs font-bold focus-visible:ring-emerald-600"
+                  />
+                  {enteredAmount > 0 && (
+                    <p className="mt-1.5 text-[11px] font-semibold text-emerald-700">
+                      Remaining balance after this: ₱{newRemainingBalance.toLocaleString()}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    Admin Note (optional)
+                  </label>
+                  <Textarea
+                    value={adminNote}
+                    onChange={(e) => setAdminNote(e.target.value)}
+                    placeholder="Optional note about the onsite payment"
+                    className="min-h-[80px] resize-none rounded-xl border-slate-200 text-xs focus-visible:ring-emerald-600"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-6 grid grid-cols-2 gap-3">
+                <Button
+                  variant="outline"
+                  onClick={onClose}
+                  className="h-11 rounded-xl border-slate-200 text-sm font-black text-slate-700"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  disabled={enteredAmount <= 0}
+                  onClick={() => setConfirmStep(true)}
+                  className="h-11 rounded-xl bg-emerald-600 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-50"
+                >
+                  Continue
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+                <Banknote className="h-8 w-8" />
+              </div>
+
+              <DialogTitle className="text-2xl font-black text-slate-950">
+                Confirm Onsite Payment
+              </DialogTitle>
+
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                Confirm the onsite payment amount received from the customer.
+              </p>
+
+              <div className="mt-5 space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left">
+                <p className="flex justify-between text-xs">
+                  <span className="font-semibold text-slate-400">Booking ID</span>
+                  <span className="font-bold text-slate-900">{booking.id}</span>
+                </p>
+                <p className="flex justify-between text-xs">
+                  <span className="font-semibold text-slate-400">Customer</span>
+                  <span className="font-bold text-slate-900">{booking.userInfo?.name || "No Name"}</span>
+                </p>
+                <p className="flex justify-between text-xs">
+                  <span className="font-semibold text-slate-400">Amount Received</span>
+                  <span className="font-bold text-emerald-700">₱{enteredAmount.toLocaleString()}</span>
+                </p>
+                <p className="flex justify-between text-xs">
+                  <span className="font-semibold text-slate-400">Remaining Balance</span>
+                  <span className="font-bold text-emerald-700">₱{newRemainingBalance.toLocaleString()}</span>
+                </p>
+                <p className="flex justify-between text-xs">
+                  <span className="font-semibold text-slate-400">New Status</span>
+                  <span className="font-bold text-emerald-700">{isFullyPaidAfter ? "Fully Paid" : "Partial Payment"}</span>
+                </p>
+                {adminNote.trim() && (
+                  <p className="flex justify-between text-xs">
+                    <span className="font-semibold text-slate-400">Note</span>
+                    <span className="font-bold text-slate-900">{adminNote.trim()}</span>
+                  </p>
+                )}
+              </div>
+
+              <div className="mt-6 grid grid-cols-2 gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setConfirmStep(false)}
+                  className="h-11 rounded-xl border-slate-200 text-sm font-black text-slate-700"
+                >
+                  Back
+                </Button>
+                <Button
+                  onClick={handleConfirm}
+                  className="h-11 rounded-xl bg-emerald-600 text-sm font-black text-white hover:bg-emerald-700"
+                >
+                  Confirm Verification
                 </Button>
               </div>
             </>
