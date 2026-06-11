@@ -645,20 +645,27 @@ function BookingDetailsModal({
     booking.status !== "modification_under_review" &&
     booking.cancellationStatus !== "Under Review"
 
+  const hasActiveCancellationRequest =
+    normalizeStatus(booking.cancellationStatus) === "under review" ||
+    normalizeStatus(booking.bookingStatus) === "cancellation under review"
+
+  const hasActiveModificationRequest =
+    normalizeStatus(booking.modificationStatus) === "under review" ||
+    normalizeStatus(booking.bookingStatus) === "modification under review"
+
   const showCancelAction =
     onCancel &&
     booking.status !== "completed" &&
     booking.status !== "cancelled" &&
-    booking.cancellationStatus !== "Under Review" &&
-    booking.cancellationStatus !== "Approved" &&
-    booking.modificationStatus !== "Under Review"
+    booking.cancellationStatus !== "Approved"
 
   const showModify =
     booking.status !== "completed" &&
     booking.status !== "cancelled" &&
-    booking.modificationStatus !== "Under Review" &&
-    booking.cancellationStatus !== "Under Review" &&
     booking.cancellationStatus !== "Approved"
+
+  const isCancelDisabled = showCancelAction && hasActiveModificationRequest
+  const isModifyDisabled = showModify && hasActiveCancellationRequest
 
   const hasReceipt = !!(
     booking.receipt || getStoredReceiptByBookingId(booking.id)
@@ -964,30 +971,51 @@ function BookingDetailsModal({
               <div className="rounded-xl bg-amber-50 p-3 text-center">
                 <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">Payment Under Review</p>
                 <p className="mt-1 text-xs font-semibold text-amber-700">
-                  Your payment is currently being reviewed by the administrator. Pay Now is unavailable while your payment is under review.
+                  Your payment is currently under review. Please wait for admin verification.
                 </p>
               </div>
             )}
-            {(showModify || showReceipt || showPay || hasRemainingPayment) && (
+            {hasActiveCancellationRequest && (
+              <div className="rounded-xl bg-rose-50 p-3 text-center">
+                <p className="text-[10px] font-black uppercase tracking-widest text-rose-600">Cancellation Under Review</p>
+                <p className="mt-1 text-xs font-semibold text-rose-700">
+                  Your cancellation request is under review. Please wait for admin response.
+                </p>
+              </div>
+            )}
+            {(showModify || showReceipt || showPay || hasRemainingPayment || isPayUnderReview) && (
               <div className={cn("w-full",
-                showModify && (showPay || showReceipt || (hasRemainingPayment && !showPay && !showReceipt))
+                (showModify || isModifyDisabled) && (showPay || showReceipt || (hasRemainingPayment && !showPay && !showReceipt))
                   ? "grid grid-cols-2 gap-3"
                   : "flex flex-col gap-3"
               )}>
-                {showModify && (
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      if (onEdit) {
-                        onEdit(booking)
-                        onClose()
-                      }
-                    }}
-                    className="w-full h-10 rounded-lg border-slate-200 px-4 text-xs font-bold text-slate-700 hover:bg-slate-100"
-                  >
-                    <Pencil className="mr-1.5 h-3.5 w-3.5" />
-                    Modify Booking
-                  </Button>
+                {(showModify || isModifyDisabled) && (
+                  <div className="flex flex-col gap-1">
+                    <Button
+                      variant="outline"
+                      disabled={isModifyDisabled}
+                      onClick={() => {
+                        if (onEdit && !isModifyDisabled) {
+                          onEdit(booking)
+                          onClose()
+                        }
+                      }}
+                      className={cn(
+                        "w-full h-10 rounded-lg border-slate-200 px-4 text-xs font-bold",
+                        isModifyDisabled
+                          ? "text-slate-400 opacity-60 cursor-not-allowed"
+                          : "text-slate-700 hover:bg-slate-100"
+                      )}
+                    >
+                      <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                      Modify Booking
+                    </Button>
+                    {isModifyDisabled && (
+                      <p className="text-[9px] font-semibold text-slate-400 text-center">
+                        Modification is unavailable while your cancellation request is under review.
+                      </p>
+                    )}
+                  </div>
                 )}
                 {showReceipt ? (
                   <Button
@@ -1001,13 +1029,22 @@ function BookingDetailsModal({
                     <Receipt className="mr-1.5 h-3.5 w-3.5" />
                     View Receipt
                   </Button>
-                ) : showPay ? (
+                ) : showPay && !isPayUnderReview ? (
                   <Button
                     onClick={() => {
                       onPay(booking)
                       onClose()
                     }}
                     className="w-full h-10 rounded-lg bg-[#ea580c] hover:bg-[#c2410c] px-5 text-xs font-bold text-white shadow-sm"
+                  >
+                    <CreditCard className="mr-1.5 h-3.5 w-3.5" />
+                    Pay Now
+                  </Button>
+                ) : isPayUnderReview && showPay === false ? (
+                  <Button
+                    disabled
+                    variant="outline"
+                    className="w-full h-10 rounded-lg border-slate-200 px-5 text-xs font-bold text-slate-400 opacity-60 cursor-not-allowed"
                   >
                     <CreditCard className="mr-1.5 h-3.5 w-3.5" />
                     Pay Now
@@ -1028,18 +1065,33 @@ function BookingDetailsModal({
                 ) : null}
               </div>
             )}
-            {showCancelAction && (
-              <Button
-                variant="outline"
-                onClick={() => {
-                  onCancel(booking)
-                  onClose()
-                }}
-                className="w-full h-10 rounded-lg border-rose-200 px-4 text-xs font-bold text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-              >
-                <X className="mr-1.5 h-3.5 w-3.5" />
-                Cancel Booking
-              </Button>
+            {(showCancelAction || isCancelDisabled) && (
+              <div className="flex flex-col gap-1">
+                <Button
+                  variant="outline"
+                  disabled={isCancelDisabled}
+                  onClick={() => {
+                    if (onCancel && !isCancelDisabled) {
+                      onCancel(booking)
+                      onClose()
+                    }
+                  }}
+                  className={cn(
+                    "w-full h-10 rounded-lg border-rose-200 px-4 text-xs font-bold",
+                    isCancelDisabled
+                      ? "text-rose-300 opacity-60 cursor-not-allowed"
+                      : "text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                  )}
+                >
+                  <X className="mr-1.5 h-3.5 w-3.5" />
+                  Cancel Booking
+                </Button>
+                {isCancelDisabled && (
+                  <p className="text-[9px] font-semibold text-slate-400 text-center">
+                    Cancellation is unavailable while your modification request is under review.
+                  </p>
+                )}
+              </div>
             )}
           </div>
         </div>
@@ -1523,7 +1575,10 @@ function ModifyBookingFlowModal({
   // Calendar state (matching New Booking Step 3)
   const [calendarMonth, setCalendarMonth] = useState(() => {
     const d = new Date()
-    return new Date(d.getFullYear(), d.getMonth(), 1)
+    const minDate = new Date(d)
+    minDate.setMonth(minDate.getMonth() + 1)
+    minDate.setHours(0, 0, 0, 0)
+    return new Date(minDate.getFullYear(), minDate.getMonth(), 1)
   })
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [selectedDuration, setSelectedDuration] = useState<string | null>(null)
@@ -1618,7 +1673,10 @@ function ModifyBookingFlowModal({
       setReasonError(false)
 
       const d = new Date()
-      setCalendarMonth(new Date(d.getFullYear(), d.getMonth(), 1))
+      const minDate = new Date(d)
+      minDate.setMonth(minDate.getMonth() + 1)
+      minDate.setHours(0, 0, 0, 0)
+      setCalendarMonth(new Date(minDate.getFullYear(), minDate.getMonth(), 1))
       setSelectedDate(booking.date || null)
       setSelectedDuration(booking.time || null)
     }

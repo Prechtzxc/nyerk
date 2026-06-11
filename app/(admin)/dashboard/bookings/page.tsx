@@ -1033,6 +1033,18 @@ function BookingDetailsModal({
                   <span className="text-slate-400">Cancellation</span>
                   <span className="font-bold text-slate-900">{booking.cancellationStatus}</span>
                 </div>
+                {booking.cancellationReason && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Reason</span>
+                    <span className="font-bold text-slate-900 max-w-[60%] text-right">{booking.cancellationReason}</span>
+                  </div>
+                )}
+                {booking.cancellationRequestedAt && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Request Date</span>
+                    <span className="font-bold text-slate-900">{formatDate(booking.cancellationRequestedAt)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-slate-400">Refund</span>
                   <span className="font-bold text-slate-900">{booking.refundStatus || "Not Applicable"}</span>
@@ -2169,6 +2181,7 @@ function MaintenanceCalendarModal({
   const [selectedVenueId, setSelectedVenueId] = useState(venues[0]?.id || "v1")
   const [selectedOfficeId, setSelectedOfficeId] = useState(offices[0]?.id || "o1")
   const [maintenanceList, setMaintenanceList] = useState<string[]>([])
+  const [allBookings, setAllBookings] = useState<Booking[]>([])
   const [calendarMonth, setCalendarMonth] = useState(() => {
     const d = new Date()
     d.setDate(1)
@@ -2188,8 +2201,19 @@ function MaintenanceCalendarModal({
     }
   }
 
+  const loadBookingsData = () => {
+    if (typeof window === "undefined") return
+    try {
+      const stored = localStorage.getItem(BOOKING_STORAGE_KEY)
+      const parsed = stored ? JSON.parse(stored) : []
+      setAllBookings(Array.isArray(parsed) ? parsed : [])
+    } catch {
+      setAllBookings([])
+    }
+  }
+
   useEffect(() => {
-    if (open) loadMaint()
+    if (open) { loadMaint(); loadBookingsData() }
   }, [open])
 
   const saveMaint = (list: string[]) => {
@@ -2215,6 +2239,50 @@ function MaintenanceCalendarModal({
     }
   }
 
+  const venueSlots = [
+    { start: 8, end: 14, label: "8:00 AM - 2:00 PM" },
+    { start: 9, end: 15, label: "9:00 AM - 3:00 PM" },
+    { start: 10, end: 16, label: "10:00 AM - 4:00 PM" },
+    { start: 11, end: 17, label: "11:00 AM - 5:00 PM" },
+    { start: 12, end: 18, label: "12:00 PM - 6:00 PM" },
+    { start: 13, end: 19, label: "1:00 PM - 7:00 PM" },
+    { start: 14, end: 20, label: "2:00 PM - 8:00 PM" },
+    { start: 15, end: 21, label: "3:00 PM - 9:00 PM" },
+    { start: 16, end: 22, label: "4:00 PM - 10:00 PM" },
+  ]
+
+  function isPastDate(dateStr: string) {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const targetDate = new Date(dateStr + "T00:00:00")
+    return targetDate < today
+  }
+
+  function getDayAvailability(dateStr: string) {
+    const isMaintenanceDay = isDateBlocked(dateStr)
+    if (isMaintenanceDay) return "maintenance"
+    const isPast = isPastDate(dateStr)
+    if (isPast) return "past"
+    const venueId = selectedId
+    const dayBookings = allBookings.filter((b) =>
+      b.date === dateStr &&
+      b.venueId === venueId &&
+      b.status !== "cancelled" &&
+      b.status !== "declined"
+    )
+    if (dayBookings.length === 0) return "available"
+    const allSlotsOccupied = venueSlots.every((slot) =>
+      dayBookings.some((b) => {
+        if (!b.time) return false
+        const bParsed = venueSlots.find((s) => s.label === b.time)
+        if (!bParsed) return false
+        return slot.start <= bParsed.end && slot.end >= bParsed.start
+      })
+    )
+    if (allSlotsOccupied) return "full"
+    return "partial"
+  }
+
   const year = calendarMonth.getFullYear()
   const month = calendarMonth.getMonth()
   const daysInMonth = new Date(year, month + 1, 0).getDate()
@@ -2231,10 +2299,10 @@ function MaintenanceCalendarModal({
         <div className="flex flex-col flex-1 min-h-0">
           <div className="shrink-0 px-5 pt-5 pb-0">
             <DialogTitle className="text-xl font-black text-slate-950">
-              Maintenance Calendar
+              Calendar / Availability
             </DialogTitle>
             <p className="mt-1 text-xs leading-5 text-slate-500">
-              Click a date to mark it as maintenance for the selected space.
+              View availability and click a date to toggle maintenance for the selected space.
             </p>
           </div>
 
@@ -2324,16 +2392,45 @@ function MaintenanceCalendarModal({
                 {emptySlots.map((_, i) => <div key={`empty-${i}`} />)}
                 {days.map((day) => {
                   const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
-                  const isBlocked = isDateBlocked(dateStr)
+                  const availability = getDayAvailability(dateStr)
+                  const isBlocked = availability === "maintenance"
+                  const isPast = availability === "past"
+                  const isFull = availability === "full"
+                  const isPartial = availability === "partial"
+                  const isAvailable = availability === "available"
+
+                  let cellClass = "bg-white text-slate-700 border-slate-200"
+                  let isClickable = true
+                  if (isBlocked) {
+                    cellClass = "bg-slate-800 text-white border-slate-800 shadow-sm"
+                    isClickable = false
+                  } else if (isPast) {
+                    cellClass = "bg-slate-100 text-slate-300 border-slate-100 cursor-not-allowed"
+                    isClickable = false
+                  } else if (isFull) {
+                    cellClass = "bg-rose-100 text-rose-500 border-rose-200 hover:border-rose-300 hover:shadow-sm"
+                    isClickable = true
+                  } else if (isPartial) {
+                    cellClass = "bg-amber-50 text-amber-700 border-amber-200 hover:border-amber-300 hover:shadow-sm"
+                    isClickable = true
+                  } else {
+                    cellClass = "bg-white text-slate-700 border-slate-200 hover:border-slate-400 hover:shadow-sm"
+                    isClickable = true
+                  }
+
                   return (
                     <button
                       key={day}
-                      onClick={() => toggleDate(dateStr)}
-                      className={`flex items-center justify-center rounded-lg text-xs font-bold transition-all border h-7 ${
-                        isBlocked
-                          ? "bg-slate-800 text-white border-slate-800 shadow-sm"
-                          : "bg-white text-slate-700 border-slate-200 hover:border-slate-400 hover:shadow-sm"
-                      }`}
+                      disabled={!isClickable}
+                      onClick={() => { if (isClickable) toggleDate(dateStr) }}
+                      className={`flex items-center justify-center rounded-lg text-[10px] font-bold transition-all border h-7 ${cellClass}`}
+                      title={
+                        isBlocked ? "Maintenance day - click to remove maintenance" :
+                        isPast ? "Past date" :
+                        isFull ? "Fully booked" :
+                        isPartial ? "Partially booked" :
+                        "Available - click to mark as maintenance"
+                      }
                     >
                       {day}
                     </button>
@@ -2342,20 +2439,27 @@ function MaintenanceCalendarModal({
               </div>
             </div>
 
-            <div className="mt-3 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-white border border-slate-300" />
-                  <span className="text-[10px] font-bold text-slate-500">Available</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-slate-800 border border-slate-800" />
-                  <span className="text-[10px] font-bold text-slate-500">Maintenance</span>
-                </div>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-sm bg-white border border-slate-300" />
+                <span className="text-[9px] font-bold text-slate-500">Available</span>
               </div>
-              <span className="text-[10px] font-semibold text-slate-400">
-                {maintenanceList.filter((m) => m.startsWith(selectedId + "|")).length}
-              </span>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-sm bg-amber-50 border border-amber-300" />
+                <span className="text-[9px] font-bold text-slate-500">Partial</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-sm bg-rose-100 border border-rose-300" />
+                <span className="text-[9px] font-bold text-slate-500">Full</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-sm bg-slate-800 border border-slate-800" />
+                <span className="text-[9px] font-bold text-slate-500">Maint.</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-sm bg-slate-100 border border-slate-200" />
+                <span className="text-[9px] font-bold text-slate-500">Past</span>
+              </div>
             </div>
           </div>
 

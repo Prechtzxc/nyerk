@@ -418,8 +418,11 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
   }, []);
 
   const [calendarMonth, setCalendarMonth] = useState(() => {
-    const d = new Date();
-    return new Date(d.getFullYear(), d.getMonth(), 1);
+    const today = new Date();
+    const minDate = new Date(today);
+    minDate.setMonth(minDate.getMonth() + 1);
+    minDate.setHours(0, 0, 0, 0);
+    return new Date(minDate.getFullYear(), minDate.getMonth(), 1);
   });
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
@@ -528,8 +531,11 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
     setEventName(""); setEventType(""); setCustomEventType(""); setGuests(""); setNotes(""); setAgreed(false);
     setPendingBookingPayload(null); setIsBookingConfirmOpen(false); setIsSubmitting(false);
     
-    const d = new Date();
-    setCalendarMonth(new Date(d.getFullYear(), d.getMonth(), 1));
+    const today = new Date();
+    const minDate = new Date(today);
+    minDate.setMonth(minDate.getMonth() + 1);
+    minDate.setHours(0, 0, 0, 0);
+    setCalendarMonth(new Date(minDate.getFullYear(), minDate.getMonth(), 1));
     
     if (viewerRef.current) { viewerRef.current.destroy(); viewerRef.current = null; }
   }
