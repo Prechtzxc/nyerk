@@ -219,7 +219,7 @@ const defaultCMSData: CMSData = {
       price: 15000,
       type: "venue",
       image: "/images/venue-chandelier.png",
-      panoImage: "https://pannellum.org/images/alma.jpg",
+      panoImage: "",
       description: "Premium space for grand celebrations and corporate events.",
     },
     {
@@ -229,7 +229,7 @@ const defaultCMSData: CMSData = {
       price: 10000,
       type: "venue",
       image: "/images/venue-interior.jpg",
-      panoImage: "https://pannellum.org/images/jura.jpg",
+      panoImage: "",
       description: "Intimate setting perfect for memorable milestones.",
     },
     {
@@ -239,7 +239,7 @@ const defaultCMSData: CMSData = {
       price: 3000,
       type: "venue",
       image: "/images/venue-interior.jpg",
-      panoImage: "https://pannellum.org/images/bma-1.jpg",
+      panoImage: "",
       description: "Professional environment equipped for critical decisions.",
     },
     {
@@ -249,7 +249,7 @@ const defaultCMSData: CMSData = {
       price: 5000,
       type: "venue",
       image: "/images/venue-interior.jpg",
-      panoImage: "https://pannellum.org/images/cerro-toco-0.jpg",
+      panoImage: "",
       description: "Spacious meeting area ideal for collaborations.",
     },
   ],
@@ -261,7 +261,7 @@ const defaultCMSData: CMSData = {
       price: 15000,
       type: "office",
       image: "/images/venue-interior.jpg",
-      panoImage: "https://pannellum.org/images/alma.jpg",
+      panoImage: "",
       description: "Premium office wing with 8 individual private rooms.",
     },
     {
@@ -271,7 +271,7 @@ const defaultCMSData: CMSData = {
       price: 15000,
       type: "office",
       image: "/images/venue-interior.jpg",
-      panoImage: "https://pannellum.org/images/jura.jpg",
+      panoImage: "",
       description: "Executive office wing with 8 individual private rooms.",
     },
   ],

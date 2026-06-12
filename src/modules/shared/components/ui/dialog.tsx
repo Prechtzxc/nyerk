@@ -73,7 +73,7 @@ function DialogContent({
         )}
         {...props}
       >
-        <div className="relative flex max-h-[calc(100dvh-32px)] w-full flex-col overflow-hidden rounded-xl border bg-background shadow-lg">
+        <div className="relative flex max-h-[calc(100dvh-32px)] w-full flex-col overflow-hidden rounded-2xl bg-white shadow-lg">
           {children}
           {showCloseButton && (
             <DialogPrimitive.Close

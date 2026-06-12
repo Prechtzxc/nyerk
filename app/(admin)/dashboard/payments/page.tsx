@@ -37,6 +37,7 @@ import { useToast } from "@/src/modules/shared/hooks/use-toast"
 import { useBookings } from "@/src/modules/client/contexts/booking-context"
 
 const BOOKING_STORAGE_KEY = "oneestela_global_bookings_v2"
+const PAYMENTS_STORAGE_KEY = "oneestela_global_payments_v2"
 const PAYMENT_PROOF_STORAGE_KEY = "oneestela_payment_proofs_v1"
 const E_RECEIPT_STORAGE_KEY = "oneestela_e_receipts_v1"
 
@@ -59,10 +60,37 @@ type PendingPaymentAction = {
   note?: string
 } | null
 
+function readArray<T>(key: string): T[] {
+  if (typeof window === "undefined") return []
+  try {
+    const raw = localStorage.getItem(key)
+    const parsed = raw ? JSON.parse(raw) : []
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function writeArray<T>(key: string, value: T[]) {
+  if (typeof window === "undefined") return
+  localStorage.setItem(key, JSON.stringify(value))
+}
+
+function upsertById<T extends { id: string }>(items: T[], nextItem: T): T[] {
+  const index = items.findIndex((item) => item.id === nextItem.id)
+  if (index === -1) {
+    return [nextItem, ...items]
+  }
+  return items.map((item, itemIndex) =>
+    itemIndex === index ? { ...item, ...nextItem } : item
+  )
+}
+
 export default function AdminPaymentsPage() {
   const { toast } = useToast()
   const bookingCtx = useBookings()
   const [bookings, setBookings] = useState<BookingRecord[]>([])
+  const [paymentRecords, setPaymentRecords] = useState<any[]>([])
   const [statusFilter, setStatusFilter] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
   const [venueFilter, setVenueFilter] = useState("all")
@@ -136,32 +164,80 @@ export default function AdminPaymentsPage() {
       setBookings(storedBookings)
     }
 
+    const loadPaymentRecords = () => {
+      setPaymentRecords(readArray(PAYMENTS_STORAGE_KEY))
+    }
+
     loadBookings()
+    loadPaymentRecords()
 
     window.addEventListener("storage", loadBookings)
     window.addEventListener("bookingsUpdated", loadBookings)
     window.addEventListener("oneestela_bookings_updated", loadBookings)
+    window.addEventListener("oneestela_payments_updated", loadPaymentRecords)
 
     return () => {
       window.removeEventListener("storage", loadBookings)
       window.removeEventListener("bookingsUpdated", loadBookings)
       window.removeEventListener("oneestela_bookings_updated", loadBookings)
+      window.removeEventListener("oneestela_payments_updated", loadPaymentRecords)
     }
   }, [])
 
   const paymentBookings = useMemo(() => {
-    return bookings
-      .filter((booking) => isPaymentRecord(booking))
-      .sort((a, b) => {
-        const getSortTime = (record: BookingRecord) => {
-          const t = record?.paymentSubmittedAt || record?.updatedAt || record?.createdAt || record?.bookingDate
-          if (!t) return 0
-          const d = new Date(t).getTime()
-          return isNaN(d) ? 0 : d
-        }
-        return getSortTime(b) - getSortTime(a)
-      })
-  }, [bookings])
+    const bookingRecords = bookings.filter((booking) => isPaymentRecord(booking))
+
+    const paymentRecordsAsBookings = paymentRecords.map((pr: any) => ({
+      id: pr.bookingId || pr.id,
+      bookingId: pr.bookingId,
+      bookingCode: pr.bookingCode,
+      eventName: pr.eventName || "",
+      venue: pr.venueName || "",
+      venueName: pr.venueName || "",
+      paymentMethod: pr.paymentMethod === "bank" ? "bank" : pr.paymentMethod === "cash" ? "cash" : pr.method,
+      actualPaymentMethod: pr.method,
+      paymentType: pr.term === "Down Payment" ? "downpayment" : pr.term === "Full Payment" ? "full" : "slot_reservation",
+      paymentStatus: pr.verificationStatus === "Pending" || pr.status === "For Verification" ? "for_review" : "verified",
+      hasActivePaymentSubmission: true,
+      paymentSubmittedAt: pr.submittedAt,
+      paymentAmount: pr.amount,
+      pendingPaymentAmount: pr.amount,
+      amountPaid: pr.amountPaid,
+      paymentProof: pr.proofUrl,
+      proofOfPayment: pr.proofUrl,
+      bankReferenceNumber: pr.referenceNo,
+      paymentReference: pr.referenceNo,
+      paymentSubmissionType: pr.paymentMethod === "cash" ? "onsite" : "bank_transfer",
+      isSlotSecured: false,
+      verifiedByAdmin: false,
+      status: pr.status === "For Verification" ? "verifying" : "pending",
+      totalPrice: pr.amount,
+      updatedAt: pr.updatedAt,
+      createdAt: pr.submittedAt,
+      latestPaymentMethod: pr.method,
+      latestPaymentAmount: pr.amount,
+      latestPaymentSubmittedAt: pr.submittedAt,
+    }))
+
+    const merged = [...bookingRecords, ...paymentRecordsAsBookings]
+    const seen = new Set<string>()
+    const deduped = merged.filter((item) => {
+      const key = item.id || item.bookingId || ""
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+
+    return deduped.sort((a, b) => {
+      const getSortTime = (record: BookingRecord) => {
+        const t = record?.paymentSubmittedAt || record?.updatedAt || record?.createdAt || record?.bookingDate
+        if (!t) return 0
+        const d = new Date(t).getTime()
+        return isNaN(d) ? 0 : d
+      }
+      return getSortTime(b) - getSortTime(a)
+    })
+  }, [bookings, paymentRecords])
 
   const filteredPayments = useMemo(() => {
     return paymentBookings.filter((booking) => {
@@ -492,12 +568,13 @@ export default function AdminPaymentsPage() {
           open={!!selectedPayment}
           onOpenChange={(open) => !open && setSelectedPayment(null)}
         >
-          <DialogContent className="h-[calc(100vh-32px)] h-[calc(100dvh-32px)] max-h-[calc(100vh-32px)] max-h-[calc(100dvh-32px)] w-[calc(100vw-32px)] !max-w-[900px] overflow-hidden rounded-[1.75rem] border-0 bg-white p-0 shadow-2xl [&>button]:hidden">
+          <DialogContent showCloseButton={false} className="w-[calc(100vw-32px)] sm:w-fit sm:min-w-[520px] sm:max-w-[calc(100vw-48px)] max-h-[90dvh] overflow-hidden rounded-3xl bg-white shadow-2xl">
             {selectedPayment && (
               <PaymentReviewModal
                 payment={selectedPayment}
                 onClose={() => setSelectedPayment(null)}
                 onAction={(type) => openActionModal(selectedPayment, type)}
+                childModalOpen={!!pendingAction || !!incompletePaymentTarget || !!onsiteVerifyTarget}
               />
             )}
           </DialogContent>
@@ -553,65 +630,68 @@ function PaymentActionConfirmModal({
 
   return (
     <Dialog open={!!pendingAction} onOpenChange={(open) => !open && onCancel()}>
-      <DialogContent className="w-[calc(100vw-28px)] max-w-[520px] rounded-[1.75rem] border-0 bg-white p-0 shadow-2xl [&>button]:hidden">
-        <div className="p-6 sm:p-7">
-          <div
-            className={`mb-4 flex h-16 w-16 items-center justify-center rounded-2xl ${
-              isReject
-                ? "bg-rose-50 text-rose-600"
-                : isIncomplete
-                  ? "bg-amber-50 text-amber-600"
-                  : "bg-emerald-50 text-emerald-600"
-            }`}
-          >
-            {isReject ? <XCircle className="h-8 w-8" /> : isIncomplete ? <AlertCircle className="h-8 w-8" /> : <ShieldCheck className="h-8 w-8" />}
+      <DialogContent className="w-[calc(100vw-32px)] sm:w-fit sm:min-w-[480px] sm:max-w-[calc(100vw-48px)] max-h-[90dvh] overflow-hidden rounded-3xl bg-white shadow-2xl [&>button]:hidden">
+        <div className="flex max-h-[90dvh] flex-col overflow-hidden">
+          <div className="shrink-0 flex items-center gap-3 border-b border-slate-100 px-5 py-4">
+            <div
+              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                isReject
+                  ? "bg-rose-50 text-rose-600"
+                  : isIncomplete
+                    ? "bg-amber-50 text-amber-600"
+                    : "bg-emerald-50 text-emerald-600"
+              }`}
+            >
+              {isReject ? <XCircle className="h-5 w-5" /> : isIncomplete ? <AlertCircle className="h-5 w-5" /> : <ShieldCheck className="h-5 w-5" />}
+            </div>
+            <DialogTitle className="text-lg font-black text-slate-950">
+              {title}
+            </DialogTitle>
           </div>
 
-          <DialogTitle className="text-2xl font-black text-slate-950">
-            {title}
-          </DialogTitle>
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 space-y-4">
+            <p className="text-sm leading-5 text-slate-500">
+              {description}
+            </p>
 
-          <p className="mt-2 text-sm leading-6 text-slate-500">
-            {description}
-          </p>
+            {payment && (
+              <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-left">
+                <ConfirmLine label="Customer" value={payment.userInfo?.name || "No Name"} />
+                <ConfirmLine label="Booking ID" value={payment.id || "No ID"} />
+                <ConfirmLine label="Payment Method" value={getPaymentMethodLabel(payment.paymentMethod)} />
+                {payment.paymentMethod === "bank" && (
+                  <ConfirmLine label="Bank Reference No." value={getBankReferenceNumber(payment)} />
+                )}
+                <ConfirmLine label="Amount Submitted" value={formatCurrency(getAmountPaid(payment))} />
+                <ConfirmLine label="Current Status" value={getPaymentStatusText(payment)} />
+                <ConfirmLine label="Action" value={getActionLabel(actionType || "verify")} />
+              </div>
+            )}
 
-          {payment && (
-            <div className="mt-5 space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left">
-              <ConfirmLine label="Customer" value={payment.userInfo?.name || "No Name"} />
-              <ConfirmLine label="Booking ID" value={payment.id || "No ID"} />
-              <ConfirmLine label="Payment Method" value={getPaymentMethodLabel(payment.paymentMethod)} />
-              {payment.paymentMethod === "bank" && (
-                <ConfirmLine label="Bank Reference No." value={getBankReferenceNumber(payment)} />
-              )}
-              <ConfirmLine label="Amount Submitted" value={formatCurrency(getAmountPaid(payment))} />
-              <ConfirmLine label="Current Status" value={getPaymentStatusText(payment)} />
-              <ConfirmLine label="Action" value={getActionLabel(actionType || "verify")} />
-            </div>
-          )}
+            {(isReject || isIncomplete) && (
+              <div>
+                <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-slate-500">
+                  {isReject ? "Rejection Reason" : "Customer Note"}
+                </label>
+                <Textarea
+                  value={note}
+                  onChange={(event) => setNote(event.target.value)}
+                  placeholder={
+                    isReject
+                      ? "Enter reason for rejecting this payment..."
+                      : "Enter note about missing or insufficient amount..."
+                  }
+                  className="min-h-[90px] w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm focus-visible:ring-orange-600"
+                />
+              </div>
+            )}
+          </div>
 
-          {(isReject || isIncomplete) && (
-            <div className="mt-4">
-              <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-500">
-                {isReject ? "Rejection Reason" : "Customer Note"}
-              </label>
-              <Textarea
-                value={note}
-                onChange={(event) => setNote(event.target.value)}
-                placeholder={
-                  isReject
-                    ? "Enter reason for rejecting this payment..."
-                    : "Enter note about missing or insufficient amount..."
-                }
-                className="min-h-[100px] resize-none rounded-xl border-slate-200 focus-visible:ring-orange-600"
-              />
-            </div>
-          )}
-
-          <div className="mt-6 grid grid-cols-2 gap-3">
+          <div className="shrink-0 grid grid-cols-2 gap-3 border-t border-slate-100 bg-white px-5 py-4">
             <Button
               variant="outline"
               onClick={onCancel}
-              className="h-11 rounded-xl border-slate-200 text-sm font-black text-slate-700"
+              className="h-10 rounded-xl border-slate-200 text-xs font-black text-slate-700"
             >
               Cancel
             </Button>
@@ -619,7 +699,7 @@ function PaymentActionConfirmModal({
             <Button
               disabled={(isReject || isIncomplete) && !note.trim()}
               onClick={onConfirm}
-              className={`h-11 rounded-xl text-sm font-black text-white disabled:opacity-50 ${confirmColor}`}
+              className={`h-10 rounded-xl text-xs font-black text-white disabled:opacity-50 ${confirmColor}`}
             >
               {confirmLabel}
             </Button>
@@ -756,10 +836,12 @@ function PaymentReviewModal({
   payment,
   onClose,
   onAction,
+  childModalOpen,
 }: {
   payment: BookingRecord
   onClose: () => void
   onAction: (type: PaymentAction) => void
+  childModalOpen?: boolean
 }) {
   const totalAmount = getSafePrice(payment.totalPrice)
   const amountPaid = getAmountPaid(payment)
@@ -769,7 +851,7 @@ function PaymentReviewModal({
 
   return (
     <div className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)_auto]">
-      <div className="shrink-0 border-b border-slate-100 px-5 py-4 sm:px-6">
+      <div className="shrink-0 border-b border-slate-100 px-5 py-4">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -789,16 +871,18 @@ function PaymentReviewModal({
             </p>
           </div>
 
-          <button
-            onClick={onClose}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          {!childModalOpen && (
+            <button
+              onClick={onClose}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </div>
 
-      <div className="min-h-0 overflow-y-auto px-5 py-4 sm:px-6">
+      <div className="min-h-0 overflow-y-auto px-6 py-5">
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
           <div className="space-y-4">
             <ModalSection title="Payment Proof">
@@ -934,7 +1018,7 @@ function PaymentReviewModal({
         </div>
       </div>
 
-      <div className="shrink-0 border-t border-slate-100 bg-white px-5 py-4 sm:px-6">
+      <div className="shrink-0 border-t border-slate-100 bg-white px-5 py-4">
         {isActionable ? (
           <div className={`grid gap-3 ${payment.paymentMethod === "cash" ? "sm:grid-cols-1" : "sm:grid-cols-3"}`}>
             {payment.paymentMethod !== "cash" && (
@@ -1595,44 +1679,49 @@ function IncompletePaymentModal({
     setConfirmStep(false)
   }
 
+  const iconBlock = (color: string) => (
+    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${color}`}>
+      <AlertCircle className="h-5 w-5" />
+    </div>
+  )
+
   return (
     <Dialog open={!!booking} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="w-[calc(100vw-28px)] max-w-[520px] rounded-[1.75rem] border-0 bg-white p-0 shadow-2xl [&>button]:hidden">
-        <div className="p-6 sm:p-7">
+        <DialogContent className="w-[calc(100vw-32px)] sm:w-fit sm:min-w-[500px] sm:max-w-[calc(100vw-48px)] max-h-[90dvh] overflow-hidden rounded-3xl bg-white shadow-2xl [&>button]:hidden">
+        <div className="flex max-h-[90dvh] flex-col overflow-hidden">
           {!confirmStep ? (
             <>
-              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
-                <AlertCircle className="h-8 w-8" />
+              <div className="shrink-0 flex items-center gap-3 border-b border-slate-100 px-5 py-4">
+                {iconBlock("bg-amber-50 text-amber-600")}
+                <DialogTitle className="text-lg font-black text-slate-950">
+                  Incomplete Payment
+                </DialogTitle>
               </div>
 
-              <DialogTitle className="text-2xl font-black text-slate-950">
-                Incomplete Payment
-              </DialogTitle>
+              <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 space-y-4">
+                <p className="text-sm leading-5 text-slate-500">
+                  Enter the verified amount actually received from the customer. The system will calculate the remaining amount.
+                </p>
 
-              <p className="mt-2 text-sm leading-6 text-slate-500">
-                Enter the verified amount actually received from the customer. The system will calculate the remaining amount.
-              </p>
+                <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-left">
+                  <p className="flex justify-between text-xs">
+                    <span className="font-semibold text-slate-400">Booking ID</span>
+                    <span className="font-bold text-slate-900">{booking.id}</span>
+                  </p>
+                  <p className="flex justify-between text-xs">
+                    <span className="font-semibold text-slate-400">Customer</span>
+                    <span className="font-bold text-slate-900">{booking.userInfo?.name || "No Name"}</span>
+                  </p>
+                  <p className="flex justify-between text-xs">
+                    <span className="font-semibold text-slate-400">Expected Amount</span>
+                    <span className="font-bold text-slate-900">₱{totalAmount.toLocaleString()}</span>
+                  </p>
+                  <p className="flex justify-between text-xs">
+                    <span className="font-semibold text-slate-400">Current Paid</span>
+                    <span className="font-bold text-slate-900">₱{currentAmountPaid.toLocaleString()}</span>
+                  </p>
+                </div>
 
-              <div className="mt-5 space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left">
-                <p className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">Booking ID</span>
-                  <span className="font-bold text-slate-900">{booking.id}</span>
-                </p>
-                <p className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">Customer</span>
-                  <span className="font-bold text-slate-900">{booking.userInfo?.name || "No Name"}</span>
-                </p>
-                <p className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">Expected Amount</span>
-                  <span className="font-bold text-slate-900">₱{totalAmount.toLocaleString()}</span>
-                </p>
-                <p className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">Current Paid</span>
-                  <span className="font-bold text-slate-900">₱{currentAmountPaid.toLocaleString()}</span>
-                </p>
-              </div>
-
-              <div className="mt-5 space-y-4">
                 <div>
                   <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-slate-500">
                     Verified Amount Received *
@@ -1661,23 +1750,23 @@ function IncompletePaymentModal({
                     value={adminReason}
                     onChange={(e) => setAdminReason(e.target.value)}
                     placeholder="Example: Proof is valid, but amount received is only ₱5,000."
-                    className="min-h-[80px] resize-none rounded-xl border-slate-200 text-xs focus-visible:ring-amber-600"
+                    className="min-h-[80px] w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-xs focus-visible:ring-amber-600"
                   />
                 </div>
               </div>
 
-              <div className="mt-6 grid grid-cols-2 gap-3">
+              <div className="shrink-0 grid grid-cols-2 gap-3 border-t border-slate-100 bg-white px-5 py-4">
                 <Button
                   variant="outline"
                   onClick={onClose}
-                  className="h-11 rounded-xl border-slate-200 text-sm font-black text-slate-700"
+                  className="h-10 rounded-xl border-slate-200 text-xs font-black text-slate-700"
                 >
                   Cancel
                 </Button>
                 <Button
                   disabled={enteredAmount <= 0 || !adminReason.trim()}
                   onClick={() => setConfirmStep(true)}
-                  className="h-11 rounded-xl bg-amber-600 text-sm font-black text-white hover:bg-amber-700 disabled:opacity-50"
+                  className="h-10 rounded-xl bg-amber-600 text-xs font-black text-white hover:bg-amber-700 disabled:opacity-50"
                 >
                   Continue
                 </Button>
@@ -1685,58 +1774,59 @@ function IncompletePaymentModal({
             </>
           ) : (
             <>
-              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
-                <AlertCircle className="h-8 w-8" />
+              <div className="shrink-0 flex items-center gap-3 border-b border-slate-100 px-5 py-4">
+                {iconBlock("bg-amber-50 text-amber-600")}
+                <DialogTitle className="text-lg font-black text-slate-950">
+                  Confirm Incomplete Payment
+                </DialogTitle>
               </div>
 
-              <DialogTitle className="text-2xl font-black text-slate-950">
-                Confirm Incomplete Payment
-              </DialogTitle>
+              <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 space-y-4">
+                <p className="text-sm leading-5 text-slate-500">
+                  Are you sure you want to record this as an incomplete payment?
+                </p>
 
-              <p className="mt-2 text-sm leading-6 text-slate-500">
-                Are you sure you want to record this as an incomplete payment? The system will update the payment record and calculate the remaining balance.
-              </p>
-
-              <div className="mt-5 space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left">
-                <p className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">Booking ID</span>
-                  <span className="font-bold text-slate-900">{booking.id}</span>
-                </p>
-                <p className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">Customer</span>
-                  <span className="font-bold text-slate-900">{booking.userInfo?.name || "No Name"}</span>
-                </p>
-                <p className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">Amount Received</span>
-                  <span className="font-bold text-amber-700">₱{enteredAmount.toLocaleString()}</span>
-                </p>
-                <p className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">Remaining Balance</span>
-                  <span className="font-bold text-amber-700">₱{newRemainingBalance.toLocaleString()}</span>
-                </p>
-                <p className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">New Status</span>
-                  <span className="font-bold text-amber-700">{getPaymentLabel()}</span>
-                </p>
-                {adminReason.trim() && (
+                <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-left">
                   <p className="flex justify-between text-xs">
-                    <span className="font-semibold text-slate-400">Note</span>
-                    <span className="font-bold text-slate-900">{adminReason.trim()}</span>
+                    <span className="font-semibold text-slate-400">Booking ID</span>
+                    <span className="font-bold text-slate-900">{booking.id}</span>
                   </p>
-                )}
+                  <p className="flex justify-between text-xs">
+                    <span className="font-semibold text-slate-400">Customer</span>
+                    <span className="font-bold text-slate-900">{booking.userInfo?.name || "No Name"}</span>
+                  </p>
+                  <p className="flex justify-between text-xs">
+                    <span className="font-semibold text-slate-400">Amount Received</span>
+                    <span className="font-bold text-amber-700">₱{enteredAmount.toLocaleString()}</span>
+                  </p>
+                  <p className="flex justify-between text-xs">
+                    <span className="font-semibold text-slate-400">Remaining Balance</span>
+                    <span className="font-bold text-amber-700">₱{newRemainingBalance.toLocaleString()}</span>
+                  </p>
+                  <p className="flex justify-between text-xs">
+                    <span className="font-semibold text-slate-400">New Status</span>
+                    <span className="font-bold text-amber-700">{getPaymentLabel()}</span>
+                  </p>
+                  {adminReason.trim() && (
+                    <p className="flex justify-between text-xs">
+                      <span className="font-semibold text-slate-400">Note</span>
+                      <span className="font-bold text-slate-900">{adminReason.trim()}</span>
+                    </p>
+                  )}
+                </div>
               </div>
 
-              <div className="mt-6 grid grid-cols-2 gap-3">
+              <div className="shrink-0 grid grid-cols-2 gap-3 border-t border-slate-100 bg-white px-5 py-4">
                 <Button
                   variant="outline"
                   onClick={() => setConfirmStep(false)}
-                  className="h-11 rounded-xl border-slate-200 text-sm font-black text-slate-700"
+                  className="h-10 rounded-xl border-slate-200 text-xs font-black text-slate-700"
                 >
                   Back
                 </Button>
                 <Button
                   onClick={handleConfirm}
-                  className="h-11 rounded-xl bg-amber-600 text-sm font-black text-white hover:bg-amber-700"
+                  className="h-10 rounded-xl bg-amber-600 text-xs font-black text-white hover:bg-amber-700"
                 >
                   Confirm Incomplete Payment
                 </Button>
@@ -1827,42 +1917,43 @@ function OnsiteVerifyModal({
 
   return (
     <Dialog open={!!booking} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="w-[calc(100vw-28px)] max-w-[520px] rounded-[1.75rem] border-0 bg-white p-0 shadow-2xl [&>button]:hidden">
-        <div className="p-6 sm:p-7">
+      <DialogContent className="w-[calc(100vw-32px)] sm:w-fit sm:min-w-[480px] sm:max-w-[calc(100vw-48px)] max-h-[90dvh] overflow-hidden rounded-3xl bg-white shadow-2xl [&>button]:hidden">
+        <div className="flex max-h-[90dvh] flex-col overflow-hidden">
           {!confirmStep ? (
             <>
-              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
-                <Banknote className="h-8 w-8" />
+              <div className="shrink-0 flex items-center gap-3 border-b border-slate-100 px-5 py-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                  <Banknote className="h-5 w-5" />
+                </div>
+                <DialogTitle className="text-lg font-black text-slate-950">
+                  Verify Onsite Payment
+                </DialogTitle>
               </div>
 
-              <DialogTitle className="text-2xl font-black text-slate-950">
-                Verify Onsite Payment
-              </DialogTitle>
+              <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 space-y-4">
+                <p className="text-sm leading-5 text-slate-500">
+                  The customer selected Pay at the Office. Enter the actual amount received at the office.
+                </p>
 
-              <p className="mt-2 text-sm leading-6 text-slate-500">
-                The customer selected Pay at the Office. Enter the actual amount received at the office.
-              </p>
+                <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-left">
+                  <p className="flex justify-between text-xs">
+                    <span className="font-semibold text-slate-400">Booking ID</span>
+                    <span className="font-bold text-slate-900">{booking.id}</span>
+                  </p>
+                  <p className="flex justify-between text-xs">
+                    <span className="font-semibold text-slate-400">Customer</span>
+                    <span className="font-bold text-slate-900">{booking.userInfo?.name || "No Name"}</span>
+                  </p>
+                  <p className="flex justify-between text-xs">
+                    <span className="font-semibold text-slate-400">Total Amount</span>
+                    <span className="font-bold text-slate-900">₱{totalAmount.toLocaleString()}</span>
+                  </p>
+                  <p className="flex justify-between text-xs">
+                    <span className="font-semibold text-slate-400">Current Paid</span>
+                    <span className="font-bold text-slate-900">₱{currentAmountPaid.toLocaleString()}</span>
+                  </p>
+                </div>
 
-              <div className="mt-5 space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left">
-                <p className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">Booking ID</span>
-                  <span className="font-bold text-slate-900">{booking.id}</span>
-                </p>
-                <p className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">Customer</span>
-                  <span className="font-bold text-slate-900">{booking.userInfo?.name || "No Name"}</span>
-                </p>
-                <p className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">Total Amount</span>
-                  <span className="font-bold text-slate-900">₱{totalAmount.toLocaleString()}</span>
-                </p>
-                <p className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">Current Paid</span>
-                  <span className="font-bold text-slate-900">₱{currentAmountPaid.toLocaleString()}</span>
-                </p>
-              </div>
-
-              <div className="mt-5 space-y-4">
                 <div>
                   <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-slate-500">
                     Amount Received *
@@ -1891,23 +1982,23 @@ function OnsiteVerifyModal({
                     value={adminNote}
                     onChange={(e) => setAdminNote(e.target.value)}
                     placeholder="Optional note about the onsite payment"
-                    className="min-h-[80px] resize-none rounded-xl border-slate-200 text-xs focus-visible:ring-emerald-600"
+                    className="min-h-[80px] w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-xs focus-visible:ring-emerald-600"
                   />
                 </div>
               </div>
 
-              <div className="mt-6 grid grid-cols-2 gap-3">
+              <div className="shrink-0 grid grid-cols-2 gap-3 border-t border-slate-100 bg-white px-5 py-4">
                 <Button
                   variant="outline"
                   onClick={onClose}
-                  className="h-11 rounded-xl border-slate-200 text-sm font-black text-slate-700"
+                  className="h-10 rounded-xl border-slate-200 text-xs font-black text-slate-700"
                 >
                   Cancel
                 </Button>
                 <Button
                   disabled={enteredAmount <= 0}
                   onClick={() => setConfirmStep(true)}
-                  className="h-11 rounded-xl bg-emerald-600 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-50"
+                  className="h-10 rounded-xl bg-emerald-600 text-xs font-black text-white hover:bg-emerald-700 disabled:opacity-50"
                 >
                   Continue
                 </Button>
@@ -1915,58 +2006,61 @@ function OnsiteVerifyModal({
             </>
           ) : (
             <>
-              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
-                <Banknote className="h-8 w-8" />
+              <div className="shrink-0 flex items-center gap-3 border-b border-slate-100 px-5 py-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                  <Banknote className="h-5 w-5" />
+                </div>
+                <DialogTitle className="text-lg font-black text-slate-950">
+                  Confirm Onsite Payment
+                </DialogTitle>
               </div>
 
-              <DialogTitle className="text-2xl font-black text-slate-950">
-                Confirm Onsite Payment
-              </DialogTitle>
+              <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 space-y-4">
+                <p className="text-sm leading-5 text-slate-500">
+                  Confirm the onsite payment amount received from the customer.
+                </p>
 
-              <p className="mt-2 text-sm leading-6 text-slate-500">
-                Confirm the onsite payment amount received from the customer.
-              </p>
-
-              <div className="mt-5 space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left">
-                <p className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">Booking ID</span>
-                  <span className="font-bold text-slate-900">{booking.id}</span>
-                </p>
-                <p className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">Customer</span>
-                  <span className="font-bold text-slate-900">{booking.userInfo?.name || "No Name"}</span>
-                </p>
-                <p className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">Amount Received</span>
-                  <span className="font-bold text-emerald-700">₱{enteredAmount.toLocaleString()}</span>
-                </p>
-                <p className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">Remaining Balance</span>
-                  <span className="font-bold text-emerald-700">₱{newRemainingBalance.toLocaleString()}</span>
-                </p>
-                <p className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">New Status</span>
-                  <span className="font-bold text-emerald-700">{isFullyPaidAfter ? "Fully Paid" : "Partial Payment"}</span>
-                </p>
-                {adminNote.trim() && (
+                <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-left">
                   <p className="flex justify-between text-xs">
-                    <span className="font-semibold text-slate-400">Note</span>
-                    <span className="font-bold text-slate-900">{adminNote.trim()}</span>
+                    <span className="font-semibold text-slate-400">Booking ID</span>
+                    <span className="font-bold text-slate-900">{booking.id}</span>
                   </p>
-                )}
+                  <p className="flex justify-between text-xs">
+                    <span className="font-semibold text-slate-400">Customer</span>
+                    <span className="font-bold text-slate-900">{booking.userInfo?.name || "No Name"}</span>
+                  </p>
+                  <p className="flex justify-between text-xs">
+                    <span className="font-semibold text-slate-400">Amount Received</span>
+                    <span className="font-bold text-emerald-700">₱{enteredAmount.toLocaleString()}</span>
+                  </p>
+                  <p className="flex justify-between text-xs">
+                    <span className="font-semibold text-slate-400">Remaining Balance</span>
+                    <span className="font-bold text-emerald-700">₱{newRemainingBalance.toLocaleString()}</span>
+                  </p>
+                  <p className="flex justify-between text-xs">
+                    <span className="font-semibold text-slate-400">New Status</span>
+                    <span className="font-bold text-emerald-700">{isFullyPaidAfter ? "Fully Paid" : "Partial Payment"}</span>
+                  </p>
+                  {adminNote.trim() && (
+                    <p className="flex justify-between text-xs">
+                      <span className="font-semibold text-slate-400">Note</span>
+                      <span className="font-bold text-slate-900">{adminNote.trim()}</span>
+                    </p>
+                  )}
+                </div>
               </div>
 
-              <div className="mt-6 grid grid-cols-2 gap-3">
+              <div className="shrink-0 grid grid-cols-2 gap-3 border-t border-slate-100 bg-white px-5 py-4">
                 <Button
                   variant="outline"
                   onClick={() => setConfirmStep(false)}
-                  className="h-11 rounded-xl border-slate-200 text-sm font-black text-slate-700"
+                  className="h-10 rounded-xl border-slate-200 text-xs font-black text-slate-700"
                 >
                   Back
                 </Button>
                 <Button
                   onClick={handleConfirm}
-                  className="h-11 rounded-xl bg-emerald-600 text-sm font-black text-white hover:bg-emerald-700"
+                  className="h-10 rounded-xl bg-emerald-600 text-xs font-black text-white hover:bg-emerald-700"
                 >
                   Confirm Verification
                 </Button>

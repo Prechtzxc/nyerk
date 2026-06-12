@@ -933,9 +933,10 @@ function BookingDetailsModal({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent
         showCloseButton={false}
-        className="flex max-h-[calc(100vh-32px)] max-h-[calc(100dvh-32px)] w-[calc(100vw-48px)] max-w-[1100px] flex-col gap-0 overflow-hidden rounded-2xl border-0 bg-white p-0 shadow-xl min-w-0"
+        className="w-[min(94vw,580px)] h-[calc(100dvh-48px)] max-h-[720px] overflow-hidden rounded-3xl bg-white shadow-2xl"
       >
-        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-100 bg-white px-6 pt-6 pb-4">
+        <div className="flex h-full min-h-0 flex-col overflow-hidden">
+        <header className="shrink-0 flex items-start justify-between gap-4 border-b border-slate-100 bg-white px-5 py-4">
           <div className="min-w-0">
             <p className="text-[10px] font-black uppercase tracking-widest text-orange-600">
               Booking Details
@@ -956,10 +957,10 @@ function BookingDetailsModal({
               <X className="h-4 w-4" />
             </button>
           </DialogClose>
-        </div>
+        </header>
 
-        <div className="min-w-0 flex-1 overflow-y-auto px-4 py-4 pb-6 sm:px-6 sm:py-5 sm:pb-10">
-          <div className="mb-5 flex flex-wrap items-center gap-2">
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+          <div className="mb-4 flex flex-wrap items-center gap-2">
             <span
               className={cn(
                 "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
@@ -990,8 +991,8 @@ function BookingDetailsModal({
             )}
           </div>
 
-          <div className="min-w-0 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
-            <div className="min-w-0 rounded-xl border border-slate-100 p-4">
+          <div className="space-y-4">
+            <section className="rounded-2xl border border-slate-200 p-4">
               <div className="mb-3 flex items-center gap-2">
                 <div className="h-1.5 w-1.5 rounded-full bg-slate-400" />
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Booking Information</p>
@@ -999,64 +1000,64 @@ function BookingDetailsModal({
               <div className="space-y-3">
                 <div className="min-w-0">
                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Customer</p>
-                  <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{booking.userInfo?.name || "—"}</p>
+                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{booking.userInfo?.name || "—"}</p>
                 </div>
                 <div className="min-w-0">
                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Email</p>
-                  <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{booking.userInfo?.email || "—"}</p>
+                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{booking.userInfo?.email || "—"}</p>
                 </div>
                 <div className="min-w-0">
                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Booking Date</p>
-                  <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{formatDate(booking.createdAt) || "—"}</p>
+                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{formatDate(booking.createdAt) || "—"}</p>
                 </div>
                 <div className="min-w-0">
                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">{isOfficeRental ? "Start Date" : "Event Date"}</p>
-                  <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{startDate || "—"}</p>
+                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{startDate || "—"}</p>
                 </div>
                 <div className="min-w-0">
                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">End Date</p>
-                  <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{endDate || "—"}</p>
+                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{endDate || "—"}</p>
                 </div>
                 <div className="min-w-0">
                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Venue / Office</p>
-                  <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{booking.venue || "—"}</p>
+                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{booking.venue || "—"}</p>
                 </div>
                 <div className="min-w-0">
                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Guests</p>
-                  <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{booking.guestCount ? `${booking.guestCount} pax` : "—"}</p>
+                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{booking.guestCount ? `${booking.guestCount} pax` : "—"}</p>
                 </div>
                 <div className="min-w-0">
                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Time</p>
-                  <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{timeValue}</p>
+                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{timeValue}</p>
                 </div>
                 <div className="min-w-0">
                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Booking ID</p>
-                  <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">#{booking.id}</p>
+                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">#{booking.id}</p>
                 </div>
                 <div className="min-w-0">
                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Event Type</p>
-                  <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{typeLabel}</p>
+                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{typeLabel}</p>
                 </div>
               </div>
-            </div>
+            </section>
 
-            <div className="min-w-0 rounded-xl border border-slate-100">
+            <section className="rounded-2xl border border-slate-200 p-4">
               <PaymentSummaryCard booking={booking} bankRef={bankRef} />
-            </div>
+            </section>
           </div>
 
           {booking.specialRequests && (
-            <div className="mt-5 p-4">
+            <section className="rounded-2xl border border-slate-200 p-4">
               <div className="mb-2 flex items-center gap-2">
                 <div className="h-1.5 w-1.5 rounded-full bg-slate-400" />
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Special Requests</p>
               </div>
               <p className="text-xs font-semibold leading-relaxed text-slate-700">{booking.specialRequests}</p>
-            </div>
+            </section>
           )}
 
           {booking.cancellationStatus && booking.cancellationStatus !== "None" && (
-            <div className="mt-5 p-4">
+            <section className="rounded-2xl border border-slate-200 p-4">
               <div className="mb-3 flex items-center gap-2">
                 <div className="h-1.5 w-1.5 rounded-full bg-rose-400" />
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Cancellation / Refund Status</p>
@@ -1105,11 +1106,11 @@ function BookingDetailsModal({
                   </div>
                 )}
               </div>
-            </div>
+            </section>
           )}
 
           {booking.modificationRequested && booking.modificationStatus && booking.modificationStatus !== "None" && (
-            <div className="mt-5 p-4">
+            <section className="rounded-2xl border border-slate-200 p-4">
               <div className="mb-3 flex items-center gap-2">
                 <div className="h-1.5 w-1.5 rounded-full bg-blue-400" />
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Modification Status</p>
@@ -1131,11 +1132,11 @@ function BookingDetailsModal({
                   </div>
                 )}
               </div>
-            </div>
+            </section>
           )}
 
           {(booking.contractStatus === "Signed" || booking.contractSigned) && (
-            <div className="mt-5 rounded-xl border border-slate-200 bg-white p-4">
+            <section className="rounded-2xl border border-slate-200 p-4">
               <div className="mb-3 flex items-center gap-2">
                 <FileText className="h-4 w-4 text-slate-500" />
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Contract</p>
@@ -1163,11 +1164,11 @@ function BookingDetailsModal({
                   Signing Method: Face-to-face
                 </p>
               </div>
-            </div>
+            </section>
           )}
 
           {isPaymentVerified && !(booking.contractStatus === "Signed" || booking.contractSigned) && !isCancelled && !isCompleted && (
-            <div className="mt-5 rounded-xl border border-slate-200 bg-white p-4">
+            <section className="rounded-2xl border border-slate-200 p-4">
               <div className="mb-3 flex items-center gap-2">
                 <FileText className="h-4 w-4 text-slate-500" />
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Contract</p>
@@ -1199,11 +1200,11 @@ function BookingDetailsModal({
                   </Button>
                 </div>
               </div>
-            </div>
+            </section>
           )}
 
           {!isPaymentVerified && !(booking.contractStatus === "Signed" || booking.contractSigned) && (
-            <div className="mt-5 rounded-xl border border-slate-200 bg-white p-4">
+            <section className="rounded-2xl border border-slate-200 p-4">
               <div className="mb-3 flex items-center gap-2">
                 <FileText className="h-4 w-4 text-slate-500" />
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Contract</p>
@@ -1219,7 +1220,7 @@ function BookingDetailsModal({
               <p className="mt-2 text-xs font-semibold text-slate-500">
                 Contract will be available once payment is verified.
               </p>
-            </div>
+            </section>
           )}
         </div>
 
@@ -1269,7 +1270,7 @@ function BookingDetailsModal({
 
           if (isCancellationRequested && !isCompleted && !isCancelled) {
             return (
-              <div className="border-t border-slate-100 bg-white px-4 py-3 sm:px-6 sm:py-4">
+              <div className="border-t border-slate-100 bg-white px-5 py-4">
                 <div className="rounded-xl bg-amber-50 p-3 text-center mb-3">
                   <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">Cancellation Under Review</p>
                   <p className="mt-1 text-xs font-semibold text-amber-700">
@@ -1303,7 +1304,7 @@ function BookingDetailsModal({
 
           if (isModificationUnderReview && !isCompleted && !isCancelled) {
             return (
-              <div className="border-t border-slate-100 bg-white px-4 py-3 sm:px-6 sm:py-4">
+              <div className="border-t border-slate-100 bg-white px-5 py-4">
                 <div className="rounded-xl bg-purple-50 p-3 text-center mb-3">
                   <p className="text-[10px] font-black uppercase tracking-widest text-purple-600">Modification Under Review</p>
                   <p className="mt-1 text-xs font-semibold text-purple-700">
@@ -1346,7 +1347,7 @@ function BookingDetailsModal({
           if (isPencilBooking) {
             if (!canDoRecordOnsite || !onRecordOnsitePayment) return null
             return (
-              <div className="border-t border-slate-100 bg-white px-4 py-3 sm:px-6 sm:py-4">
+              <div className="border-t border-slate-100 bg-white px-5 py-4">
                 <div className="flex sm:justify-end">
                   <Button
                     onClick={() => onRecordOnsitePayment(booking.id)}
@@ -1363,7 +1364,7 @@ function BookingDetailsModal({
           if (isApprovedOrConfirmed) {
             if (!remainingBalance && !canDoBalanceReminder && !canDoRecordOnsite && !isMarkCompletedVisible) return null
             return (
-              <div className="border-t border-slate-100 bg-white px-4 py-3 sm:px-6 sm:py-4">
+              <div className="border-t border-slate-100 bg-white px-5 py-4">
                 {remainingBalance > 0 && (
                   <div className="rounded-xl bg-amber-50 p-3 text-center mb-3">
                     <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">Remaining Balance</p>
@@ -1420,7 +1421,7 @@ function BookingDetailsModal({
           if (isFullyPaid && !isCompleted && !isCancelled) {
             if (!isMarkCompletedVisible) return null
             return (
-              <div className="border-t border-slate-100 bg-white px-4 py-3 sm:px-6 sm:py-4">
+              <div className="border-t border-slate-100 bg-white px-5 py-4">
                 <Button
                   onClick={() => isMarkCompletedEnabled && onMarkCompleted(booking.id)}
                   disabled={!isMarkCompletedEnabled}
@@ -1443,6 +1444,7 @@ function BookingDetailsModal({
 
           return null
         })()}
+      </div>
       </DialogContent>
     </Dialog>
   )
@@ -1760,7 +1762,7 @@ function PaymentSummaryCard({
   const showDP = isDownpayment && selectedDP > 0
 
   return (
-    <div className="p-4">
+    <div>
       <div className="mb-3 flex items-center gap-2">
         <div className="h-1.5 w-1.5 rounded-full bg-orange-500" />
         <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Payment Summary</p>

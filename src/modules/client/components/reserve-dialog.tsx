@@ -5,7 +5,7 @@ import { useAuth } from "@/src/modules/shared/auth/auth-context"
 import { useRouter } from "next/navigation"
 import { useBookings, Booking, calculateOfficeEndDate } from "@/src/modules/client/contexts/booking-context"
 import { 
-  Building2, Tent, Calendar, Clock, MapPin, Users, AlertCircle, Plus, Receipt, ChevronLeft, ChevronRight, CheckCircle2, XCircle, ArrowLeft, X, DoorOpen, PartyPopper, PlayCircle, PauseCircle, Navigation, Loader2, Star, MessageSquare, Briefcase, FileText
+  Building2, Tent, Calendar, Clock, MapPin, Users, AlertCircle, Plus, Receipt, ChevronLeft, ChevronRight, CheckCircle2, XCircle, ArrowLeft, X, DoorOpen, PartyPopper, PlayCircle, PauseCircle, Navigation, Loader2, Star, MessageSquare, Briefcase, FileText, Camera
 } from "lucide-react"
 import { Button } from "@/src/modules/shared/components/ui/button"
 import { useToast } from "@/src/modules/shared/hooks/use-toast"
@@ -17,23 +17,10 @@ import { Textarea } from "@/src/modules/shared/components/ui/textarea"
 import { Checkbox } from "@/src/modules/shared/components/ui/checkbox"
 import { cn } from "@/src/modules/shared/lib/utils"
 import { getPolicyItems } from "@/src/modules/shared/lib/policies"
+import { useCMS } from "@/src/modules/admin/contexts/cms-context"
+import { getPublicSpacesFromData, getPanoramaSource } from "@/src/modules/client/lib/venue-data"
 
 declare global { interface Window { pannellum?: any; } }
-
-// --- PREMIUM FALLBACK 360 IMAGE ---
-const PANO_IMG = 'https://pannellum.org/images/alma.jpg'; 
-
-const VENUES = [
-  { id: 'v1', name: 'The Milestone Event', capacity: '80–100 pax', price: 15000, type: 'venue', image: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=800&q=80', panoImage: PANO_IMG, description: 'Premium space for grand celebrations and corporate events.' },
-  { id: 'v2', name: 'The Moment Event', capacity: '30–50 pax', price: 10000, type: 'venue', image: 'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=800&q=80', panoImage: 'https://pannellum.org/images/jura.jpg', description: 'Intimate setting perfect for memorable milestones.' },
-  { id: 'v3', name: 'Conference Room', capacity: '4–10 pax', price: 3000, type: 'venue', image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80', panoImage: 'https://pannellum.org/images/bma-1.jpg', description: 'Professional environment equipped for critical decisions.' },
-  { id: 'v4', name: 'Business Room', capacity: '10–15 pax', price: 5000, type: 'venue', image: 'https://images.unsplash.com/photo-1517502884422-41eaadeff171?w=800&q=80', panoImage: 'https://pannellum.org/images/cerro-toco-0.jpg', description: 'Spacious meeting area ideal for collaborations.' }
-]
-
-const OFFICE_BUILDINGS = [
-  { id: 'office-a', name: 'Office A', capacity: '1-4 pax per room', price: 15000, type: 'office', image: 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?w=800&q=80', panoImage: PANO_IMG, description: 'Premium office wing with 8 individual private rooms.' },
-  { id: 'office-b', name: 'Office B', capacity: '1-4 pax per room', price: 15000, type: 'office', image: 'https://images.unsplash.com/photo-1541746972996-4e0b0f93e586?w=800&q=80', panoImage: PANO_IMG, description: 'Executive office wing with 8 individual private rooms.' }
-]
 
 type StoredVenueReview = {
   id: string
@@ -405,6 +392,12 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
   const { user } = useAuth()
   const { toast } = useToast()
   const router = useRouter()
+  const { cmsData } = useCMS()
+
+  const { eventVenues: VENUES, officeSpaces: OFFICE_BUILDINGS } = useMemo(
+    () => getPublicSpacesFromData(cmsData),
+    [cmsData]
+  )
 
   const [step, setStep] = useState<StepType>('category') 
   const [category, setCategory] = useState<'venue' | 'office' | null>(null)
@@ -581,7 +574,12 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
       container.innerHTML = ""
       setIsViewerReady(false)
 
-      const panoramaSource = selectedItem?.panoImage || PANO_IMG
+      const panoramaSource = getPanoramaSource(selectedItem)
+
+      if (!panoramaSource) {
+        setIsViewerReady(true)
+        return
+      }
 
       try {
         const viewer = window.pannellum.viewer('booking-panorama-viewer', {
@@ -868,13 +866,13 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
   }
 
   const renderCategory = () => (
-    <div className="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col justify-center bg-slate-50 min-h-0">
-      <div className="max-w-lg mx-auto w-full pb-4 pb-[env(safe-area-inset-bottom)]">
-        <div className="text-center mb-5 md:mb-6">
+    <div className="overflow-y-auto p-6 md:p-8 bg-slate-50">
+      <div className="max-w-lg mx-auto w-full">
+        <div className="text-center mb-6 md:mb-8">
           <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">Select Category</h2>
           <p className="text-slate-500 mt-1 text-sm">What type of space are you looking for?</p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
           <button aria-label="Book Event Venue" onClick={() => { setCategory('venue'); setStep('list') }} className="bg-white border-2 border-slate-200 rounded-2xl p-4 md:p-5 text-left hover:border-[#ea580c] hover:shadow-md focus-visible:border-[#ea580c] focus-visible:ring-2 focus-visible:ring-orange-300 outline-none transition-all duration-300 group active:scale-[0.98]">
             <div className="w-10 h-10 md:w-12 md:h-12 bg-orange-50 rounded-xl flex items-center justify-center mb-3 text-[#ea580c] group-hover:scale-110 transition-transform"><Tent className="w-5 h-5 md:w-6 md:h-6" /></div>
             <h4 className="text-base md:text-lg font-black text-slate-900">Event Venues</h4>
@@ -974,6 +972,8 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
 
     const displayName = selectedRoom ? `${selectedItem?.name} - Rm ${selectedRoom}` : selectedItem?.name
 
+    const hasPanorama = !!(getPanoramaSource(selectedItem))
+
     const venueSlots = [
       { start: 8, end: 14, startTimeLabel: "8:00 AM", label: "8:00 AM - 2:00 PM" },
       { start: 9, end: 15, startTimeLabel: "9:00 AM", label: "9:00 AM - 3:00 PM" },
@@ -1006,30 +1006,235 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
         });
     });
 
-    return (
-      <div className="flex flex-col lg:flex-row flex-1 overflow-hidden bg-white min-h-0 w-full h-full">
-        
-        {/* Mobile: venue title & price (shows before 360 on mobile, hidden on desktop) */}
-        <div className="shrink-0 lg:hidden px-4 pt-4 pb-2 bg-white border-b border-slate-100">
-          <h2 className="text-xl font-black text-slate-900 tracking-tight leading-tight">{displayName}</h2>
-          <p className="text-[#ea580c] font-black text-lg leading-tight mt-0.5">₱{selectedItem?.price.toLocaleString()} <span className="text-slate-400 font-bold text-[9px] tracking-widest uppercase">/ {category === 'venue' ? 'Per 6 Hrs' : 'Per Month'}</span></p>
+    const calendarCard = (
+      <div className="overflow-hidden rounded-[1rem] border border-slate-200 bg-white shadow-sm">
+        <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-2.5 py-2">
+          <button
+            type="button"
+            aria-label="Previous month"
+            onClick={() => setCalendarMonth(new Date(year, month - 1, 1))}
+            className="flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </button>
+
+          <div className="text-center">
+            <h5 className="text-[13px] font-black leading-none text-slate-950 md:text-sm">
+              {calendarMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}
+            </h5>
+            <p className="mt-0.5 text-[7px] font-bold uppercase tracking-[0.12em] text-slate-400">
+              Choose an available day
+            </p>
+          </div>
+
+          <button
+            type="button"
+            aria-label="Next month"
+            onClick={() => setCalendarMonth(new Date(year, month + 1, 1))}
+            className="flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600"
+          >
+            <ChevronRight className="h-3.5 w-3.5" />
+          </button>
         </div>
 
-        {/* HERO: 360 VIEWER */}
-        <div className="w-full lg:w-[44%] 2xl:w-[45%] h-[200px] sm:h-[260px] lg:h-full bg-black shrink-0 relative shadow-md z-20 overflow-hidden">
-          <div id="booking-panorama-viewer" className="h-full w-full touch-pan-x bg-black [&_.pnlm-controls-container]:hidden [&_.pnlm-fullscreen-toggle-button]:hidden [&_.pnlm-zoom-controls]:hidden"></div>
-          {(!libLoaded || !isViewerReady) && (
+        <div className="p-2.5">
+          <div className="mb-1.5 grid grid-cols-7 text-center">
+            {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((dayLabel) => (
+              <div key={dayLabel} className="text-[7px] font-black uppercase tracking-[0.1em] text-slate-400">
+                {dayLabel}
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-7 justify-items-center gap-0.5">
+            {emptySlots.map((_, i) => <div key={`empty-${i}`} className="h-7 w-7 2xl:h-8 2xl:w-8" />)}
+            {days.map(day => {
+              const iterDate = new Date(year, month, day);
+              const iterDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+              const isSelected = selectedDate === iterDateStr;
+              const isBeforeAllowedWindow = iterDate < minBookableDate;
+              const isMaintenance = isMaintenanceBlockedForSelectedSpace(iterDateStr);
+
+              let statusClass = "border-slate-200 bg-white text-slate-700 hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700";
+              let isDisabled = false;
+              let dayTitle = "Available";
+
+              if (isBeforeAllowedWindow) {
+                statusClass = "cursor-not-allowed border-slate-100 bg-slate-100 text-slate-300 opacity-60";
+                isDisabled = true;
+                dayTitle = "Unavailable: booking must be at least 1 month from today";
+              } else if (isMaintenance) {
+                statusClass = "cursor-not-allowed border-slate-900 bg-slate-900 text-slate-400";
+                isDisabled = true;
+                dayTitle = "Maintenance day";
+              } else {
+                const dayBookings = bookings.filter(b =>
+                  b.date === iterDateStr &&
+                  b.venueId === selectedItem?.id &&
+                  (!selectedRoom || (b.venue ?? "").includes(`Room ${selectedRoom}`)) &&
+                  b.status !== 'cancelled' &&
+                  b.status !== 'declined'
+                );
+
+                const available = venueSlots.filter(slot => {
+                  return !dayBookings.some(b => {
+                    if (!b.time) return false;
+                    const bParsed = getParsedTime(b.time);
+                    if (!bParsed) return false;
+                    return slot.start <= bParsed.end && slot.end >= bParsed.start;
+                  });
+                });
+
+                if (available.length === 0) {
+                  statusClass = "cursor-not-allowed border-rose-100 bg-rose-50 text-rose-300";
+                  isDisabled = true;
+                  dayTitle = "Fully booked";
+                } else if (available.length < venueSlots.length) {
+                  statusClass = "border-amber-200 bg-amber-50 text-amber-700 hover:border-amber-300 hover:bg-amber-100";
+                  dayTitle = "Few slots left";
+                }
+              }
+
+              if (isSelected && !isDisabled) {
+                statusClass = "border-orange-600 bg-orange-600 text-white shadow-md shadow-orange-200 scale-105";
+                dayTitle = "Selected date";
+              }
+
+              return (
+                <button
+                  aria-label={`Select ${iterDateStr}`}
+                  title={dayTitle}
+                  key={day}
+                  disabled={isDisabled}
+                  onClick={() => {
+                    setSelectedDate(iterDateStr);
+                    setSelectedDuration(null);
+                  }}
+                  className={`flex h-7 w-7 2xl:h-8 2xl:w-8 items-center justify-center rounded-full border text-[10px] xl:text-[11px] font-black outline-none transition-all focus-visible:ring-2 focus-visible:ring-orange-300 ${statusClass}`}
+                >
+                  {day}
+                </button>
+              )
+            })}
+          </div>
+
+          <div className="mt-2 grid grid-cols-3 gap-1 border-t border-slate-100 pt-2">
+            <div className="flex items-center justify-center gap-1.5 rounded-full bg-rose-50 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] text-rose-500">
+              <span className="h-1.5 w-1.5 rounded-full bg-rose-200" /> Full
+            </div>
+            <div className="flex items-center justify-center gap-1.5 rounded-full bg-amber-50 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] text-amber-600">
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-300" /> Few
+            </div>
+            <div className="flex items-center justify-center gap-1.5 rounded-full bg-slate-100 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] text-slate-500">
+              <span className="h-1.5 w-1.5 rounded-full bg-slate-900" /> Maint.
+            </div>
+          </div>
+
+          <div className="mt-3 rounded-2xl border border-orange-100 bg-orange-50 px-2.5 py-2">
+            <p className="text-[8px] font-black uppercase tracking-[0.12em] text-orange-700">
+              Earliest bookable date
+            </p>
+            <p className="mt-0.5 text-[10px] font-bold leading-3 text-orange-900">
+              {minBookableDate.toLocaleDateString('en-PH', {
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric',
+              })}
+              . Gray dates are not available for booking.
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+
+    const timePanel = (
+      <>
+      {!selectedDate ? (
+        <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-[1rem] min-h-[160px] flex items-center justify-center text-slate-400 font-bold text-[9px] uppercase tracking-wider p-2 text-center">Select a date first</div>
+      ) : (
+        <div className="space-y-3 animate-in fade-in rounded-[1rem] border border-slate-200 bg-white p-3 shadow-sm">
+          {category === 'venue' ? (
+            <div className="flex flex-col gap-2">
+              <Select value={selectedDuration || ""} onValueChange={setSelectedDuration}>
+                <SelectTrigger className="w-full h-10 md:h-11 rounded-lg bg-white border-2 border-slate-200 px-3 font-bold text-xs text-slate-700 focus-visible:ring-2 focus-visible:ring-[#ea580c] transition-all data-[state=open]:border-[#ea580c]">
+                  <SelectValue placeholder="Select Start Time" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border-slate-200 shadow-xl max-h-[150px] md:max-h-[180px] z-[10003]">
+                  {availableVenueSlots.length > 0 ? (
+                    availableVenueSlots.map(slot => (
+                      <SelectItem key={slot.label} value={slot.label} className="font-bold text-xs text-slate-700 py-2 cursor-pointer focus:bg-orange-50 focus:text-[#ea580c]">
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-3 h-3 text-[#ea580c]" />
+                          {slot.startTimeLabel}
+                        </div>
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <div className="p-2 text-center text-[9px] font-bold text-slate-400 bg-slate-50 m-1 rounded-md">
+                      🚫 Fully Booked for this date
+                    </div>
+                  )}
+                </SelectContent>
+              </Select>
+              
+              {selectedDuration && availableVenueSlots.some(s => s.label === selectedDuration) && (
+                <div className="p-3 bg-orange-50 border border-orange-100 rounded-lg flex items-start gap-2 animate-in fade-in">
+                  <CheckCircle2 className="w-4 h-4 text-[#ea580c] shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-[8px] font-bold text-orange-900 uppercase tracking-widest leading-relaxed">
+                      6-Hour Slot Confirmed
+                    </p>
+                    <p className="text-[10px] font-black text-[#ea580c]">
+                      {selectedDuration}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            ['6 Months', '1 Year', '2 Years'].map((slot) => (
+            <button key={slot} onClick={() => setSelectedDuration(slot)} className={`w-full flex items-center justify-between p-3 min-h-[44px] rounded-lg border-2 transition-all focus-visible:ring-2 focus-visible:ring-orange-200 outline-none ${selectedDuration === slot ? 'border-[#ea580c] bg-orange-50 shadow-sm ring-2 ring-orange-50' : 'border-slate-100 bg-white hover:border-[#ea580c]'}`}>
+                <div className="flex items-center gap-2">
+                  <MapPin className={`w-4 h-4 ${selectedDuration === slot ? 'text-[#ea580c]' : 'text-slate-400'}`} />
+                  <span className={`font-bold text-xs ${selectedDuration === slot ? 'text-orange-900' : 'text-slate-700'}`}>{slot}</span>
+                </div>
+                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${selectedDuration === slot ? 'border-[#ea580c] bg-[#ea580c]' : 'border-slate-200'}`}>
+                  {selectedDuration === slot && <div className="w-1.5 h-1.5 bg-white rounded-full"></div>}
+                </div>
+              </button>
+            ))
+          )}
+        </div>
+      )}
+      </>
+    )
+
+    const titlePriceBlock = (
+      <div>
+        <h2 className="text-xl font-black text-slate-900 tracking-tight leading-tight">{displayName}</h2>
+        <p className="text-[#ea580c] font-black text-lg leading-tight mt-0.5">₱{selectedItem?.price.toLocaleString()} <span className="text-slate-400 font-bold text-[9px] tracking-widest uppercase">/ {category === 'venue' ? 'Per 6 Hrs' : 'Per Month'}</span></p>
+      </div>
+    )
+
+    const panoramaBlock = (
+      <div className="relative h-full min-h-[300px] overflow-hidden rounded-3xl bg-slate-950">
+        <div id="booking-panorama-viewer" className="absolute inset-0 h-full w-full touch-pan-x [&_.pnlm-controls-container]:hidden [&_.pnlm-fullscreen-toggle-button]:hidden [&_.pnlm-zoom-controls]:hidden"></div>
+        {hasPanorama ? (
+          (!libLoaded || !isViewerReady) && (
             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/60 gap-3">
               <Loader2 className="w-6 h-6 text-[#ea580c] animate-spin" />
               <p className="text-white text-[10px] font-black tracking-widest uppercase">Loading 360° Panorama...</p>
             </div>
-          )}
-          
-          <div className="hidden">
-            {/* top buttons handled by modal controls */}
-            <button aria-label="Go Back" onClick={handleBack} className="w-10 h-10 flex lg:hidden items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-md hover:bg-white/40 transition-colors border border-white/10 pointer-events-auto shadow-sm"><ArrowLeft className="w-4 h-4" /></button>
-            <button aria-label="Close" onClick={handleClose} className="w-10 h-10 flex lg:hidden items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-md hover:bg-white/40 transition-colors border border-white/10 pointer-events-auto shadow-sm"><X className="w-4 h-4" /></button>
+          )
+        ) : (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/60 gap-3">
+            <Camera className="w-8 h-8 text-white/60" />
+            <p className="text-white/80 text-[10px] font-black tracking-widest uppercase text-center px-4">
+              360 tour preview is not available for this space.
+            </p>
           </div>
+        )}
+        {hasPanorama && (
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-black/50 p-1.5 rounded-full backdrop-blur-md border border-white/10 shadow-sm pointer-events-auto">
             <button
               type="button"
@@ -1045,249 +1250,110 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
                <Navigation className="w-3 h-3 animate-pulse" /> Pan around
             </div>
           </div>
-        </div>
+        )}
+      </div>
+    )
 
-        {/* CONTENT: DETAILS SIDE */}
-        <div className="flex-1 lg:w-[56%] 2xl:w-[55%] flex flex-col h-full relative min-w-0 bg-white overflow-hidden pt-0 lg:pt-4">
-          
-          <div className="flex-1 flex flex-col min-h-0 px-4 sm:px-5 lg:px-6 pb-2 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-            
-            <div className="hidden lg:block shrink-0 mb-2 text-left">
-                <h2 className="text-xl lg:text-2xl 2xl:text-[1.7rem] font-black text-slate-900 tracking-tight mb-0.5 leading-tight">{displayName}</h2>
-                <p className="text-[#ea580c] font-black text-lg lg:text-xl leading-tight">₱{selectedItem?.price.toLocaleString()} <span className="text-slate-400 font-bold text-[9px] tracking-widest uppercase">/ {category === 'venue' ? 'Per 6 Hrs' : 'Per Month'}</span></p>
-            </div>
+    return (
+      <div className="flex flex-col bg-white min-h-0 w-full">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 lg:px-6 lg:py-6">
 
-            <div className="flex-1 flex flex-col min-h-0">
-                <div className="grid grid-cols-1 xl:grid-cols-[minmax(240px,300px)_minmax(200px,1fr)] gap-2 xl:gap-3 w-full pb-0 items-start">
-                    
-                    {/* Calendar Column */}
-                    <div className="mx-auto w-full xl:max-w-none">
-                        <div className="mb-1.5 flex items-center justify-between gap-2">
-                            <h3 className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-900">
-                                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-950 text-[9px] text-white shadow-sm">1</span>
-                                Select Date
-                            </h3>
-                            <span className="hidden rounded-full bg-orange-50 px-2.5 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-orange-600 sm:inline-flex">
-                                contract term
-                            </span>
-                        </div>
-
-                        <div className="overflow-hidden rounded-[1rem] border border-slate-200 bg-white shadow-sm">
-                            <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-2.5 py-2">
-                                <button
-                                  type="button"
-                                  aria-label="Previous month"
-                                  onClick={() => setCalendarMonth(new Date(year, month - 1, 1))}
-                                  className="flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600"
-                                >
-                                  <ChevronLeft className="h-3.5 w-3.5" />
-                                </button>
-
-                                <div className="text-center">
-                                  <h5 className="text-[13px] font-black leading-none text-slate-950 md:text-sm">
-                                    {calendarMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}
-                                  </h5>
-                                  <p className="mt-0.5 text-[7px] font-bold uppercase tracking-[0.12em] text-slate-400">
-                                    Choose an available day
-                                  </p>
-                                </div>
-
-                                <button
-                                  type="button"
-                                  aria-label="Next month"
-                                  onClick={() => setCalendarMonth(new Date(year, month + 1, 1))}
-                                  className="flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600"
-                                >
-                                  <ChevronRight className="h-3.5 w-3.5" />
-                                </button>
-                            </div>
-
-                            <div className="p-2.5 xl:p-2.5">
-                                <div className="mb-1.5 grid grid-cols-7 text-center">
-                                  {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((dayLabel) => (
-                                    <div
-                                      key={dayLabel}
-                                      className="text-[7px] font-black uppercase tracking-[0.1em] text-slate-400"
-                                    >
-                                      {dayLabel}
-                                    </div>
-                                  ))}
-                                </div>
-
-                                <div className="grid grid-cols-7 justify-items-center gap-0.5">
-                                    {emptySlots.map((_, i) => <div key={`empty-${i}`} className="h-7 w-7 2xl:h-8 2xl:w-8" />)}
-
-                                    {days.map(day => {
-                                        const iterDate = new Date(year, month, day);
-                                        const iterDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                                        const isSelected = selectedDate === iterDateStr;
-                                        const isBeforeAllowedWindow = iterDate < minBookableDate;
-                                        const isMaintenance = isMaintenanceBlockedForSelectedSpace(iterDateStr);
-
-                                        let statusClass = "border-slate-200 bg-white text-slate-700 hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700";
-                                        let isDisabled = false;
-                                        let dayTitle = "Available";
-
-                                        if (isBeforeAllowedWindow) {
-                                            statusClass = "cursor-not-allowed border-slate-100 bg-slate-100 text-slate-300 opacity-60";
-                                            isDisabled = true;
-                                            dayTitle = "Unavailable: booking must be at least 1 month from today";
-                                        } else if (isMaintenance) {
-                                            statusClass = "cursor-not-allowed border-slate-900 bg-slate-900 text-slate-400";
-                                            isDisabled = true;
-                                            dayTitle = "Maintenance day";
-                                        } else {
-                                            const dayBookings = bookings.filter(b =>
-                                                b.date === iterDateStr &&
-                                                b.venueId === selectedItem?.id &&
-                                                (!selectedRoom || (b.venue ?? "").includes(`Room ${selectedRoom}`)) &&
-                                                b.status !== 'cancelled' &&
-                                                b.status !== 'declined'
-                                            );
-
-                                            const available = venueSlots.filter(slot => {
-                                                return !dayBookings.some(b => {
-                                                    if (!b.time) return false;
-                                                    const bParsed = getParsedTime(b.time);
-                                                    if (!bParsed) return false;
-                                                    return slot.start <= bParsed.end && slot.end >= bParsed.start;
-                                                });
-                                            });
-
-                                            if (available.length === 0) {
-                                                statusClass = "cursor-not-allowed border-rose-100 bg-rose-50 text-rose-300";
-                                                isDisabled = true;
-                                                dayTitle = "Fully booked";
-                                            } else if (available.length < venueSlots.length) {
-                                                statusClass = "border-amber-200 bg-amber-50 text-amber-700 hover:border-amber-300 hover:bg-amber-100";
-                                                dayTitle = "Few slots left";
-                                            }
-                                        }
-
-                                        if (isSelected && !isDisabled) {
-                                            statusClass = "border-orange-600 bg-orange-600 text-white shadow-md shadow-orange-200 scale-105";
-                                            dayTitle = "Selected date";
-                                        }
-
-                                        return (
-                                          <button
-                                            aria-label={`Select ${iterDateStr}`}
-                                            title={dayTitle}
-                                            key={day}
-                                            disabled={isDisabled}
-                                            onClick={() => {
-                                              setSelectedDate(iterDateStr);
-                                              setSelectedDuration(null);
-                                            }}
-                                            className={`flex h-7 w-7 2xl:h-8 2xl:w-8 items-center justify-center rounded-full border text-[10px] xl:text-[11px] font-black outline-none transition-all focus-visible:ring-2 focus-visible:ring-orange-300 ${statusClass}`}
-                                          >
-                                            {day}
-                                          </button>
-                                        )
-                                    })}
-                                </div>
-
-                                <div className="mt-2 grid grid-cols-3 gap-1 border-t border-slate-100 pt-2">
-                                  <div className="flex items-center justify-center gap-1.5 rounded-full bg-rose-50 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] text-rose-500">
-                                    <span className="h-1.5 w-1.5 rounded-full bg-rose-200" /> Full
-                                  </div>
-                                  <div className="flex items-center justify-center gap-1.5 rounded-full bg-amber-50 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] text-amber-600">
-                                    <span className="h-1.5 w-1.5 rounded-full bg-amber-300" /> Few
-                                  </div>
-                                  <div className="flex items-center justify-center gap-1.5 rounded-full bg-slate-100 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] text-slate-500">
-                                    <span className="h-1.5 w-1.5 rounded-full bg-slate-900" /> Maint.
-                                  </div>
-                                </div>
-
-                                <div className="mt-3 rounded-2xl border border-orange-100 bg-orange-50 px-2.5 py-2">
-                                  <p className="text-[8px] font-black uppercase tracking-[0.12em] text-orange-700">
-                                    Earliest bookable date
-                                  </p>
-                                  <p className="mt-0.5 text-[10px] font-bold leading-3 text-orange-900">
-                                    {minBookableDate.toLocaleDateString('en-PH', {
-                                      month: 'long',
-                                      day: 'numeric',
-                                      year: 'numeric',
-                                    })}
-                                    . Gray dates are not available for booking.
-                                  </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Time Column */}
-                    <div className="mx-auto w-full xl:max-w-none">
-                        <h3 className="text-[10px] font-black text-slate-900 tracking-widest uppercase mb-2 flex items-center gap-1.5">
-                            <div className="w-5 h-5 rounded-full bg-slate-900 text-white flex items-center justify-center text-[9px]">2</div> Select {category === 'venue' ? 'Time' : 'Duration'}
-                        </h3>
-                        {!selectedDate ? (
-                            <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-[1rem] h-[72px] xl:min-h-[250px] 2xl:min-h-[275px] flex items-center justify-center text-slate-400 font-bold text-[9px] uppercase tracking-wider p-2 text-center">Select a date first</div>
-                        ) : (
-                            <div className="space-y-3 animate-in fade-in rounded-[1rem] border border-slate-200 bg-white p-3 shadow-sm">
-                                {category === 'venue' ? (
-                                    <div className="flex flex-col gap-2">
-                                        <Select value={selectedDuration || ""} onValueChange={setSelectedDuration}>
-                                            <SelectTrigger className="w-full h-10 md:h-11 rounded-lg bg-white border-2 border-slate-200 px-3 font-bold text-xs text-slate-700 focus-visible:ring-2 focus-visible:ring-[#ea580c] transition-all data-[state=open]:border-[#ea580c]">
-                                                <SelectValue placeholder="Select Start Time" />
-                                            </SelectTrigger>
-                                            <SelectContent className="rounded-xl border-slate-200 shadow-xl max-h-[150px] md:max-h-[180px]">
-                                                {availableVenueSlots.length > 0 ? (
-                                                    availableVenueSlots.map(slot => (
-                                                        <SelectItem key={slot.label} value={slot.label} className="font-bold text-xs text-slate-700 py-2 cursor-pointer focus:bg-orange-50 focus:text-[#ea580c]">
-                                                            <div className="flex items-center gap-2">
-                                                                <Clock className="w-3 h-3 text-[#ea580c]" />
-                                                                {slot.startTimeLabel}
-                                                            </div>
-                                                        </SelectItem>
-                                                    ))
-                                                ) : (
-                                                    <div className="p-2 text-center text-[9px] font-bold text-slate-400 bg-slate-50 m-1 rounded-md">
-                                                        🚫 Fully Booked for this date
-                                                    </div>
-                                                )}
-                                            </SelectContent>
-                                        </Select>
-                                        
-                                        {selectedDuration && availableVenueSlots.some(s => s.label === selectedDuration) && (
-                                            <div className="p-3 bg-orange-50 border border-orange-100 rounded-lg flex items-start gap-2 animate-in fade-in">
-                                                <CheckCircle2 className="w-4 h-4 text-[#ea580c] shrink-0 mt-0.5" />
-                                                <div>
-                                                    <p className="text-[8px] font-bold text-orange-900 uppercase tracking-widest leading-relaxed">
-                                                        6-Hour Slot Confirmed
-                                                    </p>
-                                                    <p className="text-[10px] font-black text-[#ea580c]">
-                                                        {selectedDuration}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                ) : (
-                                    ['6 Months', '1 Year', '2 Years'].map((slot) => (
-                                    <button key={slot} onClick={() => setSelectedDuration(slot)} className={`w-full flex items-center justify-between p-3 min-h-[44px] rounded-lg border-2 transition-all focus-visible:ring-2 focus-visible:ring-orange-200 outline-none ${selectedDuration === slot ? 'border-[#ea580c] bg-orange-50 shadow-sm ring-2 ring-orange-50' : 'border-slate-100 bg-white hover:border-[#ea580c]'}`}>
-                                        <div className="flex items-center gap-2">
-                                            <MapPin className={`w-4 h-4 ${selectedDuration === slot ? 'text-[#ea580c]' : 'text-slate-400'}`} />
-                                            <span className={`font-bold text-xs ${selectedDuration === slot ? 'text-orange-900' : 'text-slate-700'}`}>{slot}</span>
-                                        </div>
-                                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${selectedDuration === slot ? 'border-[#ea580c] bg-[#ea580c]' : 'border-slate-200'}`}>
-                                            {selectedDuration === slot && <div className="w-1.5 h-1.5 bg-white rounded-full"></div>}
-                                        </div>
-                                    </button>
-                                    ))
-                                )}
-                            </div>
-                        )}
-                    </div>
+          {/* ─── MOBILE: stacked layout ─── */}
+          <div className="flex w-full flex-col gap-5 lg:hidden">
+            {titlePriceBlock}
+            <div className="relative h-[220px] w-full overflow-hidden rounded-2xl bg-slate-950">
+              <div id="booking-panorama-viewer-mobile" className="absolute inset-0 h-full w-full touch-pan-x [&_.pnlm-controls-container]:hidden [&_.pnlm-fullscreen-toggle-button]:hidden [&_.pnlm-zoom-controls]:hidden"></div>
+              {hasPanorama ? (
+                (!libLoaded || !isViewerReady) && (
+                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/60 gap-3">
+                    <Loader2 className="w-6 h-6 text-[#ea580c] animate-spin" />
+                    <p className="text-white text-[10px] font-black tracking-widest uppercase">Loading 360° Panorama...</p>
+                  </div>
+                )
+              ) : (
+                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/60 gap-3">
+                  <Camera className="w-8 h-8 text-white/60" />
+                  <p className="text-white/80 text-[10px] font-black tracking-widest uppercase text-center px-4">
+                    360 tour preview is not available for this space.
+                  </p>
                 </div>
+              )}
+              {hasPanorama && (
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-black/50 p-1.5 rounded-full backdrop-blur-md border border-white/10 shadow-sm pointer-events-auto">
+                  <button
+                    type="button"
+                    aria-label={isAutoRotating ? "Pause panorama auto-pan" : "Play panorama auto-pan"}
+                    title={isAutoRotating ? "Pause panorama auto-pan" : "Play panorama auto-pan"}
+                    onClick={toggleAutoRotate}
+                    className={`min-w-[32px] min-h-[32px] flex items-center justify-center rounded-full transition-colors ${isAutoRotating ? 'bg-[#ea580c] text-white' : 'bg-white/10 text-white hover:bg-white/20'}`}
+                  >
+                     {isAutoRotating ? <PauseCircle className="w-4 h-4" /> : <PlayCircle className="w-4 h-4" />}
+                  </button>
+                  <div className="w-px h-4 bg-white/20"></div>
+                  <div className="flex items-center px-2 text-white/90 text-[10px] font-bold uppercase tracking-widest gap-1.5">
+                     <Navigation className="w-3 h-3 animate-pulse" /> Pan around
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-
-          <div className="shrink-0 pt-2 flex justify-center lg:justify-end mt-auto px-4 sm:px-6 lg:px-6 2xl:px-8 bg-white border-t border-slate-100 pb-4 pb-[env(safe-area-inset-bottom)] lg:pb-3">
-            <Button disabled={!selectedDate || !selectedDuration} onClick={() => setStep('details')} className="w-full lg:max-w-[385px] bg-[#ea580c] hover:bg-[#c2410c] text-white rounded-full h-10 font-bold text-xs md:text-sm transition-transform active:scale-95 disabled:opacity-50">
+            <div className="w-full">
+              <div className="flex h-6 items-center gap-2 mb-3">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-950 text-[9px] text-white shadow-sm">1</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-900">Select Date</span>
+                <span className="ml-auto rounded-full bg-orange-50 px-2.5 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-orange-600">contract term</span>
+              </div>
+              {calendarCard}
+            </div>
+            <div className="w-full">
+              <div className="flex h-6 items-center gap-2 mb-3">
+                <div className="w-5 h-5 rounded-full bg-slate-900 text-white flex items-center justify-center text-[9px] shrink-0">2</div>
+                <span className="text-[10px] font-black text-slate-900 tracking-widest uppercase">Select {category === 'venue' ? 'Time' : 'Duration'}</span>
+              </div>
+              {timePanel}
+            </div>
+            <Button disabled={!selectedDate || !selectedDuration} onClick={() => setStep('details')} className="w-full bg-[#ea580c] hover:bg-[#c2410c] text-white rounded-full h-12 font-bold text-xs md:text-sm transition-transform active:scale-95 disabled:opacity-50">
                Proceed to Details
             </Button>
           </div>
+
+          {/* ─── DESKTOP: 3-column grid ─── */}
+          <div className="hidden lg:grid w-full items-stretch gap-5 lg:grid-cols-[460px_350px_280px]">
+            {/* Left: 360 panorama */}
+            <div className="flex min-h-0 flex-col">
+              {panoramaBlock}
+            </div>
+
+            {/* Middle: title + Select Date calendar */}
+            <div className="flex min-h-0 flex-col gap-3">
+              {titlePriceBlock}
+              <div className="flex h-full min-h-0 flex-col">
+                <div className="flex h-6 items-center gap-2 mb-3">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-950 text-[9px] text-white shadow-sm">1</span>
+                  <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-900">Select Date</span>
+                  <span className="ml-auto rounded-full bg-orange-50 px-2.5 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-orange-600">contract term</span>
+                </div>
+                <div className="flex-1">
+                  {calendarCard}
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Select Time + Proceed */}
+            <div className="flex min-h-0 flex-col gap-3 pt-[62px]">
+              <div className="flex h-6 items-center gap-2">
+                <div className="w-5 h-5 rounded-full bg-slate-900 text-white flex items-center justify-center text-[9px] shrink-0">2</div>
+                <span className="text-[10px] font-black text-slate-900 tracking-widest uppercase">Select {category === 'venue' ? 'Time' : 'Duration'}</span>
+              </div>
+              <div className="w-full">
+                {timePanel}
+              </div>
+              <div className="flex-1" />
+              <Button disabled={!selectedDate || !selectedDuration} onClick={() => setStep('details')} className="w-full bg-[#ea580c] hover:bg-[#c2410c] text-white rounded-full h-11 font-bold text-xs md:text-sm transition-transform active:scale-95 disabled:opacity-50">
+                 Proceed to Details
+              </Button>
+            </div>
+          </div>
+
         </div>
       </div>
     )
@@ -1295,8 +1361,8 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
 
   const renderDetails = () => {
     const isFormValid = isOffice 
-        ? (eventName && eventType && (eventType !== 'others' || customEventType) && agreed && !isSubmitting)
-        : (eventName && eventType && (eventType !== 'others' || customEventType) && guests && agreed && !isSubmitting);
+        ? (eventName && eventType && (eventType !== 'Other' || customEventType) && agreed && !isSubmitting)
+        : (eventName && eventType && (eventType !== 'Other' || customEventType) && guests && agreed && !isSubmitting);
 
     return (
       <div className="flex-1 flex flex-col md:justify-center px-4 py-4 md:py-6 relative h-full overflow-y-auto">
@@ -1336,7 +1402,7 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
                             <SelectItem value="others">Others</SelectItem>
                         </SelectContent>
                     </Select>
-                    {eventType === 'others' && (
+                    {eventType === 'Other' && (
                         <div className="mt-2 animate-in slide-in-from-top-1">
                             <Input required value={customEventType} onChange={e => setCustomEventType(e.target.value)} placeholder="Please specify business nature..." className="h-10 w-full rounded-xl bg-slate-50 border border-slate-200 px-3 text-xs focus-visible:ring-2 focus-visible:ring-[#ea580c]" />
                         </div>
@@ -1348,16 +1414,23 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
                         <label className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">
                             Event Type *
                         </label>
-                        <Select value={eventType} onValueChange={setEventType} required>
-                            <SelectTrigger className="h-10 w-full rounded-xl bg-slate-50 border border-slate-200 px-3 text-xs focus:ring-2 focus:ring-[#ea580c]"><SelectValue placeholder="Select type" /></SelectTrigger>
-                            <SelectContent className="rounded-xl border-slate-200 shadow-xl max-h-[200px]">
-                                <SelectItem value="wedding">Wedding</SelectItem>
-                                <SelectItem value="birthday">Birthday</SelectItem>
-                                <SelectItem value="corporate">Corporate</SelectItem>
-                                <SelectItem value="rental">Space Rental</SelectItem>
-                                <SelectItem value="others">Others</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <select
+                          value={eventType}
+                          onChange={(e) => setEventType(e.target.value)}
+                          required
+                          className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
+                        >
+                          <option value="" disabled>Select type</option>
+                          <option value="Birthday">Birthday</option>
+                          <option value="Wedding">Wedding</option>
+                          <option value="Debut">Debut</option>
+                          <option value="Corporate Event">Corporate Event</option>
+                          <option value="Conference / Seminar">Conference / Seminar</option>
+                          <option value="Baptism / Christening">Baptism / Christening</option>
+                          <option value="Reunion">Reunion</option>
+                          <option value="Private Celebration">Private Celebration</option>
+                          <option value="Other">Other</option>
+                        </select>
                     </div>
                     
                     <div className="space-y-1">
@@ -1381,7 +1454,7 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
                         />
                     </div>
 
-                    {eventType === 'others' && (
+                    {eventType === 'Other' && (
                         <div className="col-span-1 sm:col-span-2 animate-in slide-in-from-top-1">
                             <Input required value={customEventType} onChange={e => setCustomEventType(e.target.value)} placeholder="Please specify event type..." className="h-10 w-full rounded-xl bg-slate-50 border border-slate-200 px-3 text-xs focus-visible:ring-2 focus-visible:ring-[#ea580c]" />
                         </div>
@@ -1390,14 +1463,14 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
             )}
 
             <div className="shrink-0 pt-4 border-t border-slate-100">
-              <div className="flex items-start gap-3 mb-4">
+              <div className="flex items-center gap-3 mb-4">
                 <Checkbox
                   id="terms"
                   checked={agreed}
                   onCheckedChange={(c) => setAgreed(c as boolean)}
-                  className="mt-0.5 h-5 w-5 shrink-0 rounded-md data-[state=checked]:bg-[#ea580c] data-[state=checked]:border-[#ea580c]"
+                  className="h-5 w-5 shrink-0 rounded-md data-[state=checked]:bg-[#ea580c] data-[state=checked]:border-[#ea580c]"
                 />
-                <Label htmlFor="terms" className="py-2.5 text-xs text-slate-600 leading-relaxed cursor-pointer select-none">
+                <Label htmlFor="terms" className="text-xs text-slate-600 leading-relaxed cursor-pointer select-none">
                     I agree to the{" "}
                     <span
                         onClick={(e) => { e.preventDefault(); setIsTermsOpen(true); }}
@@ -1415,7 +1488,7 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
         </div>
 
         <Dialog open={isTermsOpen} onOpenChange={setIsTermsOpen}>
-          <DialogContent className="w-[92vw] overflow-hidden rounded-[2rem] border-0 bg-white p-0 shadow-2xl sm:max-w-2xl [&>button]:hidden">
+          <DialogContent showCloseButton={false} className="w-[92vw] overflow-hidden rounded-[2rem] border-0 bg-white p-0 shadow-2xl sm:max-w-2xl">
             <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-4 md:px-8">
               <div>
                 <DialogTitle className="flex items-center gap-2 text-xl font-black text-slate-900">
@@ -1481,12 +1554,12 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
     <Dialog open={isOpen} onOpenChange={(open) => { setIsOpen(open); if (!open) setTimeout(resetState, 300); }}>
       <DialogTrigger asChild>{children || <Button className="bg-[#ea580c] text-white">Book Now</Button>}</DialogTrigger>
       
-      <DialogContent className={cn(
-        "!flex !flex-col !gap-0 !p-0 overflow-hidden bg-white rounded-none sm:rounded-[2rem] border-0 focus:outline-none [&>button]:hidden shadow-2xl transition-all duration-300 ease-in-out w-full h-[100vh] h-[100dvh] md:h-[calc(100vh-32px)] md:max-h-[760px]",
-        step === 'category' && "!max-w-full sm:!max-w-[800px]",
+      <DialogContent showCloseButton={false} className={cn(
+        "!flex !flex-col !gap-0 !p-0 overflow-hidden bg-white rounded-none sm:rounded-[2rem] border-0 shadow-2xl transition-all duration-300 ease-in-out w-full sm:max-h-[calc(100dvh-48px)]",
+        step === 'category' && "!max-w-full sm:!max-w-[600px]",
         (step === 'list' || step === 'room') && "!max-w-full sm:!max-w-[95vw] lg:!max-w-[960px]",
-        step === 'schedule' && "!max-w-full sm:!max-w-[95vw] lg:!max-w-[1100px]",
-        step === 'details' && "!max-w-full sm:!max-w-[660px]",
+        step === 'schedule' && "w-[calc(100vw-48px)] max-w-[1180px] max-h-[calc(100dvh-32px)]",
+        step === 'details' && "!max-w-full sm:!max-w-[580px]",
       )}>
         
         <DialogTitle className="hidden">Reservation Modal</DialogTitle>
@@ -1538,7 +1611,10 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
           </div>
         )}
 
-        <div className="flex-1 relative overflow-x-hidden bg-white flex flex-col min-w-0 w-full">
+        <div className={cn(
+          "relative overflow-x-hidden bg-white flex flex-col min-w-0 w-full",
+          step !== 'category' && "flex-1",
+        )}>
           {step === 'category' && renderCategory()}
           {step === 'list' && renderList()}
           {step === 'room' && renderRoomSelect()}

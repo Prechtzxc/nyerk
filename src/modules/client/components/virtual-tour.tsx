@@ -8,7 +8,6 @@ import {
   RotateCcw, ZoomIn, ZoomOut, X, ChevronLeft, ChevronRight, Users, PlayCircle, PauseCircle, Loader2
 } from "lucide-react"
 
-// Mag-declare tayo ng types para sa Pannellum na nira-load natin via CDN
 declare global {
   interface Window {
     pannellum?: any;
@@ -23,7 +22,7 @@ interface VirtualTourProps {
 interface TourAngle {
   id: string
   name: string
-  image: string // Dapat Equirectangular Image URL ito
+  image: string
   thumbnail: string
 }
 
@@ -47,65 +46,12 @@ export function VirtualTour({ open, onOpenChange }: VirtualTourProps) {
   const [isViewerReady, setIsViewerReady] = useState(false)
   
   const [activeTab, setActiveTab] = useState<"event" | "office">("event")
-  const viewerRef = useRef<any>(null); // Dito natin ise-save ang Pannellum Instance
+  const viewerRef = useRef<any>(null)
 
-  // --- DATA STRUCTURE (Updated with actual 360 Equirectangular Images for testing) ---
-  const tourAreas: TourArea[] = [
-    {
-      id: "milestone-event-place",
-      name: "The Milestone Event Place",
-      description: "Our premier event space can accommodate up to 500 guests. Showing a True 360° Panorama View.",
-      capacity: "Up to 500 guests",
-      amenities: ["Stage", "Sound System", "Lighting", "Catering Kitchen"],
-      category: "event",
-      angles: [
-        { 
-          id: "grand-ballroom-360", 
-          name: "Grand Ballroom (True 360)", 
-          // ✨ ITO ANG TUNAY NA 360 IMAGE SAMPLE! ✨
-          image: "https://pannellum.org/images/alma.jpg", 
-          thumbnail: "https://pannellum.org/images/alma-thumb.jpg" 
-        },
-      ],
-    },
-    {
-      id: "moment-event-place",
-      name: "Moment Event Place",
-      description: "Intimate space perfect for capturing special moments and smaller gatherings.",
-      capacity: "Up to 150 guests",
-      amenities: ["Preparation Area", "Lounge", "Private Entrance", "Premium Lighting"],
-      category: "event",
-      angles: [
-        { 
-          id: "reception-hall-360", 
-          name: "Reception Hall (True 360)", 
-          // ✨ ISA PANG TUNAY NA 360 IMAGE SAMPLE! ✨
-          image: "https://pannellum.org/images/jura.jpg", 
-          thumbnail: "https://pannellum.org/images/jura-thumb.jpg"
-        },
-      ],
-    },
-    {
-      id: "office-room-1",
-      name: "Office Room 1",
-      description: "Modern office space with natural lighting and premium amenities.",
-      capacity: "4-6 workstations",
-      amenities: ["High-Speed WiFi", "Air Conditioning", "Natural Light", "Parking"],
-      category: "office",
-      floor: "ground",
-      angles: [
-        { 
-          id: "room-1-main", 
-          name: "Main Office View", 
-          image: "https://pannellum.org/images/ceres.jpg", // Mocking another 360
-          thumbnail: "https://pannellum.org/images/ceres-thumb.jpg" 
-        },
-      ],
-    },
-  ]
+  const tourAreas: TourArea[] = []
 
-  const currentArea = tourAreas[currentAreaIndex]
-  const currentAngle = currentArea.angles[currentAngleIndex]
+  const currentArea = tourAreas[currentAreaIndex] || { id: "", name: "", description: "", capacity: "", amenities: [], category: "event" as const, angles: [] }
+  const currentAngle = currentArea.angles[currentAngleIndex] || { id: "", name: "", image: "", thumbnail: "" }
   const filteredAreas = tourAreas.filter(a => a.category === activeTab)
 
   // --- STEP 1: I-LOAD ANG PANNELLUM LIBRARY (CDN) ---

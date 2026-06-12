@@ -412,6 +412,7 @@ const BOOKINGS_STORAGE_KEY = "oneestela_global_bookings_v2";
 const MAINTENANCE_STORAGE_KEY = "oneestela_global_maintenance_v2";
 const OFFICE_RENTALS_STORAGE_KEY = "oneestela_office_rentals_v1";
 const RECEIPTS_STORAGE_KEY = "oneestela_e_receipts_v1";
+const PAYMENTS_STORAGE_KEY = "oneestela_global_payments_v2";
 const DEFAULT_TOTAL_PRICE = 15000;
 const REFUND_ELIGIBLE_DAYS = 14;
 const CANCELLATION_CLOSED_DAYS = 7;
@@ -425,6 +426,55 @@ function safelyParseArray<T>(value: string | null): T[] {
   } catch {
     return [];
   }
+}
+
+function readArray<T>(key: string): T[] {
+  if (typeof window === "undefined") return []
+  try {
+    const raw = localStorage.getItem(key)
+    const parsed = raw ? JSON.parse(raw) : []
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function stripHeavyBookingFields(booking: any) {
+  const {
+    proofUrl,
+    proofImage,
+    proofDataUrl,
+    paymentProof,
+    receiptImage,
+    uploadedProof,
+    bankProof,
+    imageData,
+    base64,
+    file,
+    fileData,
+    payment,
+    ...safeBooking
+  } = booking
+  return safeBooking as any
+}
+
+function writeArray<T>(key: string, value: T[]) {
+  if (typeof window === "undefined") return
+  try {
+    localStorage.setItem(key, JSON.stringify(value))
+  } catch (error) {
+    console.error(`Failed to write to localStorage key "${key}":`, error)
+  }
+}
+
+function upsertById<T extends { id: string }>(items: T[], nextItem: T): T[] {
+  const index = items.findIndex((item) => item.id === nextItem.id)
+  if (index === -1) {
+    return [nextItem, ...items]
+  }
+  return items.map((item, itemIndex) =>
+    itemIndex === index ? { ...item, ...nextItem } : item
+  )
 }
 
 function createLocalId(prefix: string) {
@@ -962,12 +1012,17 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     setBookings(normalizedBookings);
 
     if (typeof window !== "undefined") {
-      localStorage.setItem(
-        BOOKINGS_STORAGE_KEY,
-        JSON.stringify(normalizedBookings),
-      );
-      window.dispatchEvent(new Event("bookingsUpdated"));
-      window.dispatchEvent(new Event("oneestela_bookings_updated"));
+      const safeBookings = normalizedBookings.map(stripHeavyBookingFields)
+      try {
+        localStorage.setItem(
+          BOOKINGS_STORAGE_KEY,
+          JSON.stringify(safeBookings),
+        );
+        window.dispatchEvent(new Event("bookingsUpdated"));
+        window.dispatchEvent(new Event("oneestela_bookings_updated"));
+      } catch (error) {
+        console.error("Failed to save bookings to localStorage:", error)
+      }
     }
   };
 
@@ -2204,8 +2259,6 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           paymentType: "slot_reservation" as const,
           paymentSubmissionType: "bank_transfer" as const,
           paymentMethod: paymentData.method,
-          paymentProof: paymentData.proof,
-          proofOfPayment: paymentData.proof,
           bankReferenceNumber: paymentData.bankReferenceNumber?.trim(),
           paymentReference: paymentData.bankReferenceNumber?.trim(),
           paymentAmount: Number(paymentData.amount || reservationFee),
@@ -2287,8 +2340,6 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           paymentType: "downpayment",
           paymentSubmissionType: "bank_transfer" as const,
           paymentMethod: paymentData.method,
-          paymentProof: paymentData.proof,
-          proofOfPayment: paymentData.proof,
           bankReferenceNumber: paymentData.bankReferenceNumber?.trim(),
           paymentReference: paymentData.bankReferenceNumber?.trim(),
           paymentAmount: Number(dpAmount),
@@ -2347,8 +2398,6 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           paymentStatus: "for_review" as PaymentStatus,
           paymentSubmissionType: "bank_transfer" as const,
           paymentMethod: paymentData.method,
-          paymentProof: paymentData.proof,
-          proofOfPayment: paymentData.proof,
           bankReferenceNumber: paymentData.bankReferenceNumber?.trim(),
           paymentReference: paymentData.bankReferenceNumber?.trim(),
           paymentAmount: paymentAmount,
@@ -2402,8 +2451,6 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         paymentType: paymentData.type,
         paymentSubmissionType: "bank_transfer" as const,
         paymentMethod: paymentData.method,
-        paymentProof: paymentData.proof,
-        proofOfPayment: paymentData.proof,
         bankReferenceNumber: paymentData.bankReferenceNumber?.trim(),
         paymentReference: paymentData.bankReferenceNumber?.trim(),
         paymentAmount: Number(paymentData.amount || total),
@@ -2418,7 +2465,47 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       };
     });
 
+    const updatedBooking = updatedBookings.find(b => b.id === id) as any
+    if (updatedBooking) {
+      try {
+        const existingPayments = readArray<any>(PAYMENTS_STORAGE_KEY)
+        const existingPayment = existingPayments.find(
+          (p: any) => p.bookingId === id || p.bookingCode === id || p.bookingId === updatedBooking.bookingCode
+        )
+        const methodLabel = paymentData.method === "cash" ? "Pay at the Office" : "Bank Transfer"
+        const paymentRecord = {
+          id: existingPayment?.id ?? `PAY-${Date.now()}`,
+          bookingId: id,
+          bookingCode: updatedBooking.bookingCode ?? id,
+          customerId: updatedBooking.userId ?? "",
+          customerName: updatedBooking.fullName ?? updatedBooking.eventName ?? "",
+          eventName: updatedBooking.eventName ?? "",
+          venueName: updatedBooking.venue ?? "",
+          method: methodLabel,
+          paymentMethod: paymentData.method,
+          term: paymentData.type === "downpayment" ? "Down Payment" : paymentData.type === "full" ? "Full Payment" : "Slot Reservation",
+          amount: Number(paymentData.amount || getSafePrice(updatedBooking.totalPrice)),
+          amountPaid: Number(paymentData.amount || 0),
+          referenceNo: paymentData.bankReferenceNumber?.trim() ?? "",
+          proofName: "",
+          proofUrl: paymentData.proof ?? "",
+          status: paymentData.method === "cash" ? "Awaiting Onsite Payment" : "For Verification",
+          verificationStatus: paymentData.method === "cash" ? "Pending Onsite Verification" : "Pending",
+          submittedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }
+        const nextPayments = upsertById(existingPayments, paymentRecord)
+        writeArray(PAYMENTS_STORAGE_KEY, nextPayments)
+      } catch (error) {
+        console.error("Failed to save payment record to localStorage:", error)
+        throw new Error("Storage is full. Please upload a smaller proof image.")
+      }
+    }
+
     saveBookings(updatedBookings as Booking[]);
+    if (updatedBooking) {
+      window.dispatchEvent(new Event("oneestela_payments_updated"))
+    }
   };
 
   const addOfficeRentalRequest = async (

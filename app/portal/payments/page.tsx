@@ -109,13 +109,33 @@ function readStoredBookings() {
   }
 }
 
-function fileToDataUrl(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ""));
-    reader.onerror = () => reject(new Error("Failed to read file."));
-    reader.readAsDataURL(file);
-  });
+async function compressImageToDataUrl(file: File, maxWidth = 900, quality = 0.7): Promise<string> {
+  if (!file.type.startsWith("image/")) {
+    throw new Error("Please upload an image file only.")
+  }
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const img = new Image()
+      img.onload = () => {
+        const scale = Math.min(1, maxWidth / img.width)
+        const canvas = document.createElement("canvas")
+        canvas.width = Math.round(img.width * scale)
+        canvas.height = Math.round(img.height * scale)
+        const ctx = canvas.getContext("2d")
+        if (!ctx) {
+          reject(new Error("Unable to compress image."))
+          return
+        }
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+        resolve(canvas.toDataURL("image/jpeg", quality))
+      }
+      img.onerror = () => reject(new Error("Invalid image file."))
+      img.src = String(reader.result)
+    }
+    reader.onerror = () => reject(new Error("Unable to read uploaded file."))
+    reader.readAsDataURL(file)
+  })
 }
 
 function formatMoney(value: number) {
@@ -874,7 +894,7 @@ function TransactionsContent() {
             : paymentType;
         const proofDataUrl =
           paymentMethod === "bank" && proofFile
-            ? await fileToDataUrl(proofFile)
+            ? await compressImageToDataUrl(proofFile)
             : undefined;
 
         submitPayment(booking.id, {
@@ -909,11 +929,12 @@ function TransactionsContent() {
         setPaymentType("full");
         setPaymentMethod("bank");
         router.replace("/portal/payments");
-      } catch {
+      } catch (error) {
+        console.error("Payment submit failed:", error)
         toast({
           title: "Payment Failed",
           description:
-            "Something went wrong while submitting your payment. Please try again.",
+            error instanceof Error ? error.message : "Something went wrong while submitting your payment. Please try again.",
           variant: "destructive",
         });
       } finally {
@@ -967,126 +988,129 @@ function TransactionsContent() {
           open={isPaymentConfirmOpen}
           onOpenChange={setIsPaymentConfirmOpen}
         >
-          <DialogContent className="flex max-h-[92vh] w-[calc(100vw-2rem)] max-w-lg flex-col gap-0 overflow-hidden rounded-2xl border-0 bg-white p-0 shadow-2xl">
-            <div className="flex shrink-0 items-start justify-between gap-3 border-b border-slate-100 p-5">
-              <div className="flex items-center gap-3">
-                <div
-                  className={cn(
-                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
-                    paymentMethod === "cash"
-                      ? "bg-orange-50 text-orange-600"
-                      : "bg-blue-50 text-blue-600",
-                  )}
-                >
-                  {paymentMethod === "cash" ? (
-                    <Banknote className="h-5 w-5" />
-                  ) : (
-                    <CreditCard className="h-5 w-5" />
-                  )}
+          <DialogContent showCloseButton={false} className="w-[calc(100vw-32px)] sm:w-fit sm:min-w-[500px] sm:max-w-[calc(100vw-48px)] max-h-[90dvh] overflow-hidden rounded-3xl bg-white shadow-2xl">
+            <div className="flex max-h-[90dvh] flex-col overflow-hidden">
+              <header className="shrink-0 flex items-start justify-between gap-3 border-b border-slate-100 px-5 py-4">
+                <div className="flex items-center gap-3">
+                  <div
+                    className={cn(
+                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+                      paymentMethod === "cash"
+                        ? "bg-orange-50 text-orange-600"
+                        : "bg-blue-50 text-blue-600",
+                    )}
+                  >
+                    {paymentMethod === "cash" ? (
+                      <Banknote className="h-5 w-5" />
+                    ) : (
+                      <CreditCard className="h-5 w-5" />
+                    )}
+                  </div>
+                  <div>
+                    <DialogTitle className="text-lg font-black text-slate-950">
+                      {paymentMethod === "cash"
+                        ? isOfficeRental
+                          ? "Submit office slot reservation pay-at-the-office payment?"
+                          : "Are you sure you want to pay at the office?"
+                        : isOfficeRental
+                          ? "Submit office slot reservation proof?"
+                          : "Are you sure you want to submit bank transfer?"}
+                    </DialogTitle>
+                  </div>
                 </div>
-                <div>
-                  <DialogTitle className="text-lg font-black text-slate-950">
+                <DialogClose asChild>
+                  <button
+                    type="button"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+                    aria-label="Close"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </DialogClose>
+              </header>
+
+              <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+                <div className="space-y-4">
+                  <p className="text-sm leading-6 text-slate-600">
                     {paymentMethod === "cash"
                       ? isOfficeRental
-                        ? "Submit office slot reservation pay-at-the-office payment?"
-                        : "Are you sure you want to pay at the office?"
+                        ? "You selected Pay at the Office for the office slot reservation fee. Your office slot is not secured until admin verifies the payment."
+                        : "You selected Pay at the Office. Your booking will remain as Pencil Booking until the admin verifies your office payment."
                       : isOfficeRental
-                        ? "Submit office slot reservation proof?"
-                        : "Are you sure you want to submit bank transfer?"}
-                  </DialogTitle>
-                </div>
-              </div>
-              <DialogClose asChild>
-                <button
-                  type="button"
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
-                  aria-label="Close"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </DialogClose>
-            </div>
+                        ? "You are submitting proof for slot reservation only. After verification, customer-side online payments stop and succeeding office rental payments are tracked by admin."
+                        : "You are about to submit your bank transfer proof. Please make sure the uploaded receipt and amount are correct before continuing."}
+                  </p>
 
-            <div className="flex-1 space-y-4 overflow-y-auto p-5">
-              <p className="text-sm leading-6 text-slate-600">
-                {paymentMethod === "cash"
-                  ? isOfficeRental
-                    ? "You selected Pay at the Office for the office slot reservation fee. Your office slot is not secured until admin verifies the payment."
-                    : "You selected Pay at the Office. Your booking will remain as Pencil Booking until the admin verifies your office payment."
-                  : isOfficeRental
-                    ? "You are submitting proof for slot reservation only. After verification, customer-side online payments stop and succeeding office rental payments are tracked by admin."
-                    : "You are about to submit your bank transfer proof. Please make sure the uploaded receipt and amount are correct before continuing."}
-              </p>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      Payment Summary
+                    </p>
 
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                  Payment Summary
-                </p>
-
-                <div className="space-y-3 text-sm">
-                  <div className="flex items-start justify-between gap-4">
-                    <span className="font-semibold text-slate-500">Booking</span>
-                    <span className="max-w-[230px] text-right font-black text-slate-900">
-                      {booking.eventName}
-                    </span>
-                  </div>
-                  <div className="flex items-start justify-between gap-4">
-                    <span className="font-semibold text-slate-500">Method</span>
-                    <span className="text-right font-black text-slate-900">
-                      {getPaymentMethodLabel(paymentMethod)}
-                    </span>
-                  </div>
-                  <div className="flex items-start justify-between gap-4">
-                    <span className="font-semibold text-slate-500">Term</span>
-                    <span className="text-right font-black text-slate-900">
-                      {isOfficeRental
-                        ? "Slot Reservation Only"
-                        : getPaymentTermLabel(paymentType, isSettlingBalance)}
-                    </span>
-                  </div>
-                  {paymentMethod === "bank" && bankReferenceNumber.trim() && (
-                    <SummaryLine
-                      label="Bank Reference No."
-                      value={bankReferenceNumber.trim()}
-                    />
-                  )}
-                  {paymentMethod === "bank" && proofFile && (
-                    <div className="flex items-start justify-between gap-4">
-                      <span className="font-semibold text-slate-500">Proof</span>
-                      <span className="max-w-[220px] break-all text-right text-xs font-black text-slate-900">
-                        {proofFile.name}
-                      </span>
-                    </div>
-                  )}
-                  <div className="border-t border-dashed border-slate-300 pt-3">
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="text-xs font-black uppercase tracking-widest text-slate-500">
-                        Amount to Pay
-                      </span>
-                      <span className="text-2xl font-black text-orange-600">
-                        {formatMoney(amountToPay)}
-                      </span>
+                    <div className="space-y-3 text-sm">
+                      <div className="flex items-start justify-between gap-4">
+                        <span className="font-semibold text-slate-500">Booking</span>
+                        <span className="max-w-[230px] text-right font-black text-slate-900">
+                          {booking.eventName}
+                        </span>
+                      </div>
+                      <div className="flex items-start justify-between gap-4">
+                        <span className="font-semibold text-slate-500">Method</span>
+                        <span className="text-right font-black text-slate-900">
+                          {getPaymentMethodLabel(paymentMethod)}
+                        </span>
+                      </div>
+                      <div className="flex items-start justify-between gap-4">
+                        <span className="font-semibold text-slate-500">Term</span>
+                        <span className="text-right font-black text-slate-900">
+                          {isOfficeRental
+                            ? "Slot Reservation Only"
+                            : getPaymentTermLabel(paymentType, isSettlingBalance)}
+                        </span>
+                      </div>
+                      {paymentMethod === "bank" && bankReferenceNumber.trim() && (
+                        <SummaryLine
+                          label="Bank Reference No."
+                          value={bankReferenceNumber.trim()}
+                        />
+                      )}
+                      {paymentMethod === "bank" && proofFile && (
+                        <div className="flex items-start justify-between gap-4">
+                          <span className="font-semibold text-slate-500">Proof</span>
+                          <span className="max-w-[220px] break-all text-right text-xs font-black text-slate-900">
+                            {proofFile.name}
+                          </span>
+                        </div>
+                      )}
+                      <div className="border-t border-dashed border-slate-300 pt-3">
+                        <div className="flex items-center justify-between gap-4">
+                          <span className="text-xs font-black uppercase tracking-widest text-slate-500">
+                            Amount to Pay
+                          </span>
+                          <span className="text-2xl font-black text-orange-600">
+                            {formatMoney(amountToPay)}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
+
+                  {paymentMethod === "cash" && (
+                    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                      <p className="text-sm font-black text-amber-900">
+                        Pay at the Office Reminder
+                      </p>
+                      <p className="mt-1 text-xs font-semibold leading-5 text-amber-700">
+                        {isOfficeRental
+                          ? "Please visit One Estela Place within 24 hours to pay the slot reservation fee. After admin verification, the office slot will be secured and contract signing is required onsite."
+                          : "Please visit One Estela Place within 24 hours to settle your payment. Admin can manually verify your payment once paid at the office."}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {paymentMethod === "cash" && (
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                  <p className="text-sm font-black text-amber-900">
-                    Pay at the Office Reminder
-                  </p>
-                  <p className="mt-1 text-xs font-semibold leading-5 text-amber-700">
-                    {isOfficeRental
-                      ? "Please visit One Estela Place within 24 hours to pay the slot reservation fee. After admin verification, the office slot will be secured and contract signing is required onsite."
-                      : "Please visit One Estela Place within 24 hours to settle your payment. Admin can manually verify your payment once paid at the office."}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div className="flex shrink-0 justify-end gap-2 border-t border-slate-100 bg-slate-50 p-4">
-              <Button
+              <footer className="shrink-0 flex justify-end gap-2 border-t border-slate-100 bg-slate-50 px-5 py-4">
+                <Button
                 type="button"
                 variant="outline"
                 onClick={() => setIsPaymentConfirmOpen(false)}
@@ -1107,6 +1131,7 @@ function TransactionsContent() {
                     ? "Yes, Pay at the Office"
                     : "Yes, Submit Bank Transfer"}
               </Button>
+            </footer>
             </div>
           </DialogContent>
         </Dialog>

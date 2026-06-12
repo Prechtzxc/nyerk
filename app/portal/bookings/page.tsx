@@ -56,6 +56,8 @@ import {
   type ReceiptPaperData,
 } from "@/src/modules/shared/components/receipt-paper"
 import { cn } from "@/src/modules/shared/lib/utils"
+import { useCMS } from "@/src/modules/admin/contexts/cms-context"
+import { getPublicSpacesFromData } from "@/src/modules/client/lib/venue-data"
 
 type ReviewRecord = {
   id: string
@@ -511,7 +513,7 @@ function PaymentSummaryCard({
   const showDP = isDownpayment && selectedDP > 0
 
   return (
-    <div className="p-4">
+    <div>
       <div className="mb-3 flex items-center gap-2">
         <div className="h-1.5 w-1.5 rounded-full bg-orange-500" />
         <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
@@ -686,9 +688,10 @@ function BookingDetailsModal({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent
         showCloseButton={false}
-        className="flex max-h-[calc(100vh-32px)] max-h-[calc(100dvh-32px)] w-[calc(100vw-48px)] max-w-[1100px] flex-col gap-0 overflow-hidden rounded-2xl border-0 bg-white p-0 shadow-xl min-w-0"
+        className="w-[min(94vw,560px)] h-[calc(100dvh-48px)] max-h-[720px] overflow-hidden rounded-3xl bg-white shadow-2xl"
       >
-        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-100 bg-white px-6 pt-6 pb-4">
+        <div className="flex h-full min-h-0 flex-col overflow-hidden">
+        <header className="shrink-0 flex items-start justify-between gap-4 border-b border-slate-100 bg-white px-5 py-4">
           <div className="min-w-0">
             <p className="text-[10px] font-black uppercase tracking-widest text-orange-600">
               Booking Details
@@ -711,10 +714,10 @@ function BookingDetailsModal({
               <X className="h-4 w-4" />
             </button>
           </DialogClose>
-        </div>
+        </header>
 
-        <div className="min-w-0 flex-1 overflow-y-auto px-4 py-4 pb-6 sm:px-6 sm:py-5 sm:pb-10">
-          <div className="mb-5 flex flex-wrap items-center gap-2">
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+          <div className="mb-4 flex flex-wrap items-center gap-2">
             <span
               className={cn(
                 "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
@@ -746,8 +749,8 @@ function BookingDetailsModal({
               )}
           </div>
 
-          <div className="min-w-0 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
-            <div className="min-w-0 rounded-xl border border-slate-100 p-4">
+          <div className="space-y-4">
+            <section className="rounded-2xl border border-slate-200 p-4">
               <div className="mb-3 flex items-center gap-2">
                 <div className="h-1.5 w-1.5 rounded-full bg-slate-400" />
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
@@ -757,116 +760,115 @@ function BookingDetailsModal({
               <div className="space-y-3">
                 <div className="min-w-0">
                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Booking Date</p>
-                  <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{formatDate(booking.createdAt) || "—"}</p>
+                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{formatDate(booking.createdAt) || "—"}</p>
                 </div>
                 <div className="min-w-0">
                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">{isOfficeRental ? "Start Date" : "Event Date"}</p>
-                  <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{startDate || "—"}</p>
+                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{startDate || "—"}</p>
                 </div>
                 <div className="min-w-0">
                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">End Date</p>
-                  <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{endDate || "—"}</p>
+                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{endDate || "—"}</p>
                 </div>
                 <div className="min-w-0">
                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Venue / Office</p>
-                  <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{booking.venue || "—"}</p>
+                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{booking.venue || "—"}</p>
                 </div>
                 <div className="min-w-0">
                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Guests</p>
-                  <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{booking.guestCount ? `${booking.guestCount} pax` : "—"}</p>
+                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{booking.guestCount ? `${booking.guestCount} pax` : "—"}</p>
                 </div>
                 <div className="min-w-0">
                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Time</p>
-                  <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{timeValue}</p>
+                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{timeValue}</p>
                 </div>
                 <div className="min-w-0">
                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Booking ID</p>
-                  <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">#{booking.id}</p>
+                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">#{booking.id}</p>
                 </div>
                 <div className="min-w-0">
                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Event Type</p>
-                  <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{typeLabel}</p>
+                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{typeLabel}</p>
                 </div>
               </div>
-            </div>
+            </section>
 
-            <div className="min-w-0 rounded-xl border border-slate-100">
+            <section className="rounded-2xl border border-slate-200 p-4">
               <PaymentSummaryCard booking={booking} bankRef={bankRef} />
-            </div>
-          </div>
+            </section>
 
-          {booking.specialRequests && (
-            <div className="mt-5 p-4">
-              <div className="mb-2 flex items-center gap-2">
-                <div className="h-1.5 w-1.5 rounded-full bg-slate-400" />
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                  Special Requests
+            {booking.specialRequests && (
+              <section className="rounded-2xl border border-slate-200 p-4">
+                <div className="mb-2 flex items-center gap-2">
+                  <div className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    Special Requests
+                  </p>
+                </div>
+                <p className="break-words text-sm font-semibold leading-relaxed text-slate-700">
+                  {booking.specialRequests}
                 </p>
-              </div>
-              <p className="text-xs font-semibold leading-relaxed text-slate-700">
-                {booking.specialRequests}
-              </p>
-            </div>
-          )}
+              </section>
+            )}
 
-          {showNotice && (
-            <div className="mt-5 bg-amber-50 p-4">
-              <div className="flex gap-3">
-                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
-                <div className="text-xs font-semibold leading-5 text-amber-800">
-                  <p className="mb-1.5 font-black uppercase tracking-wider">
-                    Important Notice
-                  </p>
-                  <ul className="list-disc space-y-1 pl-4 text-[11px]">
-                    <li>
-                      Cancellation requests made 14 days before the event date
-                      may be eligible for a refund.
-                    </li>
-                    <li>
-                      Cancellations made within 7 days before the scheduled
-                      event date are non-refundable.
-                    </li>
-                    <li>
-                      Remaining balances must be fully settled at least 7 days
-                      before the event date.
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {hasRemainingPayment && remainingBalance > 0 && (
-            <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
-                <div>
-                  <p className="text-xs font-black text-amber-900">
-                    {payStatus === "incomplete" ? "Incomplete Payment" : "Partial Payment"}
-                  </p>
-                  <p className="mt-1 text-sm font-black text-amber-700">
-                    Remaining Balance: ₱{remainingBalance.toLocaleString()}
-                  </p>
-                  {showBalanceReminderNotice && (
-                    <p className="mt-2 text-[11px] font-semibold text-amber-600">
-                      Reminder: Please settle your remaining balance of ₱{remainingBalance.toLocaleString()}.
+            {showNotice && (
+              <div className="rounded-2xl bg-amber-50 p-4">
+                <div className="flex gap-3">
+                  <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+                  <div className="text-xs font-semibold leading-5 text-amber-800">
+                    <p className="mb-1.5 font-black uppercase tracking-wider">
+                      Important Notice
                     </p>
-                  )}
+                    <ul className="list-disc space-y-1 pl-4 text-[11px]">
+                      <li>
+                        Cancellation requests made 14 days before the event date
+                        may be eligible for a refund.
+                      </li>
+                      <li>
+                        Cancellations made within 7 days before the scheduled
+                        event date are non-refundable.
+                      </li>
+                      <li>
+                        Remaining balances must be fully settled at least 7 days
+                        before the event date.
+                      </li>
+                    </ul>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {booking.cancellationStatus &&
-            booking.cancellationStatus !== "None" && (
-              <div className="mt-5 p-4">
+            {hasRemainingPayment && remainingBalance > 0 && (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+                  <div>
+                    <p className="text-sm font-black text-amber-900">
+                      {payStatus === "incomplete" ? "Incomplete Payment" : "Partial Payment"}
+                    </p>
+                    <p className="mt-1 text-lg font-black text-amber-700">
+                      Remaining Balance: ₱{remainingBalance.toLocaleString()}
+                    </p>
+                    {showBalanceReminderNotice && (
+                      <p className="mt-2 text-xs font-semibold text-amber-600">
+                        Reminder: Please settle your remaining balance of ₱{remainingBalance.toLocaleString()}.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {booking.cancellationStatus &&
+              booking.cancellationStatus !== "None" && (
+              <section className="rounded-2xl border border-slate-200 p-4">
                 <div className="mb-3 flex items-center gap-2">
                   <div className="h-1.5 w-1.5 rounded-full bg-rose-400" />
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                     Cancellation / Refund Status
                   </p>
                 </div>
-                <div className="space-y-2.5 text-xs font-semibold text-slate-700">
+                <div className="space-y-2.5 text-sm font-semibold text-slate-700">
                   <div className="flex justify-between">
                     <span className="text-slate-400">Cancellation</span>
                     <span className="font-bold text-slate-900">
@@ -898,74 +900,75 @@ function BookingDetailsModal({
                     </div>
                   )}
                   {booking.refundClaimNote && (
-                    <div className="mt-2 rounded-lg bg-amber-100/50 px-3 py-2 text-[11px] font-semibold text-amber-800">
+                    <div className="mt-2 rounded-lg bg-amber-100/50 px-3 py-2 text-xs font-semibold text-amber-800">
                       {booking.refundClaimNote}
                     </div>
                   )}
                   {booking.cancellationDeclineReason && (
-                    <div className="mt-2 rounded-lg bg-rose-100/50 px-3 py-2 text-[11px] font-semibold text-rose-700">
+                    <div className="mt-2 rounded-lg bg-rose-100/50 px-3 py-2 text-xs font-semibold text-rose-700">
                       Decline Reason: {booking.cancellationDeclineReason}
                     </div>
                   )}
-              </div>
-            </div>
+                </div>
+              </section>
             )}
 
-          {isPaymentVerified && (
-            <div className="mt-5 rounded-xl border border-slate-200 bg-white p-4">
-              <div className="mb-3 flex items-center gap-2">
-                <FileText className="h-4 w-4 text-slate-500" />
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                  Contract
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2 mb-3">
-                <span
-                  className={cn(
-                    "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
-                    booking.contractStatus === "Signed"
-                      ? "border-emerald-100 bg-emerald-50 text-emerald-700"
-                      : "border-orange-100 bg-orange-50 text-orange-700",
-                  )}
-                >
-                  {booking.contractStatus === "Signed" ? "Signed" : "Pending Signature"}
-                </span>
-              </div>
-              {booking.contractStatus === "Signed" ? (
-                <div className="space-y-1">
-                  <p className="text-xs font-semibold text-emerald-700">
-                    {booking.contractSignedDate
-                      ? `Signed on ${formatDate(booking.contractSignedDate)}`
-                      : "Contract has been signed."}
-                  </p>
-                  <p className="text-[11px] font-semibold text-slate-500">
-                    Your contract has been marked as signed by the administrator.
+            {isPaymentVerified && (
+              <section className="rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="mb-3 flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-slate-500" />
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    Contract
                   </p>
                 </div>
-              ) : (
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                  <div className="min-w-0 space-y-2">
-                    <p className="text-xs font-semibold text-orange-700">
-                      Contract signing must be completed onsite at the One Estela Place office.
+                <div className="flex flex-wrap items-center gap-2 mb-3">
+                  <span
+                    className={cn(
+                      "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
+                      booking.contractStatus === "Signed"
+                        ? "border-emerald-100 bg-emerald-50 text-emerald-700"
+                        : "border-orange-100 bg-orange-50 text-orange-700",
+                    )}
+                  >
+                    {booking.contractStatus === "Signed" ? "Signed" : "Pending Signature"}
+                  </span>
+                </div>
+                {booking.contractStatus === "Signed" ? (
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-emerald-700">
+                      {booking.contractSignedDate
+                        ? `Signed on ${formatDate(booking.contractSignedDate)}`
+                        : "Contract has been signed."}
                     </p>
-                    <p className="text-[11px] font-semibold text-slate-500">
-                      Please visit the One Estela Place office to personally sign the official contract. This preview is for review purposes only and does not replace onsite contract signing.
+                    <p className="text-xs font-semibold text-slate-500">
+                      Your contract has been marked as signed by the administrator.
                     </p>
                   </div>
-                  <Button
-                    onClick={() => setShowContractPreview(true)}
-                    className="w-full sm:w-auto shrink-0 h-9 rounded-lg bg-emerald-600 px-4 text-[11px] font-bold text-white shadow-sm hover:bg-emerald-700"
-                  >
-                    <FileText className="mr-1.5 h-3.5 w-3.5" />
-                    Preview Contract
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    <div className="space-y-2">
+                      <p className="text-sm font-semibold text-orange-700">
+                        Contract signing must be completed onsite at the One Estela Place office.
+                      </p>
+                      <p className="text-xs font-semibold text-slate-500">
+                        Please visit the One Estela Place office to personally sign the official contract. This preview is for review purposes only and does not replace onsite contract signing.
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => setShowContractPreview(true)}
+                      className="w-full h-10 rounded-lg bg-emerald-600 px-4 text-xs font-bold text-white shadow-sm hover:bg-emerald-700"
+                    >
+                      <FileText className="mr-1.5 h-3.5 w-3.5" />
+                      Preview Contract
+                    </Button>
+                  </div>
+                )}
+              </section>
+            )}
+          </div>
         </div>
 
-        <div className="border-t border-slate-100 bg-white px-4 py-3 sm:px-6 sm:py-4">
+        <div className="shrink-0 border-t border-slate-100 bg-white px-5 py-4">
           <div className="flex flex-col gap-3 w-full">
             {isPayUnderReview && (
               <div className="rounded-xl bg-amber-50 p-3 text-center">
@@ -984,11 +987,7 @@ function BookingDetailsModal({
               </div>
             )}
             {(showModify || showReceipt || showPay || hasRemainingPayment || isPayUnderReview) && (
-              <div className={cn("w-full",
-                (showModify || isModifyDisabled) && (showPay || showReceipt || (hasRemainingPayment && !showPay && !showReceipt))
-                  ? "grid grid-cols-2 gap-3"
-                  : "flex flex-col gap-3"
-              )}>
+              <div className="flex flex-col gap-3 w-full">
                 {(showModify || isModifyDisabled) && (
                   <div className="flex flex-col gap-1">
                     <Button
@@ -1095,6 +1094,7 @@ function BookingDetailsModal({
             )}
           </div>
         </div>
+        </div>
       </DialogContent>
 
       <ContractPreviewModal
@@ -1193,9 +1193,9 @@ function ReceiptModal({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent
         showCloseButton={false}
-        className="flex max-h-[calc(100vh-32px)] max-h-[calc(100dvh-32px)] w-[calc(100vw-2rem)] max-w-[820px] flex-col gap-0 overflow-hidden rounded-2xl border-0 bg-white p-0 shadow-xl"
+        className="w-[calc(100vw-32px)] sm:w-fit sm:min-w-[520px] sm:max-w-[calc(100vw-48px)] max-h-[90dvh] overflow-hidden rounded-3xl bg-white shadow-2xl"
       >
-        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-100 bg-white px-6 pt-6 pb-4">
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-100 bg-white px-5 py-4">
           <div className="min-w-0">
             <p className="text-[10px] font-black uppercase tracking-widest text-orange-600">
               E-Receipt
@@ -1218,7 +1218,7 @@ function ReceiptModal({
           </DialogClose>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6">
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
           <ReceiptPaper {...paperData} />
         </div>
       </DialogContent>
@@ -1403,148 +1403,125 @@ const CancellationDialog = ({
     <Dialog open={!!booking} onOpenChange={(v) => !v && onClose()}>
       <DialogContent
         showCloseButton={false}
-        className="flex max-h-[calc(100vh-32px)] max-h-[calc(100dvh-32px)] w-[calc(100vw-2rem)] max-w-[600px] flex-col gap-0 overflow-hidden rounded-2xl border-0 bg-white p-0 shadow-xl"
+        className="w-[calc(100vw-32px)] sm:w-fit sm:min-w-[500px] sm:max-w-[calc(100vw-48px)] max-h-[90dvh] overflow-hidden rounded-3xl bg-white shadow-2xl"
       >
-        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-100 px-6 pt-6 pb-4">
-          <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-widest text-orange-600">
-              Cancellation
-            </p>
-            <DialogTitle className="mt-1 text-lg font-black tracking-tight text-slate-900">
-              Request Cancellation
-            </DialogTitle>
-            <p className="mt-0.5 text-xs font-semibold text-slate-500">
-              Please review the cancellation policy before submitting your request.
-            </p>
-          </div>
-          <DialogClose asChild>
-            <button
-              type="button"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 transition hover:bg-slate-100 hover:text-slate-900"
-              aria-label="Close"
-            >
+        <div className="flex max-h-[90dvh] flex-col overflow-hidden">
+          <header className="shrink-0 flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4">
+            <div className="min-w-0">
+              <p className="text-[10px] font-black uppercase tracking-widest text-orange-600">
+                Cancellation
+              </p>
+              <DialogTitle className="mt-1 text-lg font-black tracking-tight text-slate-900">
+                Request Cancellation
+              </DialogTitle>
+            </div>
+            <DialogClose asChild>
+              <button
+                type="button"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 transition hover:bg-slate-100 hover:text-slate-900"
+                aria-label="Close"
+              >
               <X className="h-4 w-4" />
             </button>
           </DialogClose>
-        </div>
+        </header>
 
-        <div className="flex-1 space-y-4 overflow-y-auto px-6 py-5">
-          <div className="p-4">
-            <p className="text-sm font-black text-slate-900">{booking.eventName || "Untitled"}</p>
-            <div className="mt-2 space-y-1.5">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-slate-400">Booking ID</span>
-                <span className="font-bold text-slate-800">{booking.id}</span>
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+            <div className="space-y-3">
+              <div className="rounded-xl border border-slate-100 bg-white px-4 py-3">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="truncate text-sm font-black text-slate-900">{booking.eventName || "Untitled"}</span>
+                  <span className="shrink-0 text-[11px] font-bold text-slate-400">#{booking.id}</span>
+                </div>
+                <p className="mt-1 text-[11px] font-semibold text-slate-500">
+                  {booking.venue || "N/A"} · {startDate}{endDate !== startDate ? ` – ${endDate}` : ""}
+                </p>
               </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-slate-400">Venue</span>
-                <span className="font-bold text-slate-800">{booking.venue || "N/A"}</span>
+
+              <div className="rounded-xl bg-amber-50 px-4 py-3">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                  <p className="text-[11px] font-semibold leading-5 text-amber-800">
+                    Cancellations 14+ days before event may be refund eligible. Cancellations within 7 days are non-refundable. Remaining balances must be settled at least 7 days before the event.
+                  </p>
+                </div>
               </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-slate-400">Event Date</span>
-                <span className="font-bold text-slate-800">{startDate}</span>
+
+              <div
+                className={cn(
+                  "rounded-xl px-4 py-3",
+                  allowed
+                    ? refundEligible
+                      ? "bg-emerald-50"
+                      : "bg-orange-50"
+                    : "bg-rose-50",
+                )}
+              >
+                <div className="flex items-start gap-2">
+                  <ShieldAlert
+                    className={cn(
+                      "mt-0.5 h-4 w-4 shrink-0",
+                      allowed
+                        ? refundEligible
+                          ? "text-emerald-600"
+                          : "text-orange-600"
+                        : "text-rose-600",
+                    )}
+                  />
+                  <p
+                    className={cn(
+                      "text-[11px] font-semibold leading-5",
+                      allowed
+                        ? refundEligible
+                          ? "text-emerald-700"
+                          : "text-orange-800"
+                        : "text-rose-700",
+                    )}
+                  >
+                    {getCancellationMessage(booking.date)}
+                  </p>
+                </div>
               </div>
-              {endDate !== startDate && (
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-semibold text-slate-400">End Date</span>
-                  <span className="font-bold text-slate-800">{endDate}</span>
+
+              {allowed && (
+                <div>
+                  <Label className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">
+                    Reason for Cancellation *
+                  </Label>
+                  <Textarea
+                    value={reason}
+                    onChange={(e) => handleReasonChange(e.target.value)}
+                    placeholder="Type your reason here..."
+                    className={cn(
+                      "min-h-[110px] w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus-visible:ring-2 focus-visible:ring-orange-500",
+                      reasonError && "border-rose-300 focus-visible:ring-rose-500",
+                    )}
+                  />
+                  {reasonError && (
+                    <p className="mt-1.5 text-[11px] font-semibold text-rose-600">
+                      Please provide a reason for cancellation.
+                    </p>
+                  )}
                 </div>
               )}
             </div>
           </div>
 
-          <div className="bg-amber-50 p-4">
-            <div className="flex gap-3">
-              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
-              <div className="text-xs font-semibold leading-5 text-amber-800">
-                <p className="mb-1.5 text-[10px] font-black uppercase tracking-widest">
-                  Important Notice
-                </p>
-                <ul className="list-disc space-y-1 pl-4">
-                  <li>Cancellation requests made 14 days before the event date may be eligible for a refund.</li>
-                  <li>Cancellations made within 7 days before the scheduled event date are non-refundable.</li>
-                  <li>Remaining balances must be fully settled at least 7 days before the event date.</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
-          <div
-            className={cn(
-              "p-4",
-              allowed
-                ? refundEligible
-                  ? "bg-emerald-50"
-                  : "bg-orange-50"
-                : "bg-rose-50",
-            )}
-          >
-            <div className="flex gap-3">
-              <ShieldAlert
-                className={cn(
-                  "mt-0.5 h-5 w-5 shrink-0",
-                  allowed
-                    ? refundEligible
-                      ? "text-emerald-600"
-                      : "text-orange-600"
-                    : "text-rose-600",
-                )}
-              />
-              <p
-                className={cn(
-                  "text-xs font-semibold leading-5",
-                  allowed
-                    ? refundEligible
-                      ? "text-emerald-700"
-                      : "text-orange-800"
-                    : "text-rose-700",
-                )}
-              >
-                {getCancellationMessage(booking.date)}
-              </p>
-            </div>
-          </div>
-
-          {allowed && (
-            <div>
-              <Label className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">
-                Reason for Cancellation *
-              </Label>
-              <Textarea
-                value={reason}
-                onChange={(e) => handleReasonChange(e.target.value)}
-                placeholder="Type your reason here..."
-                className={cn(
-                  "mt-2 w-full resize-none rounded-xl border bg-white p-4 text-sm focus-visible:ring-2 focus-visible:ring-orange-500",
-                  reasonError
-                    ? "border-rose-300 focus-visible:ring-rose-500"
-                    : "border-slate-200",
-                )}
-                style={{ minHeight: 120, maxHeight: 180 }}
-              />
-              {reasonError && (
-                <p className="mt-1.5 text-[11px] font-semibold text-rose-600">
-                  Please provide a reason for cancellation.
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="flex shrink-0 items-center justify-end gap-2 border-t border-slate-100 bg-white px-6 py-4">
-          <Button
-            variant="outline"
-            onClick={onClose}
-            className="h-10 rounded-lg border-slate-200 px-4 text-xs font-bold text-slate-700 hover:bg-slate-100"
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            className="h-10 rounded-lg bg-orange-600 px-5 text-xs font-bold text-white shadow-sm hover:bg-orange-700"
-          >
-            Submit Cancellation Request
-          </Button>
+          <footer className="shrink-0 flex items-center justify-end gap-2 border-t border-slate-100 bg-white px-5 py-4">
+            <Button
+              variant="outline"
+              onClick={onClose}
+              className="h-10 rounded-lg border-slate-200 px-4 text-xs font-bold text-slate-700 hover:bg-slate-100"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              className="h-10 rounded-lg bg-orange-600 px-5 text-xs font-bold text-white shadow-sm hover:bg-orange-700"
+            >
+              Submit Cancellation Request
+            </Button>
+          </footer>
         </div>
       </DialogContent>
     </Dialog>
@@ -1563,6 +1540,12 @@ function ModifyBookingFlowModal({
   onSubmitChanges: (changes: Record<string, unknown>, reason: string) => void
 }) {
   const { bookings, maintenanceDates } = useBookings()
+  const { cmsData } = useCMS()
+
+  const allSpaces = useMemo(() => {
+    const { eventVenues, officeSpaces } = getPublicSpacesFromData(cmsData)
+    return [...eventVenues, ...officeSpaces]
+  }, [cmsData])
 
   const [step, setStep] = useState<"schedule" | "details">("schedule")
   const [eventName, setEventName] = useState("")
@@ -1586,16 +1569,8 @@ function ModifyBookingFlowModal({
   // Venue lookup
   const venueInfo = useMemo(() => {
     if (!booking) return null
-    const VENUES = [
-      { id: 'v1', name: 'The Milestone Event', price: 15000, type: 'venue' },
-      { id: 'v2', name: 'The Moment Event', price: 10000, type: 'venue' },
-      { id: 'v3', name: 'Conference Room', price: 3000, type: 'venue' },
-      { id: 'v4', name: 'Business Room', price: 5000, type: 'venue' },
-      { id: 'office-a', name: 'Office A', price: 15000, type: 'office' },
-      { id: 'office-b', name: 'Office B', price: 15000, type: 'office' },
-    ]
-    return VENUES.find(v => v.id === booking.venueId) || null
-  }, [booking])
+    return allSpaces.find(v => v.id === booking.venueId) || null
+  }, [booking, allSpaces])
 
   const isOffice = venueInfo?.type === 'office'
 
@@ -1778,7 +1753,7 @@ function ModifyBookingFlowModal({
       <DialogContent
         showCloseButton={false}
         className={cn(
-          "!flex !flex-col !gap-0 !p-0 overflow-hidden bg-white rounded-none sm:rounded-[2rem] border-0 focus:outline-none [&>button]:hidden shadow-2xl w-full h-[100vh] h-[100dvh] md:h-[calc(100vh-32px)] md:max-h-[760px] !max-w-[100vw]",
+          "!flex !flex-col !gap-0 !p-0 overflow-hidden bg-white rounded-none sm:rounded-[2rem] border-0 [&>button]:hidden shadow-2xl w-[calc(100vw-32px)] max-w-2xl max-h-[calc(100dvh-32px)]",
           step === "schedule" && "sm:!max-w-[95vw] lg:!max-w-[1000px]",
           step === "details" && "sm:!max-w-[660px]",
         )}
