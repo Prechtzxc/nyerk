@@ -1,14 +1,8 @@
 "use client"
 
-import { useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
 import { PublicLayout } from "@/src/modules/client/components/public-layout"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/src/modules/shared/components/ui/card"
 import {
   Accordion,
   AccordionContent,
@@ -19,14 +13,14 @@ import {
   Calendar,
   Camera,
   ImageIcon,
-  MapPin,
+  Loader2,
   Sparkles,
-  Star,
-  Users,
 } from "lucide-react"
 import { ReserveButton } from "@/src/modules/client/components/reserve-button"
 import { TourButton } from "@/src/modules/client/components/tour-button"
 import { useCMS } from "@/src/modules/admin/contexts/cms-context"
+import { useAuth } from "@/src/modules/shared/auth/auth-context"
+import { getCurrentUser } from "@/src/modules/shared/lib/auth-storage"
 
 function getImageSource(value?: string) {
   return value && value.trim() ? value : "/placeholder.jpg"
@@ -46,12 +40,72 @@ function formatDate(date?: string) {
 }
 
 export default function HomePage() {
+  const router = useRouter()
+  const { user, isLoading: authLoading } = useAuth()
+
+  const [authChecking, setAuthChecking] = useState(true)
+
+  useEffect(() => {
+    if (authLoading) return
+
+    const redirectByRole = (role: string) => {
+      const normalized = role.toLowerCase()
+      if (normalized === "admin" || normalized === "staff" || normalized === "owner") {
+        router.replace("/dashboard")
+      } else {
+        router.replace("/portal")
+      }
+    }
+
+    if (user) {
+      redirectByRole(user.role)
+      return
+    }
+
+    const storedUser = getCurrentUser()
+    if (storedUser) {
+      redirectByRole(storedUser.role)
+      return
+    }
+
+    setAuthChecking(false)
+  }, [user, authLoading, router])
+
+  if (authLoading || authChecking) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950">
+        <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+      </div>
+    )
+  }
+
+  return <LandingPageContent />
+}
+
+function LandingPageContent() {
   const { cmsData } = useCMS()
 
   const homepage = cmsData?.homepage || {
     heroTitle: "Welcome to One Estela Place",
     heroSubtitle: "The perfect venue for your special events and celebrations.",
     heroImage: "/images/venue-interior.jpg",
+    heroBadge: "Event Venue · San Pedro, Laguna",
+    heroPrimaryCta: "Book Your Event",
+    heroSecondaryCta: "Take a Tour",
+    aboutLabel: "Our Story",
+    aboutTitle: "One Estela Place Event Venue",
+    aboutDescription: "One Estela Place is an event venue in San Pedro, Laguna, established in 2018. It was created to provide a clean, comfortable, and elegant space for special occasions and gatherings.\n\nThe venue focuses on space rental, giving clients the freedom to arrange their own decorations, suppliers, catering, and event setup based on their preferred style.",
+    aboutImage: "/images/venue-chandelier.png",
+    galleryLabel: "Past Client Bookings",
+    galleryTitle: "Real Events Hosted at One Estela Place",
+    gallerySubtitle: "Actual client celebrations and gatherings held at our event venue, uploaded by the admin with client permission.",
+    faqLabel: "Help Center",
+    faqTitle: "Frequently Asked Questions",
+    faqSubtitle: "Find answers to common questions about booking at One Estela Place.",
+    ctaTitle: "Ready to plan your next event?",
+    ctaDescription: "Explore the venue through our virtual tour or send a booking request to start your reservation.",
+    ctaButtonText: "Book Your Event",
+    ctaText: "Take a Tour",
   }
 
   const faqs =
@@ -104,7 +158,7 @@ export default function HomePage() {
     <PublicLayout>
       <section
         id="home"
-        className="relative flex min-h-[620px] items-center bg-slate-950 text-white"
+        className="relative flex w-full max-w-full min-h-[620px] items-center overflow-hidden bg-slate-950 text-white"
       >
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
@@ -116,7 +170,7 @@ export default function HomePage() {
 
         <div className="container relative z-10 mx-auto px-4 py-24 text-center">
           <div className="mx-auto mb-5 w-fit rounded-full border border-white/20 bg-white/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.22em] text-orange-100 backdrop-blur">
-            Event Venue · San Pedro, Laguna
+            {homepage.heroBadge || "Event Venue · San Pedro, Laguna"}
           </div>
 
           <h1 className="mx-auto mb-6 max-w-4xl whitespace-pre-line text-4xl font-black leading-tight text-white drop-shadow-lg md:text-6xl">
@@ -133,118 +187,44 @@ export default function HomePage() {
               className="h-12 w-full justify-center rounded-full border-0 bg-white px-7 text-sm font-black text-orange-600 shadow-lg transition hover:bg-orange-50 sm:w-auto"
               size="lg"
             >
-              Book Your Event
+              {homepage.heroPrimaryCta || "Book Your Event"}
             </ReserveButton>
 
             <TourButton
               className="h-12 w-full justify-center rounded-full border-0 bg-orange-600 px-7 text-sm font-black text-white shadow-lg shadow-orange-600/30 transition hover:bg-orange-700 sm:w-auto"
               size="lg"
             >
-              Take a Tour
+              {homepage.heroSecondaryCta || "Take a Tour"}
             </TourButton>
           </div>
         </div>
       </section>
 
-      <section className="bg-white py-16">
-        <div className="container mx-auto px-4">
-          <div className="mb-12 text-center">
-            <p className="mb-2 text-xs font-black uppercase tracking-[0.25em] text-orange-600">
-              Why Choose Us
-            </p>
-            <h2 className="text-3xl font-black text-slate-950 md:text-4xl">
-              Why Choose One Estela Place?
-            </h2>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            <Card className="rounded-2xl border-slate-200 text-center shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
-              <CardHeader>
-                <MapPin className="mx-auto h-11 w-11 text-orange-600" />
-                <CardTitle>Accessible Location</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription>
-                  Located in San Pedro, Laguna for convenient venue access.
-                </CardDescription>
-              </CardContent>
-            </Card>
-
-            <Card className="rounded-2xl border-slate-200 text-center shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
-              <CardHeader>
-                <Users className="mx-auto h-11 w-11 text-orange-600" />
-                <CardTitle>Event Ready Space</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription>
-                  Suitable for birthdays, weddings, seminars, corporate events,
-                  and private gatherings.
-                </CardDescription>
-              </CardContent>
-            </Card>
-
-            <Card className="rounded-2xl border-slate-200 text-center shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
-              <CardHeader>
-                <Calendar className="mx-auto h-11 w-11 text-orange-600" />
-                <CardTitle>Easy Booking</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription>
-                  Simple booking request flow with admin review and confirmation.
-                </CardDescription>
-              </CardContent>
-            </Card>
-
-            <Card className="rounded-2xl border-slate-200 text-center shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
-              <CardHeader>
-                <Star className="mx-auto h-11 w-11 text-orange-600" />
-                <CardTitle>Elegant Venue</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription>
-                  A clean and comfortable space where clients can bring their own
-                  preferred setup.
-                </CardDescription>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      <section id="about" className="bg-slate-50 py-20">
+      <section id="about" className="w-full bg-slate-50 py-20">
         <div className="container mx-auto max-w-6xl px-4">
           <div className="grid items-center gap-12 lg:grid-cols-2">
             <div>
               <p className="mb-2 text-xs font-black uppercase tracking-[0.25em] text-orange-600">
-                Our Story
+                {homepage.aboutLabel || "Our Story"}
               </p>
 
               <h2 className="mb-4 text-4xl font-black text-slate-950">
-                One Estela Place Event Venue
+                {homepage.aboutTitle || "One Estela Place Event Venue"}
               </h2>
 
               <div className="mb-8 h-1.5 w-20 rounded-full bg-orange-600" />
 
               <div className="space-y-6 text-lg leading-relaxed text-slate-600">
-                <p>
-                  One Estela Place is an event venue in San Pedro, Laguna,
-                  established in 2018. It was created to provide a clean,
-                  comfortable, and elegant space for special occasions and
-                  gatherings.
-                </p>
-
-                <p>
-                  The venue focuses on space rental, giving clients the freedom
-                  to arrange their own decorations, suppliers, catering, and
-                  event setup based on their preferred style.
-                </p>
+                {(homepage.aboutDescription || "").split("\n\n").filter(Boolean).map((para: string, i: number) => (
+                  <p key={i}>{para}</p>
+                ))}
               </div>
             </div>
 
             <div className="relative h-[420px] overflow-hidden rounded-[2rem] shadow-2xl md:h-[550px]">
               <img
-                src="/images/venue-chandelier.png"
-                alt="Elegant chandelier at One Estela Place venue"
+                src={getImageSource(homepage.aboutImage)}
+                alt="About One Estela Place venue"
                 className="h-full w-full object-cover transition-transform duration-700 hover:scale-105"
                 onError={(event) => {
                   event.currentTarget.src = "/placeholder.jpg"
@@ -255,22 +235,21 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="bg-white py-20">
+      <section className="w-full bg-white py-20">
         <div className="container mx-auto max-w-7xl px-4">
           <div className="mb-12 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
               <p className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-[0.25em] text-orange-600">
                 <Sparkles className="h-4 w-4" />
-                Past Client Bookings
+                {homepage.galleryLabel || "Past Client Bookings"}
               </p>
 
               <h2 className="text-4xl font-black tracking-tight text-slate-950">
-                Real Events Hosted at One Estela Place
+                {homepage.galleryTitle || "Real Events Hosted at One Estela Place"}
               </h2>
 
               <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-500">
-                Actual client celebrations and gatherings held at our event
-                venue, uploaded by the admin with client permission.
+                {homepage.gallerySubtitle || "Actual client celebrations and gatherings held at our event venue, uploaded by the admin with client permission."}
               </p>
             </div>
 
@@ -342,19 +321,19 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section id="faqs" className="border-t border-slate-100 bg-slate-50 py-20">
+      <section id="faqs" className="w-full border-t border-slate-100 bg-slate-50 py-20">
         <div className="container mx-auto max-w-4xl px-4">
           <div className="mb-12 text-center">
             <p className="mb-2 text-xs font-black uppercase tracking-[0.25em] text-orange-600">
-              Help Center
+              {homepage.faqLabel || "Help Center"}
             </p>
 
             <h2 className="mb-4 text-4xl font-black text-slate-950">
-              Frequently Asked Questions
+              {homepage.faqTitle || "Frequently Asked Questions"}
             </h2>
 
             <p className="text-lg text-slate-600">
-              Find answers to common questions about booking at One Estela Place.
+              {homepage.faqSubtitle || "Find answers to common questions about booking at One Estela Place."}
             </p>
           </div>
 
@@ -378,17 +357,16 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="bg-slate-950 py-20 text-white">
+      <section className="w-full bg-slate-950 py-20 text-white">
         <div className="container mx-auto px-4 text-center">
           <Camera className="mx-auto mb-5 h-12 w-12 text-orange-500" />
 
           <h2 className="text-3xl font-black md:text-4xl">
-            Ready to plan your next event?
+            {homepage.ctaTitle || "Ready to plan your next event?"}
           </h2>
 
           <p className="mx-auto mt-3 max-w-2xl text-sm font-semibold leading-7 text-slate-300">
-            Explore the venue through our virtual tour or send a booking request
-            to start your reservation.
+            {homepage.ctaDescription || "Explore the venue through our virtual tour or send a booking request to start your reservation."}
           </p>
 
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
@@ -396,14 +374,14 @@ export default function HomePage() {
               className="h-12 rounded-full bg-orange-600 px-7 text-sm font-black text-white hover:bg-orange-700"
               size="lg"
             >
-              Book Your Event
+              {homepage.ctaButtonText || homepage.heroPrimaryCta || "Book Your Event"}
             </ReserveButton>
 
             <TourButton
               className="h-12 rounded-full border border-white/20 bg-white px-7 text-sm font-black text-slate-950 hover:bg-orange-50"
               size="lg"
             >
-              Take a Tour
+              {homepage.ctaText || homepage.heroSecondaryCta || "Take a Tour"}
             </TourButton>
           </div>
         </div>

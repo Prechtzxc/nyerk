@@ -26,7 +26,7 @@ type CustomerAccount = {
   email: string
   phone: string
   status: CustomerStatus
-  createdAt?: string
+  profilePicture?: string
 }
 
 const FALLBACK_CUSTOMERS: CustomerAccount[] = [
@@ -68,6 +68,7 @@ const FALLBACK_CUSTOMERS: CustomerAccount[] = [
 ]
 
 const USER_STORAGE_KEYS = [
+  "oneestela_registered_users",
   "oneestela_users_v1",
   "oneestela_customers_v1",
   "oneestela_registered_customers_v1",
@@ -96,23 +97,25 @@ function getInitials(name: string) {
   return `${first}${second}`.toUpperCase() || "CU"
 }
 
-function formatDate(date?: string) {
-  if (!date) return "No date"
-
-  const parsed = new Date(date)
-  if (Number.isNaN(parsed.getTime())) return date
-
-  return new Intl.DateTimeFormat("en-PH", {
-    month: "short",
-    day: "2-digit",
-    year: "numeric",
-  }).format(parsed)
-}
-
 function getStatusBadgeClass(status: CustomerStatus) {
   return status === "Active"
     ? "border-emerald-200 bg-emerald-50 text-emerald-700"
     : "border-slate-200 bg-slate-100 text-slate-500"
+}
+
+function getProfilePicture(user: any): string | undefined {
+  if (user?.profilePicture) return user.profilePicture
+  if (typeof window === "undefined") return undefined
+  try {
+    const raw = window.localStorage.getItem("oneestela_profile_picture_index")
+    if (!raw) return undefined
+    const map = JSON.parse(raw)
+    const uid = user?.id || user?.uid || user?.customerId
+    if (uid && map?.[uid]) return map[uid]
+  } catch {
+    // ignore
+  }
+  return undefined
 }
 
 function normalizeCustomer(user: any, index: number): CustomerAccount {
@@ -124,7 +127,7 @@ function normalizeCustomer(user: any, index: number): CustomerAccount {
     email: String(user?.email || "No email provided"),
     phone: String(user?.phone || user?.contactNumber || user?.mobile || "No phone provided"),
     status: normalizeStatus(user?.status),
-    createdAt: user?.createdAt || user?.dateCreated || user?.registeredAt,
+    profilePicture: getProfilePicture(user),
   }
 }
 
@@ -199,7 +202,6 @@ export default function UsersPage() {
           customer.email,
           customer.phone,
           customer.status,
-          customer.createdAt,
         ]
           .join(" ")
           .toLowerCase()
@@ -278,10 +280,18 @@ export default function UsersPage() {
               className="group flex w-full max-w-full min-w-0 flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-orange-200 hover:shadow-md sm:flex-row sm:items-center sm:gap-4"
             >
               <div className="flex shrink-0 items-center gap-3 sm:w-[200px]">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
-                  <span className="text-sm font-black uppercase">
-                    {getInitials(customer.name)}
-                  </span>
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 text-slate-600 ring-2 ring-white shadow-sm">
+                  {customer.profilePicture ? (
+                    <img
+                      src={customer.profilePicture}
+                      alt={customer.name}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-sm font-black uppercase">
+                      {getInitials(customer.name)}
+                    </span>
+                  )}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
@@ -296,7 +306,7 @@ export default function UsersPage() {
                 </div>
               </div>
 
-              <div className="grid min-w-0 flex-1 grid-cols-2 gap-x-2 gap-y-1.5 sm:grid-cols-3 sm:gap-x-3">
+              <div className="grid min-w-0 flex-1 grid-cols-2 gap-x-2 gap-y-1.5 sm:gap-x-3">
                 <div className="min-w-0 max-w-full">
                   <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">Email</p>
                   <p className="whitespace-normal break-words text-xs font-black text-slate-800">{customer.email}</p>
@@ -304,10 +314,6 @@ export default function UsersPage() {
                 <div className="min-w-0 max-w-full">
                   <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">Phone</p>
                   <p className="whitespace-normal break-words text-xs font-bold text-slate-800">{customer.phone}</p>
-                </div>
-                <div className="min-w-0 max-w-full">
-                  <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">Registered</p>
-                  <p className="whitespace-normal break-words text-xs font-bold text-slate-800">{formatDate(customer.createdAt)}</p>
                 </div>
               </div>
 

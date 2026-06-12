@@ -1,6 +1,7 @@
 import { PublicLayout } from "@/components/public-layout"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/src/modules/shared/components/ui/accordion"
 import { Button } from "@/src/modules/shared/components/ui/button"
+import { CANCELLATION_POLICY, REFUND_POLICY, PAYMENT_POLICY } from "@/src/modules/shared/lib/policies"
 
 export default function FAQsPage() {
   const faqs = [
@@ -21,8 +22,7 @@ export default function FAQsPage() {
     },
     {
       question: "What is your cancellation policy?",
-      answer:
-        "Cancellations made 90+ days before the event receive a full refund minus a processing fee. Cancellations made 30-89 days before receive a 50% refund. Cancellations within 30 days are non-refundable.",
+      answer: CANCELLATION_POLICY,
     },
     {
       question: "Is there parking available?",
@@ -56,8 +56,7 @@ export default function FAQsPage() {
     },
     {
       question: "What is your payment policy?",
-      answer:
-        "A non-refundable 30% deposit is required within 48 hours to confirm your booking. The remaining balance must be paid at least 7 days before your event date.",
+      answer: PAYMENT_POLICY,
     },
     {
       question: "What happens if I need to cancel my event?",

@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react"
 import { useToast } from "@/src/modules/shared/hooks/use-toast"
+import { DEFAULT_POLICY_CONTENT, POLICY_LABELS, ALL_POLICY_KEYS, type PolicyKey } from "@/src/modules/shared/lib/policies"
 
 export type PastEvent = {
   id: string
@@ -22,19 +23,46 @@ export interface HomepageContent {
   heroSubtitle: string
   heroImage: string
   heroDescription?: string
+  heroBadge?: string
+  heroPrimaryCta?: string
+  heroSecondaryCta?: string
   aboutTitle?: string
   aboutDescription?: string
   aboutImage?: string
+  aboutLabel?: string
   ctaText?: string
   ctaButtonText?: string
   ctaTitle?: string
   ctaDescription?: string
   ctaImage?: string
-  features?: Array<{
-    id: string
-    title: string
-    description: string
-  }>
+  galleryLabel?: string
+  galleryTitle?: string
+  gallerySubtitle?: string
+  faqLabel?: string
+  faqTitle?: string
+  faqSubtitle?: string
+}
+
+export type FAQ = {
+  id: string
+  question: string
+  answer: string
+  isHidden?: boolean
+  order?: number
+  createdAt: string
+  updatedAt?: string
+}
+
+export type PolicyType = PolicyKey
+
+export type Policy = {
+  id: string
+  title: string
+  content: string
+  type: PolicyType
+  isPublished: boolean
+  createdAt: string
+  updatedAt?: string
 }
 
 export interface CMSData {
@@ -44,11 +72,16 @@ export interface CMSData {
     phone: string
     address: string
     facebook: string
+    brandName?: string
+    footerDescription?: string
+    copyrightText?: string
+    instagram?: string
   }
   venues: any[]
   offices: any[]
-  faqs: any[]
+  faqs: FAQ[]
   pastEvents: PastEvent[]
+  policies: Policy[]
 }
 
 type CMSContextType = {
@@ -71,6 +104,17 @@ type CMSContextType = {
   addOfficeRoom: (data: any) => void
   deleteOfficeRoom: (id: string) => void
 
+  faqs: FAQ[]
+  addFAQ: (data: Omit<FAQ, "id" | "createdAt" | "updatedAt">) => void
+  updateFAQ: (id: string, data: Partial<FAQ>) => void
+  deleteFAQ: (id: string) => void
+  reorderFAQs: (orderedIds: string[]) => void
+
+  policies: Policy[]
+  addPolicy: (data: Omit<Policy, "id" | "createdAt" | "updatedAt">) => void
+  updatePolicy: (id: string, data: Partial<Policy>) => void
+  deletePolicy: (id: string) => void
+
   addPastEvent: (data: Omit<PastEvent, "id" | "createdAt" | "updatedAt">) => void
   updatePastEvent: (id: string, data: Partial<PastEvent>) => void
   deletePastEvent: (id: string) => void
@@ -81,38 +125,52 @@ type CMSContextType = {
 const CMS_STORAGE_KEY = "oneestela_cms_data"
 const CMS_UPDATED_EVENT = "oneestela_cms_updated"
 
-const DEFAULT_FAQS = [
+const DEFAULT_FAQS: FAQ[] = [
   {
     id: "faq-1",
     question: "How long is the standard venue rental?",
     answer:
       "The standard venue rental is 6 hours. Setup, program, and cleanup should fit within the approved booking schedule.",
+    createdAt: new Date(Date.now() - 5 * 86400000).toISOString(),
   },
   {
     id: "faq-2",
     question: "What is included in the venue rental?",
     answer:
       "One Estela Place focuses on venue space rental only. Clients may arrange their own decorations, catering, suppliers, and event services.",
+    createdAt: new Date(Date.now() - 4 * 86400000).toISOString(),
   },
   {
     id: "faq-3",
     question: "Do you provide catering services?",
     answer:
       "No. Catering is not included. Clients may bring or coordinate with their preferred caterer based on venue guidelines.",
+    createdAt: new Date(Date.now() - 3 * 86400000).toISOString(),
   },
   {
     id: "faq-4",
     question: "Can I visit the venue before booking?",
     answer:
       "Yes. Clients may schedule an ocular visit before finalizing their reservation.",
+    createdAt: new Date(Date.now() - 2 * 86400000).toISOString(),
   },
   {
     id: "faq-5",
     question: "How does booking confirmation work?",
     answer:
       "A booking request will be reviewed first. Once approved and payment requirements are verified, the booking may be marked as confirmed.",
+    createdAt: new Date(Date.now() - 86400000).toISOString(),
   },
 ]
+
+const DEFAULT_POLICIES: Policy[] = ALL_POLICY_KEYS.map((key, i) => ({
+  id: `policy-${i + 1}`,
+  title: POLICY_LABELS[key],
+  content: DEFAULT_POLICY_CONTENT[key],
+  type: key,
+  isPublished: true,
+  createdAt: new Date().toISOString(),
+}))
 
 const defaultCMSData: CMSData = {
   homepage: {
@@ -120,12 +178,38 @@ const defaultCMSData: CMSData = {
     heroSubtitle:
       "The perfect venue for your special events, corporate gatherings, and everyday workspace needs.",
     heroImage: "/images/venue-interior.jpg",
+    heroBadge: "Event Venue · San Pedro, Laguna",
+    heroPrimaryCta: "Book Your Event",
+    heroSecondaryCta: "Take a Tour",
+    aboutTitle: "One Estela Place Event Venue",
+    aboutDescription:
+      "One Estela Place is an event venue in San Pedro, Laguna, established in 2018. It was created to provide a clean, comfortable, and elegant space for special occasions and gatherings.\n\nThe venue focuses on space rental, giving clients the freedom to arrange their own decorations, suppliers, catering, and event setup based on their preferred style.",
+    aboutImage: "/images/venue-chandelier.png",
+    aboutLabel: "Our Story",
+    ctaTitle: "Ready to plan your next event?",
+    ctaDescription:
+      "Explore the venue through our virtual tour or send a booking request to start your reservation.",
+    ctaButtonText: "Book Your Event",
+    ctaText: "Take a Tour",
+    galleryLabel: "Past Client Bookings",
+    galleryTitle: "Real Events Hosted at One Estela Place",
+    gallerySubtitle:
+      "Actual client celebrations and gatherings held at our event venue, uploaded by the admin with client permission.",
+    faqLabel: "Help Center",
+    faqTitle: "Frequently Asked Questions",
+    faqSubtitle:
+      "Find answers to common questions about booking at One Estela Place.",
   },
   footer: {
     email: "inquiries@oneestelaplace.com",
     phone: "+63 917 123 4567",
     address: "Carmona, Calabarzon, Philippines",
     facebook: "https://facebook.com/oneestelaplace",
+    brandName: "One Estela Place",
+    footerDescription:
+      "Creating unforgettable moments for your special events. The perfect place for weddings, birthdays, and corporate gatherings.",
+    copyrightText: "One Estela Place. All rights reserved.",
+    instagram: "#",
   },
   venues: [
     {
@@ -193,6 +277,7 @@ const defaultCMSData: CMSData = {
   ],
   faqs: DEFAULT_FAQS,
   pastEvents: [],
+  policies: DEFAULT_POLICIES,
 }
 
 const defaultHomepage: CMSData["homepage"] = defaultCMSData.homepage
@@ -216,6 +301,17 @@ const defaultContextValue: CMSContextType = {
   updateOfficeRoom: () => {},
   addOfficeRoom: () => {},
   deleteOfficeRoom: () => {},
+
+  faqs: defaultCMSData.faqs,
+  addFAQ: () => {},
+  updateFAQ: () => {},
+  deleteFAQ: () => {},
+  reorderFAQs: () => {},
+
+  policies: defaultCMSData.policies,
+  addPolicy: () => {},
+  updatePolicy: () => {},
+  deletePolicy: () => {},
 
   addPastEvent: () => {},
   updatePastEvent: () => {},
@@ -288,6 +384,7 @@ function normalizeCMSData(parsed: Partial<CMSData> | null): CMSData {
     pastEvents: Array.isArray(parsed.pastEvents)
       ? parsed.pastEvents.map(normalizePastEvent)
       : defaultCMSData.pastEvents,
+    policies: Array.isArray(parsed.policies) ? parsed.policies : defaultCMSData.policies,
   }
 }
 
@@ -486,6 +583,85 @@ export const CMSProvider = ({ children }: { children: React.ReactNode }) => {
     })
   }
 
+  const addFAQ = (
+    data: Omit<FAQ, "id" | "createdAt" | "updatedAt">
+  ) => {
+    const newFAQ: FAQ = {
+      id: createLocalId("faq"),
+      question: data.question,
+      answer: data.answer,
+      isHidden: data.isHidden ?? false,
+      order: data.order ?? cmsData.faqs.length,
+      createdAt: new Date().toISOString(),
+    }
+    saveCMSData({
+      ...cmsData,
+      faqs: [...cmsData.faqs, newFAQ],
+    })
+  }
+
+  const updateFAQ = (id: string, data: Partial<FAQ>) => {
+    saveCMSData({
+      ...cmsData,
+      faqs: cmsData.faqs.map((faq) =>
+        faq.id === id ? { ...faq, ...data, updatedAt: new Date().toISOString() } : faq
+      ),
+    })
+  }
+
+  const deleteFAQ = (id: string) => {
+    saveCMSData({
+      ...cmsData,
+      faqs: cmsData.faqs.filter((faq) => faq.id !== id),
+    })
+  }
+
+  const reorderFAQs = (orderedIds: string[]) => {
+    const reordered = orderedIds
+      .map((id, index) => {
+        const faq = cmsData.faqs.find((f) => f.id === id)
+        return faq ? { ...faq, order: index } : null
+      })
+      .filter(Boolean) as FAQ[]
+    saveCMSData({
+      ...cmsData,
+      faqs: reordered,
+    })
+  }
+
+  const addPolicy = (
+    data: Omit<Policy, "id" | "createdAt" | "updatedAt">
+  ) => {
+    const newPolicy: Policy = {
+      id: createLocalId("policy"),
+      title: data.title,
+      content: data.content,
+      type: data.type,
+      isPublished: data.isPublished ?? true,
+      createdAt: new Date().toISOString(),
+    }
+    saveCMSData({
+      ...cmsData,
+      policies: [...cmsData.policies, newPolicy],
+    })
+  }
+
+  const updatePolicy = (id: string, data: Partial<Policy>) => {
+    saveCMSData({
+      ...cmsData,
+      policies: cmsData.policies.map((policy) =>
+        policy.id === id ? { ...policy, ...data, updatedAt: new Date().toISOString() } : policy
+      ),
+    })
+  }
+
+  const deletePolicy = (id: string) => {
+    saveCMSData({
+      ...cmsData,
+      policies: cmsData.policies.filter((policy) => policy.id !== id),
+    })
+  }
+
   const updateOfficeRoom: CMSContextType["updateOfficeRoom"] = (id, data) => {
     saveCMSData({
       ...cmsData,
@@ -541,6 +717,17 @@ export const CMSProvider = ({ children }: { children: React.ReactNode }) => {
         updateOfficeRoom,
         addOfficeRoom,
         deleteOfficeRoom,
+
+        faqs: cmsData.faqs,
+        addFAQ,
+        updateFAQ,
+        deleteFAQ,
+        reorderFAQs,
+
+        policies: cmsData.policies,
+        addPolicy,
+        updatePolicy,
+        deletePolicy,
 
         addPastEvent,
         updatePastEvent,

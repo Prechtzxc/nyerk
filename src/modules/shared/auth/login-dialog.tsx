@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/src/modules/shared/components/ui/button"
 import {
   Dialog,
@@ -18,6 +19,7 @@ import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { useAuth } from "@/src/modules/shared/auth/auth-context"
 import { useToast } from "@/src/modules/shared/hooks/use-toast"
 import { ForgotPasswordDialog } from "@/src/modules/shared/auth/forgot-password-dialog"
+import { getCurrentUser } from "@/src/modules/shared/lib/auth-storage"
 
 interface LoginDialogProps {
   className?: string
@@ -25,6 +27,7 @@ interface LoginDialogProps {
 }
 
 export function LoginDialog({ className, children }: LoginDialogProps) {
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -77,10 +80,16 @@ export function LoginDialog({ className, children }: LoginDialogProps) {
         return
       }
       setOpen(false)
-      if (email.toLowerCase().includes("admin")) {
-        toast({ title: "Login Successful", description: "Welcome Admin!" })
+
+      const storedUser = getCurrentUser()
+      const role = storedUser?.role?.toLowerCase() ?? ""
+
+      if (role === "admin" || role === "staff" || role === "owner") {
+        toast({ title: "Login Successful", description: "Redirecting to dashboard..." })
+        router.replace("/dashboard")
       } else {
         toast({ title: "Welcome back!", description: "Taking you to your portal..." })
+        router.replace("/portal")
       }
     } catch (error) {
       toast({ title: "Error", description: "Something went wrong", variant: "destructive" })
@@ -97,57 +106,59 @@ export function LoginDialog({ className, children }: LoginDialogProps) {
             </Button>
           )}
         </DialogTrigger>
-        <DialogContent className="sm:max-w-[400px] p-8">
-          <DialogHeader className="mb-4">
-            <DialogTitle className="text-2xl font-black text-slate-900">Welcome Back</DialogTitle>
-            <DialogDescription className="text-slate-500 font-medium">
-              Enter your credentials to access your account
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent className="sm:max-w-[440px]">
+          <div className="flex-1 overflow-y-auto min-h-0 px-7 pt-10 pb-8">
+            <DialogHeader className="mb-5 text-center sm:text-center">
+              <DialogTitle className="text-2xl font-black text-slate-900">Welcome Back</DialogTitle>
+              <DialogDescription className="text-slate-500 font-medium">
+                Enter your credentials to access your account
+              </DialogDescription>
+            </DialogHeader>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-2">
-              <Label htmlFor="login-email" className="text-xs font-bold text-slate-600 uppercase tracking-wider">Email Address</Label>
-              <Input id="login-email" type="email" placeholder="Enter your email" value={email} onChange={(e) => setEmail(e.target.value)} required className="h-11 rounded-md bg-slate-50 border-slate-200 focus-visible:ring-slate-900 px-4" />
-            </div>
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="login-email" className="text-xs font-bold text-slate-600 uppercase tracking-wider">Email Address</Label>
+                <Input id="login-email" type="email" placeholder="Enter your email" value={email} onChange={(e) => setEmail(e.target.value)} required className="h-11 rounded-md bg-slate-50 border-slate-200 focus-visible:ring-slate-900 px-4" />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="login-password" className="text-xs font-bold text-slate-600 uppercase tracking-wider">Password</Label>
-              <div className="relative">
-                <Input id="login-password" type={showPassword ? "text" : "password"} placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} required className="h-11 rounded-md bg-slate-50 border-slate-200 focus-visible:ring-slate-900 px-4 pr-10" />
-                <Button type="button" variant="ghost" size="sm" className="absolute right-0 top-0 h-full px-3 hover:bg-transparent text-slate-400 hover:text-slate-600" onClick={() => setShowPassword(!showPassword)}>
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              <div className="space-y-2">
+                <Label htmlFor="login-password" className="text-xs font-bold text-slate-600 uppercase tracking-wider">Password</Label>
+                <div className="relative">
+                  <Input id="login-password" type={showPassword ? "text" : "password"} placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} required className="h-11 rounded-md bg-slate-50 border-slate-200 focus-visible:ring-slate-900 px-4 pr-10" />
+                  <Button type="button" variant="ghost" size="sm" className="absolute right-0 top-0 h-full px-3 hover:bg-transparent text-slate-400 hover:text-slate-600" onClick={() => setShowPassword(!showPassword)}>
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
+                <div className="flex items-center space-x-2">
+                  <Checkbox id="remember" checked={rememberMe} onCheckedChange={(checked) => setRememberMe(checked as boolean)} className="rounded border-slate-300 data-[state=checked]:bg-slate-900 data-[state=checked]:text-white" />
+                  <Label htmlFor="remember" className="text-xs font-bold text-slate-600 cursor-pointer">Remember me</Label>
+                </div>
+
+                <Button type="button" variant="link" className="px-0 text-xs font-bold text-slate-600 hover:text-slate-900 h-auto" onClick={() => { setOpen(false); setShowForgotPassword(true); }}>
+                  Forgot password?
                 </Button>
               </div>
-            </div>
 
-            <div className="flex items-center justify-between pt-1">
-              <div className="flex items-center space-x-2">
-                <Checkbox id="remember" checked={rememberMe} onCheckedChange={(checked) => setRememberMe(checked as boolean)} className="rounded border-slate-300 data-[state=checked]:bg-slate-900 data-[state=checked]:text-white" />
-                <Label htmlFor="remember" className="text-xs font-bold text-slate-600 cursor-pointer">Remember me</Label>
+              <Button type="submit" className="w-full bg-slate-900 hover:bg-slate-800 text-white h-12 rounded-md font-bold mt-2" disabled={isLoading}>
+                {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Signing in...</> : "Sign In"}
+              </Button>
+
+              <div className="text-center text-sm text-slate-500 pt-2">
+                Don't have an account?{" "}
+                <button 
+                  type="button" 
+                  onClick={handleSwitchToSignup} 
+                  className="font-bold text-slate-900 hover:underline hover:text-slate-700 transition-colors"
+                >
+                  Sign up
+                </button>
               </div>
 
-              <Button type="button" variant="link" className="px-0 text-xs font-bold text-slate-600 hover:text-slate-900 h-auto" onClick={() => { setOpen(false); setShowForgotPassword(true); }}>
-                Forgot password?
-              </Button>
-            </div>
-
-            <Button type="submit" className="w-full bg-slate-900 hover:bg-slate-800 text-white h-12 rounded-md font-bold mt-2" disabled={isLoading}>
-              {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Signing in...</> : "Sign In"}
-            </Button>
-
-            <div className="text-center text-sm text-slate-500 pt-2">
-              Don't have an account?{" "}
-              <button 
-                type="button" 
-                onClick={handleSwitchToSignup} 
-                className="font-bold text-slate-900 hover:underline hover:text-slate-700 transition-colors"
-              >
-                Sign up
-              </button>
-            </div>
-
-          </form>
+            </form>
+          </div>
         </DialogContent>
       </Dialog>
 

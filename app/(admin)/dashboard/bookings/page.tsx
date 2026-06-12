@@ -197,6 +197,7 @@ export default function AdminBookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
+  const [venueFilter, setVenueFilter] = useState("all")
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
   const [showContractConfirm, setShowContractConfirm] = useState(false)
   const [sendReminderTarget, setSendReminderTarget] = useState<Booking | null>(null)
@@ -264,19 +265,42 @@ export default function AdminBookingsPage() {
     window.dispatchEvent(new Event("oneestela_bookings_updated"))
   }
 
+  const venueOptions = useMemo(() => {
+    const venues = new Set(bookings.map((b) => b.venue).filter(Boolean) as string[])
+    return ["all", ...Array.from(venues).sort()]
+  }, [bookings])
+
   const filteredBookings = useMemo(() => {
-    return bookings.filter((b) => {
-      if (statusFilter !== "all" && b.status !== statusFilter) return false
-      if (!searchQuery) return true
-      const q = searchQuery.toLowerCase()
-      return [b.id, b.eventName, b.venue, b.userInfo?.name, b.userInfo?.email]
-        .some((f) => f && String(f).toLowerCase().includes(q))
-    })
-  }, [bookings, statusFilter, searchQuery])
+    return bookings
+      .filter((b) => {
+        if (statusFilter !== "all") {
+          if (statusFilter === "confirmed") {
+            if (b.status !== "confirmed" && b.status !== "reservation_secured") return false
+          } else if (statusFilter === "requests") {
+            if (b.status !== "cancellation_requested" && b.status !== "modification_under_review") return false
+          } else {
+            if (b.status !== statusFilter) return false
+          }
+        }
+        if (venueFilter !== "all" && b.venue !== venueFilter) return false
+        if (!searchQuery) return true
+        const q = searchQuery.toLowerCase()
+        return [b.id, b.eventName, b.venue, b.userInfo?.name, b.userInfo?.email, b.userInfo?.phone, b.paymentMethod]
+          .some((f) => f && String(f).toLowerCase().includes(q))
+      })
+      .sort((a, b) => {
+        const aTime = new Date(a.createdAt).getTime()
+        const bTime = new Date(b.createdAt).getTime()
+        if (isNaN(aTime) && isNaN(bTime)) return 0
+        if (isNaN(aTime)) return 1
+        if (isNaN(bTime)) return -1
+        return bTime - aTime
+      })
+  }, [bookings, statusFilter, venueFilter, searchQuery])
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchQuery, statusFilter])
+  }, [searchQuery, statusFilter, venueFilter])
 
   const totalPages = Math.ceil(filteredBookings.length / ITEMS_PER_PAGE)
   const safePage = currentPage > totalPages ? Math.max(totalPages, 1) : currentPage
@@ -438,28 +462,14 @@ export default function AdminBookingsPage() {
     })
   }
 
-  const statusCounts = useMemo(() => {
-    return {
-      all: bookings.length,
-      pending: bookings.filter((b) => b.status === "pending").length,
-      verifying: bookings.filter((b) => b.status === "verifying").length,
-      confirmed: bookings.filter((b) => b.status === "confirmed").length,
-      completed: bookings.filter((b) => b.status === "completed").length,
-      cancelled: bookings.filter((b) => b.status === "cancelled").length,
-      cancellation_requested: bookings.filter((b) => b.status === "cancellation_requested").length,
-      modification_under_review: bookings.filter((b) => b.status === "modification_under_review").length,
-    }
-  }, [bookings])
-
-  const STATUS_FILTERS = [
+  const STATUS_OPTIONS = [
     { value: "all", label: "All" },
-    { value: "pending", label: "Pending" },
-    { value: "verifying", label: "Verifying" },
-    { value: "confirmed", label: "Confirmed" },
+    { value: "pending", label: "Pencil Booking" },
+    { value: "verifying", label: "For Verification" },
+    { value: "confirmed", label: "Confirmed / Secured" },
+    { value: "requests", label: "Requests" },
     { value: "completed", label: "Completed" },
     { value: "cancelled", label: "Cancelled" },
-    { value: "cancellation_requested", label: "Cancel Requested" },
-    { value: "modification_under_review", label: "Modification Requested" },
   ]
 
   return (
@@ -626,17 +636,31 @@ export default function AdminBookingsPage() {
             </div>
 
             <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <Select value={venueFilter} onValueChange={setVenueFilter}>
                 <SelectTrigger className="h-10 w-full rounded-xl border-slate-200 bg-white text-xs font-bold text-slate-700 focus:ring-orange-600 sm:w-[170px]">
                   <div className="flex items-center gap-2">
-                    <Filter className="h-3.5 w-3.5 text-slate-400" />
-                    <SelectValue placeholder="All Status" />
+                    <Filter className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                    <SelectValue placeholder="All Venues" />
                   </div>
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border-slate-200 shadow-xl">
-                  {STATUS_FILTERS.map((f) => (
-                    <SelectItem key={f.value} value={f.value} className="font-bold">
-                      {f.label} ({statusCounts[f.value as keyof typeof statusCounts]})
+                  <SelectItem value="all" className="font-bold">All Venues</SelectItem>
+                  {venueOptions.filter((v) => v !== "all").map((v) => (
+                    <SelectItem key={v} value={v}>{v}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="h-10 w-full rounded-xl border-slate-200 bg-white text-xs font-bold text-slate-700 focus:ring-orange-600 sm:w-[150px]">
+                  <div className="flex items-center gap-2">
+                    <SelectValue placeholder="All" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                  {STATUS_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value} className="font-bold">
+                      {o.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -648,8 +672,17 @@ export default function AdminBookingsPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search bookings..."
-                  className="h-10 rounded-xl border-slate-200 bg-white pl-9 text-xs focus-visible:ring-orange-600"
+                  className="h-10 rounded-xl border-slate-200 bg-white pl-9 pr-16 text-xs focus-visible:ring-orange-600"
                 />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => { setSearchQuery(""); setStatusFilter("all"); window.history.replaceState(null, "", window.location.pathname) }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-[10px] font-black uppercase tracking-widest text-slate-400 transition hover:bg-slate-100 hover:text-orange-600"
+                  >
+                    Clear
+                  </button>
+                )}
               </div>
             </div>
           </div>

@@ -84,12 +84,15 @@
   html {
     overflow-x: hidden;
     width: 100%;
+    margin: 0;
+    padding: 0;
   }
   body {
     @apply bg-background text-foreground;
     overflow-x: hidden;
     width: 100%;
-    min-width: 0;
+    margin: 0;
+    padding: 0;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }

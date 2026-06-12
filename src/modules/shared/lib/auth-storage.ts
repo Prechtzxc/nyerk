@@ -16,8 +16,6 @@ const AUTH_SESSION_KEYS = [
   "authUser",
   "user",
   "rememberedEmail",
-  "oneestela_chat_loaded",
-  "oneestela_booking_loaded",
 ]
 
 export const AUTH_STORAGE = {
@@ -26,6 +24,62 @@ export const AUTH_STORAGE = {
   profilePictureIndex: STORAGE_KEY_PROFILE_PICTURE_INDEX,
   authEvent: STORAGE_KEY_AUTH_EVENT,
   profileEvent: STORAGE_KEY_PROFILE_EVENT,
+}
+
+const DEFAULT_ACCOUNTS: StoredUser[] = [
+  {
+    id: "admin-default-001",
+    fullName: "Admin User",
+    name: "Admin User",
+    email: "admin@oneestela.com",
+    password: "admin123",
+    role: "admin",
+    profilePicture: "",
+    createdAt: new Date("2024-01-01").toISOString(),
+    status: "active",
+  },
+  {
+    id: "client-default-001",
+    fullName: "User Client",
+    name: "User Client",
+    email: "user@oneestela.com",
+    password: "user123",
+    role: "client",
+    profilePicture: "",
+    createdAt: new Date("2024-01-01").toISOString(),
+    status: "active",
+  },
+]
+
+export function seedDefaultAccounts(): StoredUser[] {
+  if (typeof window === "undefined") return []
+  const existing = readRegisteredUsers()
+  let changed = false
+
+  for (const account of DEFAULT_ACCOUNTS) {
+    const idx = existing.findIndex(
+      (u) => u.email.toLowerCase().trim() === account.email.toLowerCase()
+    )
+    if (idx === -1) {
+      existing.push(account)
+      changed = true
+    } else {
+      const current = existing[idx]
+      if (
+        current.password !== account.password ||
+        current.role !== account.role ||
+        current.status !== account.status
+      ) {
+        existing[idx] = { ...current, password: account.password, role: account.role, status: account.status }
+        changed = true
+      }
+    }
+  }
+
+  if (changed) {
+    writeRegisteredUsers(existing)
+  }
+  return existing
 }
 
 export function clearAuthSession() {

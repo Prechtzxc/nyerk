@@ -16,6 +16,7 @@ import { Label } from "@/src/modules/shared/components/ui/label"
 import { Textarea } from "@/src/modules/shared/components/ui/textarea"
 import { Checkbox } from "@/src/modules/shared/components/ui/checkbox"
 import { cn } from "@/src/modules/shared/lib/utils"
+import { getPolicyItems } from "@/src/modules/shared/lib/policies"
 
 declare global { interface Window { pannellum?: any; } }
 
@@ -299,7 +300,7 @@ function BookingConfirmationDialog({
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onEdit()}>
-      <DialogContent className="flex max-h-[calc(100vh-2rem)] max-h-[calc(100dvh-2rem)] w-[calc(100vw-1rem)] max-w-lg flex-col gap-0 overflow-hidden rounded-2xl border-slate-200 bg-white p-0 shadow-2xl [&>button]:hidden">
+      <DialogContent className="flex max-h-[calc(100vh-2rem)] max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-lg flex-col gap-0 overflow-hidden rounded-2xl border-slate-200 bg-white p-0 shadow-2xl [&>button]:hidden">
         <div className="shrink-0 border-b border-slate-100 px-5 py-4">
           <DialogTitle className="text-xl md:text-2xl font-black text-slate-950">
             Confirm Booking Details
@@ -1444,20 +1445,7 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
                   </h3>
 
                   <TermsList
-                    items={[
-                      "Reservation payments are strictly for securing office space slots only.",
-                      "Remaining balances, post-dated checks, and contract agreements shall be settled onsite.",
-                      "Office rentals require mandatory onsite contract signing before occupancy.",
-                      "One month advance payment and two months deposit are required upon contract signing.",
-                      "Payment for office rentals shall be settled through post-dated checks based on the agreed contract duration.",
-                      "Reservation approval is subject to successful payment verification and admin confirmation.",
-                      "Office tenants are responsible for maintaining cleanliness, order, and proper use of the rented office space.",
-                      "Any damages caused within the rented office space shall be shouldered by the tenant.",
-                      "Subleasing or unauthorized sharing of office spaces is strictly prohibited unless approved by management.",
-                      "Management reserves the right to terminate office rental agreements for policy violations, non-payment, or misconduct.",
-                      "Tenants must comply with all building rules, operational policies, and business regulations implemented by One Estela Place.",
-                      "By proceeding with the reservation, the customer agrees to follow all office rental policies, payment terms, and contract requirements established by One Estela Place.",
-                    ]}
+                    items={getPolicyItems("officeTerms")}
                   />
                 </div>
               ) : (
@@ -1467,20 +1455,7 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
                   </h3>
 
                   <TermsList
-                    items={[
-                      "Reservation slots are only secured upon successful payment verification and admin approval.",
-                      "Temporary reservations that remain unpaid within 24 hours may automatically expire.",
-                      "Event reservations are limited to the selected schedule only.",
-                      "Customers are responsible for arriving and vacating the venue within their reserved time period.",
-                      "Cancellation requests made 14 days before the event date may be eligible for a refund.",
-                      "Cancellations made within 7 days before the scheduled event date are non-refundable.",
-                      "Remaining balances must be fully settled at least 7 days before the event date.",
-                      "Refunds approved by the administrator may be claimed onsite after 7 days.",
-                      "Customers are responsible for any damages, loss, or misconduct that may occur during the event.",
-                      "The venue management reserves the right to decline or cancel reservations that violate venue policies and regulations.",
-                      "Outside illegal activities, hazardous materials, and prohibited substances are strictly not allowed inside the venue premises.",
-                      "By proceeding with the reservation, the customer agrees to follow all venue rules, regulations, and payment policies established by One Estela Place.",
-                    ]}
+                    items={getPolicyItems("venueTerms")}
                   />
                 </div>
               )}
@@ -1508,10 +1483,10 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
       
       <DialogContent className={cn(
         "!flex !flex-col !gap-0 !p-0 overflow-hidden bg-white rounded-none sm:rounded-[2rem] border-0 focus:outline-none [&>button]:hidden shadow-2xl transition-all duration-300 ease-in-out w-full h-[100vh] h-[100dvh] md:h-[calc(100vh-32px)] md:max-h-[760px]",
-        step === 'category' && "!max-w-[100vw] sm:!max-w-[800px]",
-        (step === 'list' || step === 'room') && "!max-w-[100vw] sm:!max-w-[95vw] lg:!max-w-[960px]",
-        step === 'schedule' && "!max-w-[100vw] sm:!max-w-[95vw] lg:!max-w-[1100px]",
-        step === 'details' && "!max-w-[100vw] sm:!max-w-[660px]",
+        step === 'category' && "!max-w-full sm:!max-w-[800px]",
+        (step === 'list' || step === 'room') && "!max-w-full sm:!max-w-[95vw] lg:!max-w-[960px]",
+        step === 'schedule' && "!max-w-full sm:!max-w-[95vw] lg:!max-w-[1100px]",
+        step === 'details' && "!max-w-full sm:!max-w-[660px]",
       )}>
         
         <DialogTitle className="hidden">Reservation Modal</DialogTitle>

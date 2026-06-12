@@ -10,6 +10,7 @@ import { Checkbox } from "@/src/modules/shared/components/ui/checkbox"
 import { Label } from "@/src/modules/shared/components/ui/label"
 import { Clock, ChevronLeft, ChevronRight, ArrowRight, Loader2, Calendar as CalendarIcon, PartyPopper, CheckCircle2 } from "lucide-react"
 
+import { VENUE_RESERVATION_TERMS } from "@/src/modules/shared/lib/policies"
 import { useBookings } from "@/src/modules/client/contexts/booking-context"
 import { useAuth } from "@/src/modules/shared/auth/auth-context"
 import { useToast } from "@/src/modules/shared/hooks/use-toast"
@@ -573,21 +574,12 @@ export function ReserveDialog({ open, onOpenChange, selectedVenueId, onBackToVen
                                   <DialogTitle className="text-2xl font-black">Venue Booking Terms and Conditions</DialogTitle>
                                 </DialogHeader>
                                 <div className="flex-1 overflow-y-auto p-6 bg-slate-50 rounded-2xl text-sm text-slate-700 border border-slate-100 mt-2">
-                                  <p className="mb-4 text-base"><strong>1. Reservation and Payment Policy</strong></p>
-                                  <p className="mb-6 leading-relaxed">
-                                    A partial downpayment must be made within <strong>24 hours (1 day)</strong> of the initial booking request. 
-                                    Failure to provide proof of payment within this timeframe will result in the automatic cancellation of the requested date. 
-                                    The remaining balance must be settled completely within <strong>one (1) week</strong> of the initial downpayment.
-                                  </p>
-                                  <p className="mb-4 text-base"><strong>2. Physical Contract Signing</strong></p>
-                                  <p className="mb-6 leading-relaxed">
-                                    Once the initial payment is confirmed, the customer is required to visit the venue for the physical signing of the contract. 
-                                    The booking status will reflect <em>"Approved but awaiting physical signing"</em> until this is completed.
-                                  </p>
-                                  <p className="mb-4 text-base"><strong>3. Acknowledgment</strong></p>
-                                  <p className="leading-relaxed">
-                                    By checking the agreement box and submitting this form, you acknowledge that you have read and understood these terms, providing consent to avoid misunderstandings and protect both parties.
-                                  </p>
+                                  {VENUE_RESERVATION_TERMS.map((term, i) => (
+                                    <p key={i} className="mb-4 last:mb-0 leading-relaxed">
+                                      <strong>{i + 1}. </strong>
+                                      {term}
+                                    </p>
+                                  ))}
                                 </div>
                               </DialogContent>
                             </Dialog>

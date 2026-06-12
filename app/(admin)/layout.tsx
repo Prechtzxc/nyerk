@@ -72,8 +72,14 @@ export default function AdminLayout({
   }, [messages, chatUnread])
 
   useEffect(() => {
-    if (!isLoading && (!user || user.role !== "admin")) {
-      router.push("/")
+    if (isLoading) return
+    if (!user) {
+      router.replace("/")
+      return
+    }
+    const role = user.role?.toLowerCase() ?? ""
+    if (role !== "admin" && role !== "staff" && role !== "owner") {
+      router.replace("/")
     }
   }, [user, isLoading, router])
 

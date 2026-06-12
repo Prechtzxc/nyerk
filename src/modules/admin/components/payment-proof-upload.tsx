@@ -16,6 +16,15 @@ import { useBookings } from "@/src/modules/client/contexts/booking-context"
 import { Upload, FileImage, X, CheckCircle, AlertCircle, Clock } from "lucide-react"
 import { cn } from "@/src/modules/shared/lib/utils"
 
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("Failed to read file."));
+    reader.readAsDataURL(file);
+  });
+}
+
 interface PaymentProofUploadProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -25,7 +34,7 @@ interface PaymentProofUploadProps {
 export function PaymentProofUpload({ open, onOpenChange, bookingId }: PaymentProofUploadProps) {
   const { toast } = useToast()
   const { uploadPaymentProof, getPaymentProofByBooking } = usePaymentProof()
-  const { getBookingById } = useBookings()
+  const { getBookingById, submitPayment, modifyBooking } = useBookings()
   const [isUploading, setIsUploading] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [dragActive, setDragActive] = useState(false)
@@ -116,7 +125,20 @@ export function PaymentProofUpload({ open, onOpenChange, bookingId }: PaymentPro
     setIsUploading(true)
 
     try {
-      await uploadPaymentProof(bookingId, selectedFile, paymentDetails)
+      // 1. FIRST: Update BookingContext / oneestela_global_bookings_v2 (single source of truth)
+      const method = paymentDetails.paymentMethod === "cash" ? "cash" : "bank";
+      const proofDataUrl = method === "bank" && selectedFile ? await fileToDataUrl(selectedFile) : undefined;
+
+      submitPayment(bookingId, {
+        type: "full",
+        method,
+        proof: proofDataUrl,
+        bankReferenceNumber: paymentDetails.paymentReference || undefined,
+        amount: Number(paymentDetails.paymentAmount) || undefined,
+      });
+
+      // 2. THEN: Also append to PaymentProofContext proof log
+      uploadPaymentProof(bookingId, selectedFile, paymentDetails)
 
       toast({
         title: "Payment proof uploaded successfully",

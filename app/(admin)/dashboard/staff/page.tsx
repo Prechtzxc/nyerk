@@ -23,11 +23,7 @@ import {
 } from "@shared/components/ui/select"
 import { useToast } from "@shared/hooks/use-toast"
 import {
-  Briefcase,
-  Calendar,
   Edit2,
-  Mail,
-  Phone,
   Plus,
   Power,
   RotateCcw,
@@ -42,9 +38,7 @@ type StaffFormData = {
   firstName: string
   lastName: string
   email: string
-  phone: string
   position: string
-  hireDate: string
   status: StaffStatus
 }
 
@@ -52,9 +46,7 @@ const DEFAULT_FORM: StaffFormData = {
   firstName: "",
   lastName: "",
   email: "",
-  phone: "",
   position: "",
-  hireDate: "",
   status: "Active",
 }
 
@@ -80,19 +72,6 @@ function getInitials(firstName?: string, lastName?: string) {
   const first = firstName?.charAt(0) || ""
   const last = lastName?.charAt(0) || ""
   return `${first}${last}`.toUpperCase() || "ST"
-}
-
-function formatDate(date: string) {
-  if (!date) return "No date"
-
-  const parsed = new Date(`${date}T00:00:00`)
-  if (Number.isNaN(parsed.getTime())) return date
-
-  return new Intl.DateTimeFormat("en-PH", {
-    month: "short",
-    day: "2-digit",
-    year: "numeric",
-  }).format(parsed)
 }
 
 function getStatusBadgeClass(status: string) {
@@ -127,10 +106,8 @@ export default function StaffManagementPage() {
           staffMember.firstName,
           staffMember.lastName,
           staffMember.email,
-          staffMember.phone,
           staffMember.position,
           staffMember.status,
-          staffMember.hireDate,
         ]
           .join(" ")
           .toLowerCase()
@@ -175,14 +152,12 @@ export default function StaffManagementPage() {
     const firstName = cleanText(formData.firstName)
     const lastName = cleanText(formData.lastName)
     const email = normalizeEmail(formData.email)
-    const phone = cleanText(formData.phone)
     const position = cleanText(formData.position)
-    const hireDate = formData.hireDate
 
-    if (!firstName || !lastName || !email || !position || !hireDate) {
+    if (!firstName || !lastName || !email || !position) {
       toast({
         title: "Missing required fields",
-        description: "Please complete first name, last name, email, position, and hire date.",
+        description: "Please complete first name, last name, email, and position.",
         variant: "destructive",
       })
       return null
@@ -192,28 +167,6 @@ export default function StaffManagementPage() {
       toast({
         title: "Invalid email address",
         description: "Please enter a valid staff email address.",
-        variant: "destructive",
-      })
-      return null
-    }
-
-    const selectedDate = new Date(`${hireDate}T00:00:00`)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-
-    if (Number.isNaN(selectedDate.getTime())) {
-      toast({
-        title: "Invalid hire date",
-        description: "Please select a valid hire date.",
-        variant: "destructive",
-      })
-      return null
-    }
-
-    if (selectedDate > today) {
-      toast({
-        title: "Invalid hire date",
-        description: "Hire date cannot be later than today.",
         variant: "destructive",
       })
       return null
@@ -238,9 +191,7 @@ export default function StaffManagementPage() {
       firstName,
       lastName,
       email,
-      phone,
       position,
-      hireDate,
     }
   }
 
@@ -285,9 +236,7 @@ export default function StaffManagementPage() {
       firstName: staffMember.firstName || "",
       lastName: staffMember.lastName || "",
       email: staffMember.email || "",
-      phone: staffMember.phone || "",
       position: staffMember.position || "",
-      hireDate: staffMember.hireDate || "",
       status: normalizeStaffStatus(staffMember.status),
     })
     setIsEditDialogOpen(true)
@@ -321,12 +270,12 @@ export default function StaffManagementPage() {
     const prefix = mode === "add" ? "add" : "edit"
 
     return (
-      <div className="space-y-4">
+      <div className="space-y-5">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="grid gap-2">
             <Label
               htmlFor={`${prefix}-firstName`}
-              className="text-xs font-black uppercase tracking-[0.14em] text-slate-500"
+              className="text-xs font-semibold text-slate-600"
             >
               First Name *
             </Label>
@@ -335,14 +284,14 @@ export default function StaffManagementPage() {
               placeholder="First name"
               value={formData.firstName}
               onChange={(event) => updateForm("firstName", event.target.value)}
-              className="h-11 rounded-xl font-semibold"
+              className="h-11 rounded-xl"
             />
           </div>
 
           <div className="grid gap-2">
             <Label
               htmlFor={`${prefix}-lastName`}
-              className="text-xs font-black uppercase tracking-[0.14em] text-slate-500"
+              className="text-xs font-semibold text-slate-600"
             >
               Last Name *
             </Label>
@@ -351,7 +300,7 @@ export default function StaffManagementPage() {
               placeholder="Last name"
               value={formData.lastName}
               onChange={(event) => updateForm("lastName", event.target.value)}
-              className="h-11 rounded-xl font-semibold"
+              className="h-11 rounded-xl"
             />
           </div>
         </div>
@@ -359,7 +308,7 @@ export default function StaffManagementPage() {
         <div className="grid gap-2">
           <Label
             htmlFor={`${prefix}-email`}
-            className="text-xs font-black uppercase tracking-[0.14em] text-slate-500"
+            className="text-xs font-semibold text-slate-600"
           >
             Email *
           </Label>
@@ -369,30 +318,14 @@ export default function StaffManagementPage() {
             placeholder="staff@example.com"
             value={formData.email}
             onChange={(event) => updateForm("email", event.target.value)}
-            className="h-11 rounded-xl font-semibold"
-          />
-        </div>
-
-        <div className="grid gap-2">
-          <Label
-            htmlFor={`${prefix}-phone`}
-            className="text-xs font-black uppercase tracking-[0.14em] text-slate-500"
-          >
-            Phone
-          </Label>
-          <Input
-            id={`${prefix}-phone`}
-            placeholder="09XXXXXXXXX"
-            value={formData.phone}
-            onChange={(event) => updateForm("phone", event.target.value)}
-            className="h-11 rounded-xl font-semibold"
+            className="h-11 rounded-xl"
           />
         </div>
 
         <div className="grid gap-2">
           <Label
             htmlFor={`${prefix}-position`}
-            className="text-xs font-black uppercase tracking-[0.14em] text-slate-500"
+            className="text-xs font-semibold text-slate-600"
           >
             Position *
           </Label>
@@ -401,29 +334,13 @@ export default function StaffManagementPage() {
             placeholder="e.g., Event Coordinator"
             value={formData.position}
             onChange={(event) => updateForm("position", event.target.value)}
-            className="h-11 rounded-xl font-semibold"
+            className="h-11 rounded-xl"
           />
         </div>
 
-        <div className="grid gap-2">
-          <Label
-            htmlFor={`${prefix}-hireDate`}
-            className="text-xs font-black uppercase tracking-[0.14em] text-slate-500"
-          >
-            Hire Date *
-          </Label>
-          <Input
-            id={`${prefix}-hireDate`}
-            type="date"
-            value={formData.hireDate}
-            onChange={(event) => updateForm("hireDate", event.target.value)}
-            className="h-11 rounded-xl font-semibold"
-          />
-        </div>
-
-        <div className="rounded-2xl border border-orange-200 bg-orange-50 p-4">
-          <p className="flex items-start gap-2 text-sm font-semibold text-orange-800">
-            <ShieldCheck className="mt-0.5 h-4 w-4 flex-shrink-0" />
+        <div className="rounded-xl border border-amber-200/60 bg-amber-50/70 px-4 py-3.5">
+          <p className="flex items-start gap-2 text-xs font-semibold text-amber-800">
+            <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             <span>
               Role is automatically set to <b>Staff</b> and cannot be changed from this page.
             </span>
@@ -464,29 +381,31 @@ export default function StaffManagementPage() {
             </Button>
           </DialogTrigger>
 
-          <DialogContent className="max-h-[90vh] overflow-y-auto rounded-[1.5rem] sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle className="text-2xl font-black text-slate-950">
+          <DialogContent className="sm:max-w-[480px]">
+            <DialogHeader className="shrink-0 px-6 pt-6 pb-0">
+              <DialogTitle className="text-xl font-black text-slate-950">
                 Add New Staff
               </DialogTitle>
-              <DialogDescription className="font-medium text-slate-500">
+              <DialogDescription className="text-sm font-medium text-slate-500">
                 Create a staff account. Required fields are marked with an asterisk.
               </DialogDescription>
             </DialogHeader>
 
-            {renderStaffForm("add")}
+            <div className="flex-1 overflow-y-auto min-h-0 px-6 py-5">
+              {renderStaffForm("add")}
+            </div>
 
-            <DialogFooter className="gap-2">
+            <DialogFooter className="shrink-0 px-6 pb-6 pt-2 gap-2">
               <Button
                 variant="outline"
                 onClick={() => setIsAddDialogOpen(false)}
-                className="rounded-full font-bold"
+                className="rounded-xl font-bold"
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleAddStaff}
-                className="rounded-full bg-orange-600 px-5 font-black text-white hover:bg-orange-700"
+                className="rounded-xl bg-orange-600 px-5 font-bold text-white hover:bg-orange-700"
               >
                 Add Staff
               </Button>
@@ -566,19 +485,13 @@ export default function StaffManagementPage() {
                     </div>
                   </div>
 
-                  <div className="grid min-w-0 flex-1 grid-cols-2 gap-x-2 gap-y-1.5 sm:grid-cols-3 sm:gap-x-3">
-                    <div className="min-w-0 max-w-full">
-                      <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">Email</p>
-                      <p className="whitespace-normal break-words text-xs font-black text-slate-800">{staffMember.email}</p>
-                    </div>
-                    <div className="min-w-0 max-w-full">
-                      <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">Phone</p>
-                      <p className="whitespace-normal break-words text-xs font-bold text-slate-800">{staffMember.phone || "—"}</p>
-                    </div>
-                    <div className="min-w-0 max-w-full">
-                      <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">Hire Date</p>
-                      <p className="whitespace-normal break-words text-xs font-bold text-slate-800">{formatDate(staffMember.hireDate || "")}</p>
-                    </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+                      Email
+                    </p>
+                    <p className="break-words whitespace-normal text-xs font-black text-slate-800">
+                      {staffMember.email}
+                    </p>
                   </div>
 
                   <div className="flex shrink-0 items-center justify-between gap-2 sm:flex-col sm:items-end sm:gap-1">
@@ -670,27 +583,29 @@ export default function StaffManagementPage() {
           if (!open) resetForm()
         }}
       >
-        <DialogContent className="max-h-[90vh] overflow-y-auto rounded-[1.5rem] sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-black text-slate-950">Edit Staff</DialogTitle>
-            <DialogDescription className="font-medium text-slate-500">
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader className="shrink-0 px-6 pt-6 pb-0">
+            <DialogTitle className="text-xl font-black text-slate-950">Edit Staff</DialogTitle>
+            <DialogDescription className="text-sm font-medium text-slate-500">
               Update staff information. Staff role remains permanent.
             </DialogDescription>
           </DialogHeader>
 
-          {renderStaffForm("edit")}
+          <div className="flex-1 overflow-y-auto min-h-0 px-6 py-5">
+            {renderStaffForm("edit")}
+          </div>
 
-          <DialogFooter className="gap-2">
+          <DialogFooter className="shrink-0 px-6 pb-6 pt-2 gap-2">
             <Button
               variant="outline"
               onClick={() => setIsEditDialogOpen(false)}
-              className="rounded-full font-bold"
+              className="rounded-xl font-bold"
             >
               Cancel
             </Button>
             <Button
               onClick={handleEditStaff}
-              className="rounded-full bg-orange-600 px-5 font-black text-white hover:bg-orange-700"
+              className="rounded-xl bg-orange-600 px-5 font-bold text-white hover:bg-orange-700"
             >
               Save Changes
             </Button>

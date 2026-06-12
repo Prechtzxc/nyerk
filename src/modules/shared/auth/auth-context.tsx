@@ -15,6 +15,8 @@ import {
   findRegisteredUserByEmail,
   getCurrentUser,
   readProfilePictureIndex,
+  readRegisteredUsers,
+  seedDefaultAccounts,
   setCurrentUser,
   setProfilePictureIndex,
   upsertRegisteredUser,
@@ -59,13 +61,6 @@ export interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
-const DEMO_USERS: Record<string, string> = {
-  "rafkarloy52@gmail.com": "Raffy",
-  "charmee@gmail.com": "Charmee",
-  "christian@gmail.com": "Christian",
-  "johndoe@gmail.com": "John Doe",
-}
-
 function makeId(email: string): string {
   return email.toLowerCase().trim()
 }
@@ -89,7 +84,7 @@ function toAppUser(stored: StoredUser): AppUser {
   }
 }
 
-function persistUser(user: AppUser) {
+function persistUser(user: AppUser, password?: string) {
   const stored: StoredUser = {
     id: user.id,
     fullName: user.fullName,
@@ -100,6 +95,7 @@ function persistUser(user: AppUser) {
     createdAt: user.createdAt,
     status: user.status,
     phone: user.phone,
+    password,
   }
   upsertRegisteredUser(stored)
   setCurrentUser(stored)
@@ -115,6 +111,7 @@ function applyProfilePicture(user: AppUser, dataUrl: string | null): AppUser {
   }
   setProfilePictureIndex(map)
   const updated: AppUser = { ...user, profilePicture: dataUrl || "" }
+  const existing = readRegisteredUsers().find((u) => u.id === user.id)
   const stored: StoredUser = {
     id: updated.id,
     fullName: updated.fullName,
@@ -125,6 +122,7 @@ function applyProfilePicture(user: AppUser, dataUrl: string | null): AppUser {
     createdAt: updated.createdAt,
     status: updated.status,
     phone: updated.phone,
+    password: existing?.password,
   }
   upsertRegisteredUser(stored)
   setCurrentUser(stored)
@@ -147,7 +145,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    setUser(resolveInitialUser())
+    seedDefaultAccounts()
+    const initialUser = resolveInitialUser()
+    setUser(initialUser)
     setIsLoading(false)
 
     const handleUpdate = () => {
@@ -167,52 +167,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const login = useCallback(
-    async (email: string, _password?: string) => {
+    async (email: string, password?: string) => {
       const cleanEmail = email.toLowerCase().trim()
       if (!cleanEmail) {
         return { success: false, message: "Please enter your email." }
       }
 
+      seedDefaultAccounts()
+
       const registered = findRegisteredUserByEmail(cleanEmail)
-      let nextUser: AppUser | null = null
-
-      if (registered) {
-        nextUser = toAppUser(registered)
-        const map = readProfilePictureIndex()
-        if (!nextUser.profilePicture && map[registered.id]) {
-          nextUser = { ...nextUser, profilePicture: map[registered.id] }
-        }
-      } else if (cleanEmail.includes("admin")) {
-        nextUser = {
-          id: `admin-${makeId(cleanEmail)}`,
-          fullName: "Admin User",
-          name: "Admin User",
-          email: cleanEmail,
-          role: "admin",
-          profilePicture: "",
-          createdAt: new Date().toISOString(),
-          status: "active",
-        }
-      } else {
-        const matchedName = DEMO_USERS[cleanEmail] || cleanEmail.split("@")[0]
-        nextUser = {
-          id: makeId(cleanEmail),
-          fullName: matchedName,
-          name: matchedName,
-          email: cleanEmail,
-          role: "client",
-          profilePicture: "",
-          createdAt: new Date().toISOString(),
-          status: "active",
-        }
+      if (!registered) {
+        return { success: false, message: "Invalid email or password." }
       }
 
-      if (!nextUser) {
-        return { success: false, message: "Invalid credentials." }
+      if (!password || registered.password !== password) {
+        return { success: false, message: "Invalid email or password." }
       }
 
+      if (registered.status && registered.status.toLowerCase() === "inactive") {
+        return { success: false, message: "This account is inactive. Please contact the administrator." }
+      }
+
+      let nextUser = toAppUser(registered)
+      const map = readProfilePictureIndex()
+      if (!nextUser.profilePicture && map[registered.id]) {
+        nextUser = { ...nextUser, profilePicture: map[registered.id] }
+      }
+
+      const { password: _pw, ...sessionUser } = registered
       setUser(nextUser)
-      persistUser(nextUser)
+      setCurrentUser(sessionUser as StoredUser)
       return { success: true }
     },
     []
@@ -247,7 +231,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         phone: input.phone,
       }
 
-      persistUser(nextUser)
+      persistUser(nextUser, input.password)
       if (input.profilePicture) {
         const map = readProfilePictureIndex()
         map[nextUser.id] = input.profilePicture

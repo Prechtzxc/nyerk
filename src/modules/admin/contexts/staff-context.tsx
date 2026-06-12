@@ -8,7 +8,6 @@ export type StaffAccount = {
   email: string;
   phone?: string;
   position: string;
-  hireDate?: string;
   role: "admin" | "staff" | "manager";
   status: "active" | "inactive";
   lastActive: string;
@@ -61,7 +60,6 @@ export const StaffProvider = ({ children }: { children: React.ReactNode }) => {
       email: data.email,
       phone: data.phone,
       position: data.position,
-      hireDate: data.hireDate,
       role: "staff",
       status: data.status,
       lastActive: "Just now",

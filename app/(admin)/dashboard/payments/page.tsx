@@ -34,8 +34,10 @@ import {
   SelectValue,
 } from "@/src/modules/shared/components/ui/select"
 import { useToast } from "@/src/modules/shared/hooks/use-toast"
+import { useBookings } from "@/src/modules/client/contexts/booking-context"
 
 const BOOKING_STORAGE_KEY = "oneestela_global_bookings_v2"
+const PAYMENT_PROOF_STORAGE_KEY = "oneestela_payment_proofs_v1"
 const E_RECEIPT_STORAGE_KEY = "oneestela_e_receipts_v1"
 
 const VENUE_OPTIONS = [
@@ -59,6 +61,7 @@ type PendingPaymentAction = {
 
 export default function AdminPaymentsPage() {
   const { toast } = useToast()
+  const bookingCtx = useBookings()
   const [bookings, setBookings] = useState<BookingRecord[]>([])
   const [statusFilter, setStatusFilter] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
@@ -87,7 +90,50 @@ export default function AdminPaymentsPage() {
 
   useEffect(() => {
     const loadBookings = () => {
-      setBookings(readStoredBookings())
+      const storedBookings = readStoredBookings()
+
+      // Reconciliation: check payment_proofs_v1 for proofs that don't have matching booking updates
+      try {
+        const proofsRaw = localStorage.getItem(PAYMENT_PROOF_STORAGE_KEY)
+        if (proofsRaw) {
+          const proofs = JSON.parse(proofsRaw)
+          if (Array.isArray(proofs) && proofs.length > 0) {
+            let needsUpdate = false
+            const reconciledBookings = storedBookings.map((booking: BookingRecord) => {
+              const matchingProof = proofs.find((p: any) => p.bookingId === booking.id && p.status === "pending")
+              if (!matchingProof) return booking
+
+              const ps = String(booking.paymentStatus || "").toLowerCase()
+              if (ps === "for_review" || ps === "pending_verification" || booking.hasActivePaymentSubmission) return booking
+
+              needsUpdate = true
+              return {
+                ...booking,
+                paymentStatus: "for_review",
+                hasActivePaymentSubmission: true,
+                paymentSubmittedAt: booking.paymentSubmittedAt || matchingProof.submittedAt,
+                paymentProof: booking.paymentProof || matchingProof.proofImageUrl,
+                proofOfPayment: booking.proofOfPayment || matchingProof.proofImageUrl,
+                paymentReference: booking.paymentReference || matchingProof.paymentReference || matchingProof.referenceNumber,
+                paymentMethod: booking.paymentMethod || matchingProof.paymentMethod,
+                paymentAmount: booking.paymentAmount || matchingProof.amount,
+                pendingPaymentAmount: booking.pendingPaymentAmount || matchingProof.amount,
+                paymentSubmissionType: "bank_transfer",
+              }
+            })
+
+            if (needsUpdate) {
+              localStorage.setItem(BOOKING_STORAGE_KEY, JSON.stringify(reconciledBookings))
+              setBookings(reconciledBookings)
+              return
+            }
+          }
+        }
+      } catch {
+        // ignore reconciliation errors
+      }
+
+      setBookings(storedBookings)
     }
 
     loadBookings()
@@ -106,11 +152,15 @@ export default function AdminPaymentsPage() {
   const paymentBookings = useMemo(() => {
     return bookings
       .filter((booking) => isPaymentRecord(booking))
-      .sort(
-        (a, b) =>
-          new Date(b?.updatedAt || b?.createdAt || 0).getTime() -
-          new Date(a?.updatedAt || a?.createdAt || 0).getTime()
-      )
+      .sort((a, b) => {
+        const getSortTime = (record: BookingRecord) => {
+          const t = record?.paymentSubmittedAt || record?.updatedAt || record?.createdAt || record?.bookingDate
+          if (!t) return 0
+          const d = new Date(t).getTime()
+          return isNaN(d) ? 0 : d
+        }
+        return getSortTime(b) - getSortTime(a)
+      })
   }, [bookings])
 
   const filteredPayments = useMemo(() => {
@@ -210,22 +260,19 @@ export default function AdminPaymentsPage() {
     }
 
     try {
-      const baseBookings = readStoredBookings()
-      const sourceBookings = baseBookings.length > 0 ? baseBookings : bookings
+      // Use BookingContext as single source of truth for payment actions
+      if (type === "verify") {
+        bookingCtx.verifyPayment(bookingId, { adminNote: note || undefined, adminName: "Administrator" })
+      } else if (type === "reject") {
+        bookingCtx.rejectPayment(bookingId, note, "Administrator")
+      } else if (type === "incomplete") {
+        bookingCtx.markIncompletePayment(bookingId, { verifiedAmount: 0, adminNote: note, adminName: "Administrator" })
+      }
 
-      const nextBookings = sourceBookings.map((booking) => {
-        if (booking.id !== bookingId) return booking
-
-        if (type === "verify") return buildVerifiedPaymentBooking(booking)
-        if (type === "reject") return buildRejectedPaymentBooking(booking, note)
-        if (type === "incomplete") return buildIncompletePaymentBooking(booking, note)
-
-        return booking
-      })
-
-      persistBookings(nextBookings)
-
-      const updatedBooking = nextBookings.find((booking) => booking.id === bookingId)
+      // Refresh from storage after context update
+      const refreshed = readStoredBookings()
+      setBookings(refreshed)
+      const updatedBooking = refreshed.find((b: BookingRecord) => b.id === bookingId)
       setSelectedPayment(updatedBooking || null)
 
       if (type === "verify" && updatedBooking) {
@@ -268,13 +315,15 @@ export default function AdminPaymentsPage() {
           booking={onsiteVerifyTarget}
           onClose={() => setOnsiteVerifyTarget(null)}
           onConfirm={(updatedBooking) => {
-            const baseBookings = readStoredBookings()
-            const sourceBookings = baseBookings.length > 0 ? baseBookings : bookings
-            const nextBookings = sourceBookings.map((b) =>
-              b.id === updatedBooking.id ? updatedBooking : b
-            )
-            persistBookings(nextBookings)
-            const updated = nextBookings.find((b) => b.id === updatedBooking.id)
+            // Use BookingContext verifyPayment as single source of truth
+            bookingCtx.verifyPayment(updatedBooking.id, {
+              verifiedAmount: updatedBooking.lastPaymentAmount || updatedBooking.paymentVerifiedAmount,
+              adminNote: updatedBooking.adminLogs?.[updatedBooking.adminLogs.length - 1]?.message || undefined,
+              adminName: "Administrator",
+            })
+            const refreshed = readStoredBookings()
+            setBookings(refreshed)
+            const updated = refreshed.find((b: BookingRecord) => b.id === updatedBooking.id)
             if (updated) {
               setSelectedPayment(updated)
               ensureReceiptForVerifiedBooking(updated)
@@ -291,13 +340,15 @@ export default function AdminPaymentsPage() {
           booking={incompletePaymentTarget}
           onClose={() => setIncompletePaymentTarget(null)}
           onConfirm={(updatedBooking) => {
-            const baseBookings = readStoredBookings()
-            const sourceBookings = baseBookings.length > 0 ? baseBookings : bookings
-            const nextBookings = sourceBookings.map((b) =>
-              b.id === updatedBooking.id ? updatedBooking : b
-            )
-            persistBookings(nextBookings)
-            const updated = nextBookings.find((b) => b.id === updatedBooking.id)
+            // Use BookingContext markIncompletePayment as single source of truth
+            bookingCtx.markIncompletePayment(updatedBooking.id, {
+              verifiedAmount: updatedBooking.lastPaymentAmount || updatedBooking.paymentVerifiedAmount || 0,
+              adminNote: updatedBooking.incompletePaymentNote || updatedBooking.incompletePaymentReason || "",
+              adminName: "Administrator",
+            })
+            const refreshed = readStoredBookings()
+            setBookings(refreshed)
+            const updated = refreshed.find((b: BookingRecord) => b.id === updatedBooking.id)
             if (updated) {
               setSelectedPayment(updated)
               ensureReceiptForVerifiedBooking(updated)
@@ -360,8 +411,10 @@ export default function AdminPaymentsPage() {
                     All
                   </SelectItem>
                   <SelectItem value="for_review">For Review</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
+                  <SelectItem value="verified">Verified</SelectItem>
                   <SelectItem value="incomplete">Incomplete</SelectItem>
+                  <SelectItem value="partial">Partial</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -1132,19 +1185,34 @@ function isPaymentRecord(booking: BookingRecord) {
     normalizedStatus === "incomplete" ||
     Boolean(booking?.paymentSubmittedAt)
 
-  return hasActivePaymentSubmission || hasPaymentProof
+  const hasOnsiteSubmission =
+    booking?.paymentSubmissionType === "onsite" &&
+    booking?.hasActivePaymentSubmission === true
+
+  const hasPaymentAmount =
+    Number(booking?.paymentAmount || 0) > 0 ||
+    Number(booking?.pendingPaymentAmount || 0) > 0
+
+  return hasActivePaymentSubmission || hasPaymentProof || hasOnsiteSubmission || hasPaymentAmount
 }
 
 function isForReviewPayment(booking: BookingRecord) {
   const paymentStatus = String(booking?.paymentStatus || "").toLowerCase()
 
-  return (
+  const isPending = (
     paymentStatus === "for_review" ||
     paymentStatus === "pending_verification" ||
     paymentStatus === "for verification" ||
     paymentStatus === "pending verification" ||
     paymentStatus === "incomplete"
   )
+
+  const hasActiveOnsite = (
+    booking?.paymentSubmissionType === "onsite" &&
+    booking?.hasActivePaymentSubmission === true
+  )
+
+  return isPending || hasActiveOnsite
 }
 
 function isVerifiedPayment(booking: BookingRecord) {
