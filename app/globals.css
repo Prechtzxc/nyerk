@@ -52,7 +52,7 @@
   --accent: 0 0% 14.9%;
   --accent-foreground: 0 0% 98%;
   --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 0 85.7% 97.3%;
+  --destructive-foreground: 0 0% 100%;
   --border: 0 0% 14.9%;
   --input: 0 0% 14.9%;
   --ring: 0 0% 83.1%;
@@ -73,15 +73,16 @@
 
 @tailwind base;
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
   *,
   *::before,
   *::after {
     box-sizing: border-box;
   }
+  * {
+    @apply border-border;
+  }
   html {
+    scrollbar-gutter: stable;
     overflow-x: hidden;
     width: 100%;
     margin: 0;
@@ -91,10 +92,19 @@
     @apply bg-background text-foreground;
     overflow-x: hidden;
     width: 100%;
+    max-width: 100%;
     margin: 0;
     padding: 0;
+    min-height: 100dvh;
+    text-rendering: geometricPrecision;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
   }
   img,
   video,
@@ -102,24 +112,16 @@
     max-width: 100%;
     height: auto;
   }
+  :focus-visible {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+  }
 }
 
 @tailwind components;
 @tailwind utilities;
 
-/* ── BROWSER COMPATIBILITY FALLBACKS ── */
-
-/* dvh fallback: browsers that don't support dvh use vh instead */
-[style*="dvh"] {
-  /* this is overridden by the @supports block below */
-}
-@supports (height: 100dvh) {
-  [style*="dvh"] {
-    /* browser supports dvh natively, no override needed */
-  }
-}
-
-/* dvh/svh utility fallbacks for Tailwind arbitrary values */
+/* dvh fallback */
 @supports not (height: 100dvh) {
   .h-dvh-fallback {
     height: 100vh;
@@ -132,18 +134,19 @@
   }
 }
 
-/* Sticky positioning fix for Safari (needs explicit z-index + position context) */
+/* Safari sticky */
 .safari-sticky {
   position: -webkit-sticky;
+  position: sticky;
 }
 
-/* Scroll container fix for Safari iOS */
+/* Safari iOS scroll */
 .safari-scroll {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
 }
 
-/* Button appearance consistency across browsers */
+/* Button appearance across browsers */
 input[type="button"],
 input[type="submit"],
 input[type="reset"],
@@ -152,7 +155,7 @@ button {
   appearance: none;
 }
 
-/* Select/input consistency */
+/* Form control appearance */
 select,
 textarea,
 input[type="text"],
@@ -161,17 +164,25 @@ input[type="password"],
 input[type="search"],
 input[type="number"],
 input[type="tel"],
-input[type="url"] {
+input[type="url"],
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"] {
   -webkit-appearance: none;
   appearance: none;
 }
 
-/* Safari mobile tap highlight */
+/* Safari tap highlight */
 * {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* NUCLEAR OPTION: Patayin ang epal na letrang N sa gilid! */
+/* Firefox thin scrollbar */
+* {
+  scrollbar-width: thin;
+}
+
+/* Hide Next.js indicators */
 nextjs-portal {
   display: none !important;
 }
@@ -213,7 +224,6 @@ nextjs-portal {
     page-break-inside: avoid;
     break-inside: avoid;
   }
-  /* Prevent page break inside receipt sections */
   body .receipt-print .space-y-3 > div {
     page-break-inside: avoid;
     break-inside: avoid;

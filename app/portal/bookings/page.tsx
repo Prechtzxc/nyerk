@@ -688,7 +688,7 @@ function BookingDetailsModal({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent
         showCloseButton={false}
-        className="w-[min(94vw,560px)] h-[calc(100dvh-48px)] max-h-[720px] overflow-hidden rounded-3xl bg-white shadow-2xl"
+        className="w-[min(94vw,500px)] h-[calc(100dvh-48px)] max-h-[720px] overflow-hidden rounded-3xl bg-white shadow-2xl"
       >
         <div className="flex h-full min-h-0 flex-col overflow-hidden">
         <header className="shrink-0 flex items-start justify-between gap-4 border-b border-slate-100 bg-white px-5 py-4">
@@ -696,7 +696,7 @@ function BookingDetailsModal({
             <p className="text-[10px] font-black uppercase tracking-widest text-orange-600">
               Booking Details
             </p>
-            <DialogTitle className="mt-1 truncate text-xl font-black text-slate-900">
+            <DialogTitle className="mt-1 break-words text-xl font-black text-slate-900">
               {booking.eventName || "Untitled Booking"}
             </DialogTitle>
             <p className="mt-0.5 text-xs font-bold text-slate-500">
@@ -986,10 +986,10 @@ function BookingDetailsModal({
                 </p>
               </div>
             )}
-            {(showModify || showReceipt || showPay || hasRemainingPayment || isPayUnderReview) && (
-              <div className="flex flex-col gap-3 w-full">
-                {(showModify || isModifyDisabled) && (
-                  <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-3 w-full">
+              {(showModify || showReceipt || showPay || hasRemainingPayment) && (
+                <div className="grid grid-cols-2 gap-3">
+                  {(showModify || isModifyDisabled) && (
                     <Button
                       variant="outline"
                       disabled={isModifyDisabled}
@@ -1000,7 +1000,7 @@ function BookingDetailsModal({
                         }
                       }}
                       className={cn(
-                        "w-full h-10 rounded-lg border-slate-200 px-4 text-xs font-bold",
+                        "h-10 w-full rounded-lg border-slate-200 px-4 text-xs font-bold",
                         isModifyDisabled
                           ? "text-slate-400 opacity-60 cursor-not-allowed"
                           : "text-slate-700 hover:bg-slate-100"
@@ -1009,63 +1009,56 @@ function BookingDetailsModal({
                       <Pencil className="mr-1.5 h-3.5 w-3.5" />
                       Modify Booking
                     </Button>
-                    {isModifyDisabled && (
-                      <p className="text-[9px] font-semibold text-slate-400 text-center">
-                        Modification is unavailable while your cancellation request is under review.
-                      </p>
-                    )}
-                  </div>
-                )}
-                {showReceipt ? (
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      onViewReceipt(booking)
-                      onClose()
-                    }}
-                    className="w-full h-10 rounded-lg border-slate-200 px-4 text-xs font-bold text-slate-700 hover:bg-slate-100"
-                  >
-                    <Receipt className="mr-1.5 h-3.5 w-3.5" />
-                    View Receipt
-                  </Button>
-                ) : showPay && !isPayUnderReview ? (
-                  <Button
-                    onClick={() => {
-                      onPay(booking)
-                      onClose()
-                    }}
-                    className="w-full h-10 rounded-lg bg-[#ea580c] hover:bg-[#c2410c] px-5 text-xs font-bold text-white shadow-sm"
-                  >
-                    <CreditCard className="mr-1.5 h-3.5 w-3.5" />
-                    Pay Now
-                  </Button>
-                ) : isPayUnderReview && showPay === false ? (
-                  <Button
-                    disabled
-                    variant="outline"
-                    className="w-full h-10 rounded-lg border-slate-200 px-5 text-xs font-bold text-slate-400 opacity-60 cursor-not-allowed"
-                  >
-                    <CreditCard className="mr-1.5 h-3.5 w-3.5" />
-                    Pay Now
-                  </Button>
-                ) : hasRemainingPayment && !showPay && !showReceipt ? (
-                  <Button
-                    onClick={() => {
-                      if (onPay) {
+                  )}
+                  {showReceipt ? (
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        onViewReceipt(booking)
+                        onClose()
+                      }}
+                      className="h-10 w-full rounded-lg border-slate-200 px-4 text-xs font-bold text-slate-700 hover:bg-slate-100"
+                    >
+                      <Receipt className="mr-1.5 h-3.5 w-3.5" />
+                      View Receipt
+                    </Button>
+                  ) : showPay && !isPayUnderReview ? (
+                    <Button
+                      onClick={() => {
                         onPay(booking)
                         onClose()
-                      }
-                    }}
-                    className="w-full h-10 rounded-lg bg-emerald-600 hover:bg-emerald-700 px-5 text-xs font-bold text-white shadow-sm"
-                  >
-                    <CreditCard className="mr-1.5 h-3.5 w-3.5" />
-                    {paymentStage === "complete downpayment" || payStatus === "incomplete" ? "Submit Remaining Downpayment" : "Settle Remaining Balance"}
-                  </Button>
-                ) : null}
-              </div>
-            )}
-            {(showCancelAction || isCancelDisabled) && (
-              <div className="flex flex-col gap-1">
+                      }}
+                      className="h-10 w-full rounded-lg bg-[#ea580c] hover:bg-[#c2410c] px-5 text-xs font-bold text-white shadow-sm"
+                    >
+                      <CreditCard className="mr-1.5 h-3.5 w-3.5" />
+                      Pay Now
+                    </Button>
+                  ) : isPayUnderReview && showPay === false ? (
+                    <Button
+                      disabled
+                      variant="outline"
+                      className="h-10 w-full rounded-lg border-slate-200 px-5 text-xs font-bold text-slate-400 opacity-60 cursor-not-allowed"
+                    >
+                      <CreditCard className="mr-1.5 h-3.5 w-3.5" />
+                      Pay Now
+                    </Button>
+                  ) : hasRemainingPayment && !showPay && !showReceipt ? (
+                    <Button
+                      onClick={() => {
+                        if (onPay) {
+                          onPay(booking)
+                          onClose()
+                        }
+                      }}
+                      className="h-10 w-full rounded-lg bg-emerald-600 hover:bg-emerald-700 px-5 text-xs font-bold text-white shadow-sm"
+                    >
+                      <CreditCard className="mr-1.5 h-3.5 w-3.5" />
+                      {paymentStage === "complete downpayment" || payStatus === "incomplete" ? "Submit Remaining Downpayment" : "Settle Remaining Balance"}
+                    </Button>
+                  ) : null}
+                </div>
+              )}
+              {(showCancelAction || isCancelDisabled) && (
                 <Button
                   variant="outline"
                   disabled={isCancelDisabled}
@@ -1076,7 +1069,7 @@ function BookingDetailsModal({
                     }
                   }}
                   className={cn(
-                    "w-full h-10 rounded-lg border-rose-200 px-4 text-xs font-bold",
+                    "h-11 w-full rounded-xl border-rose-200 px-4 text-xs font-bold",
                     isCancelDisabled
                       ? "text-rose-300 opacity-60 cursor-not-allowed"
                       : "text-rose-600 hover:bg-rose-50 hover:text-rose-700"
@@ -1085,13 +1078,8 @@ function BookingDetailsModal({
                   <X className="mr-1.5 h-3.5 w-3.5" />
                   Cancel Booking
                 </Button>
-                {isCancelDisabled && (
-                  <p className="text-[9px] font-semibold text-slate-400 text-center">
-                    Cancellation is unavailable while your modification request is under review.
-                  </p>
-                )}
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
         </div>
@@ -1193,33 +1181,35 @@ function ReceiptModal({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent
         showCloseButton={false}
-        className="w-[calc(100vw-32px)] sm:w-fit sm:min-w-[520px] sm:max-w-[calc(100vw-48px)] max-h-[90dvh] overflow-hidden rounded-3xl bg-white shadow-2xl"
+        className="w-[min(94vw,520px)] h-[calc(100dvh-48px)] max-h-[720px] overflow-hidden rounded-3xl bg-white shadow-2xl"
       >
-        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-100 bg-white px-5 py-4">
-          <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-widest text-orange-600">
-              E-Receipt
-            </p>
-            <DialogTitle className="mt-1 font-mono text-lg font-black tracking-tight text-slate-900">
-              {receipt.receiptNumber}
-            </DialogTitle>
-            <p className="mt-0.5 text-xs font-bold text-slate-500">
-              {receipt.bookingId}
-            </p>
+        <div className="flex h-full min-h-0 flex-col overflow-hidden">
+          <div className="shrink-0 flex items-start justify-between gap-4 border-b border-slate-100 bg-white px-5 py-4">
+            <div className="min-w-0">
+              <p className="text-[10px] font-black uppercase tracking-widest text-orange-600">
+                E-Receipt
+              </p>
+              <DialogTitle className="mt-1 font-mono text-lg font-black tracking-tight text-slate-900">
+                {receipt.receiptNumber}
+              </DialogTitle>
+              <p className="mt-0.5 text-xs font-bold text-slate-500">
+                {receipt.bookingId}
+              </p>
+            </div>
+            <DialogClose asChild>
+              <button
+                type="button"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 transition hover:bg-slate-100 hover:text-slate-900"
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </DialogClose>
           </div>
-          <DialogClose asChild>
-            <button
-              type="button"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 transition hover:bg-slate-100 hover:text-slate-900"
-              aria-label="Close"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </DialogClose>
-        </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-          <ReceiptPaper {...paperData} />
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+            <ReceiptPaper {...paperData} />
+          </div>
         </div>
       </DialogContent>
     </Dialog>
@@ -1297,14 +1287,15 @@ const WriteReviewModal = ({
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
       <DialogContent className="w-[95vw] max-w-md rounded-2xl border-0 bg-white p-6 shadow-2xl">
-        <DialogTitle className="text-xl font-black text-slate-900">
-          Write a Review
-        </DialogTitle>
-        <p className="mt-1 text-sm font-medium text-slate-500">
-          Share your experience for{" "}
-          <span className="font-bold text-orange-600">{eventName}</span>.
-        </p>
-        <div className="mt-5 space-y-5">
+        <div className="flex h-full min-h-0 flex-col overflow-hidden">
+          <DialogTitle className="shrink-0 text-xl font-black text-slate-900">
+            Write a Review
+          </DialogTitle>
+          <p className="shrink-0 mt-1 text-sm font-medium text-slate-500">
+            Share your experience for{" "}
+            <span className="font-bold text-orange-600">{eventName}</span>.
+          </p>
+          <div className="min-h-0 flex-1 overflow-y-auto mt-5 space-y-5">
           <div>
             <Label className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">
               Rating
@@ -1355,6 +1346,7 @@ const WriteReviewModal = ({
               Submit Review
             </Button>
           </div>
+        </div>
         </div>
       </DialogContent>
     </Dialog>
@@ -1540,6 +1532,7 @@ function ModifyBookingFlowModal({
   onSubmitChanges: (changes: Record<string, unknown>, reason: string) => void
 }) {
   const { bookings, maintenanceDates } = useBookings()
+  const { toast } = useToast()
   const { cmsData } = useCMS()
 
   const allSpaces = useMemo(() => {
@@ -1571,6 +1564,12 @@ function ModifyBookingFlowModal({
     if (!booking) return null
     return allSpaces.find(v => v.id === booking.venueId) || null
   }, [booking, allSpaces])
+
+  const venueMaxPax = useMemo(() => {
+    if (!venueInfo?.capacity) return 100
+    const matches = String(venueInfo.capacity).match(/\d+/g)
+    return matches ? Math.max(...matches.map(Number)) : 100
+  }, [venueInfo])
 
   const isOffice = venueInfo?.type === 'office'
 
@@ -1665,6 +1664,14 @@ function ModifyBookingFlowModal({
       setReasonError(true)
       return
     }
+    if (selectedDate && isMaintenanceBlocked(selectedDate)) {
+      toast({
+        title: "Date Unavailable",
+        description: "This space is under maintenance on the selected date. Please choose another date.",
+        variant: "destructive",
+      })
+      return
+    }
     const changes: Record<string, unknown> = {}
     if (eventName !== booking.eventName) changes.eventName = eventName
     if (eventType !== booking.eventType) changes.eventType = eventType
@@ -1753,15 +1760,16 @@ function ModifyBookingFlowModal({
       <DialogContent
         showCloseButton={false}
         className={cn(
-          "!flex !flex-col !gap-0 !p-0 overflow-hidden bg-white rounded-none sm:rounded-[2rem] border-0 [&>button]:hidden shadow-2xl w-[calc(100vw-32px)] max-w-2xl max-h-[calc(100dvh-32px)]",
+          "!flex !flex-col !gap-0 !p-0 overflow-hidden bg-white rounded-none sm:rounded-[2rem] border-0 [&>button]:hidden shadow-2xl w-[calc(100vw-32px)] max-w-2xl",
           step === "schedule" && "sm:!max-w-[95vw] lg:!max-w-[1000px]",
           step === "details" && "sm:!max-w-[660px]",
         )}
       >
+        <div className="flex h-full min-h-0 flex-col overflow-hidden">
         <DialogTitle className="sr-only">Modify Booking</DialogTitle>
 
         {/* Close button */}
-        <div className="absolute top-5 right-5 z-50">
+        <div className="shrink-0 absolute top-5 right-5 z-50">
           <button
             type="button"
             onClick={onClose}
@@ -1774,7 +1782,7 @@ function ModifyBookingFlowModal({
 
         {/* Back button */}
         {step === "details" && (
-          <div className="absolute top-5 left-5 z-50">
+          <div className="shrink-0 absolute top-5 left-5 z-50">
             <button
               type="button"
               onClick={() => setStep("schedule")}
@@ -1880,12 +1888,15 @@ function ModifyBookingFlowModal({
                         {days.map(renderDay)}
                       </div>
                       {/* Legend */}
-                      <div className="mx-2 mb-2 grid grid-cols-3 gap-1 border-t border-slate-100 pt-2">
-                        <div className="flex items-center justify-center gap-1.5 rounded-full bg-rose-50 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] text-rose-500">
-                          <span className="h-1.5 w-1.5 rounded-full bg-rose-200" /> Full
+                      <div className="mx-2 mb-2 grid grid-cols-4 gap-1 border-t border-slate-100 pt-2">
+                        <div className="flex items-center justify-center gap-1.5 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] text-emerald-600">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" /> Avail
                         </div>
                         <div className="flex items-center justify-center gap-1.5 rounded-full bg-amber-50 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] text-amber-600">
                           <span className="h-1.5 w-1.5 rounded-full bg-amber-300" /> Few
+                        </div>
+                        <div className="flex items-center justify-center gap-1.5 rounded-full bg-rose-50 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] text-rose-500">
+                          <span className="h-1.5 w-1.5 rounded-full bg-rose-200" /> Full
                         </div>
                         <div className="flex items-center justify-center gap-1.5 rounded-full bg-slate-100 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] text-slate-500">
                           <span className="h-1.5 w-1.5 rounded-full bg-slate-900" /> Maint.
@@ -2053,9 +2064,15 @@ function ModifyBookingFlowModal({
                       <Input
                         type="number"
                         min={1}
+                        max={venueMaxPax}
                         value={guestCount}
-                        onChange={(e) => setGuestCount(e.target.value)}
-                        placeholder="Max 250"
+                        onChange={(e) => {
+                          let val = parseInt(e.target.value)
+                          if (val > venueMaxPax) val = venueMaxPax
+                          if (val < 1) val = 1
+                          setGuestCount(val ? String(val) : "")
+                        }}
+                        placeholder={`Up to ${venueMaxPax} pax`}
                         className="h-10 w-full rounded-xl bg-slate-50 border border-slate-200 px-3 text-xs focus-visible:ring-2 focus-visible:ring-[#ea580c]"
                       />
                     </div>
@@ -2101,6 +2118,7 @@ function ModifyBookingFlowModal({
             </div>
           </div>
         )}
+      </div>
       </DialogContent>
     </Dialog>
   )

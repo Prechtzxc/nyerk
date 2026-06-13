@@ -221,10 +221,21 @@ export default function AdminPaymentsPage() {
 
     const merged = [...bookingRecords, ...paymentRecordsAsBookings]
     const seen = new Set<string>()
+    const allPaymentRecords = paymentRecords
     const deduped = merged.filter((item) => {
       const key = item.id || item.bookingId || ""
       if (seen.has(key)) return false
       seen.add(key)
+
+      const matchingPayment = allPaymentRecords.find(
+        (pr: any) => (pr.bookingId === key || pr.id === key) && pr.proofUrl
+      )
+
+      if (matchingPayment && !item.paymentProof && !item.proofOfPayment) {
+        item.paymentProof = matchingPayment.proofUrl
+        item.proofOfPayment = matchingPayment.proofUrl
+      }
+
       return true
     })
 
@@ -568,13 +579,14 @@ export default function AdminPaymentsPage() {
           open={!!selectedPayment}
           onOpenChange={(open) => !open && setSelectedPayment(null)}
         >
-          <DialogContent showCloseButton={false} className="w-[calc(100vw-32px)] sm:w-fit sm:min-w-[520px] sm:max-w-[calc(100vw-48px)] max-h-[90dvh] overflow-hidden rounded-3xl bg-white shadow-2xl">
+          <DialogContent showCloseButton={false} className="w-[min(94vw,620px)] h-[calc(100dvh-48px)] max-h-[720px] overflow-hidden rounded-3xl bg-white shadow-2xl">
             {selectedPayment && (
               <PaymentReviewModal
                 payment={selectedPayment}
                 onClose={() => setSelectedPayment(null)}
                 onAction={(type) => openActionModal(selectedPayment, type)}
                 childModalOpen={!!pendingAction || !!incompletePaymentTarget || !!onsiteVerifyTarget}
+                paymentRecords={paymentRecords}
               />
             )}
           </DialogContent>
@@ -630,7 +642,7 @@ function PaymentActionConfirmModal({
 
   return (
     <Dialog open={!!pendingAction} onOpenChange={(open) => !open && onCancel()}>
-      <DialogContent className="w-[calc(100vw-32px)] sm:w-fit sm:min-w-[480px] sm:max-w-[calc(100vw-48px)] max-h-[90dvh] overflow-hidden rounded-3xl bg-white shadow-2xl [&>button]:hidden">
+      <DialogContent className="w-[min(94vw,480px)] max-h-[90dvh] overflow-hidden rounded-3xl bg-white shadow-2xl [&>button]:hidden">
         <div className="flex max-h-[90dvh] flex-col overflow-hidden">
           <div className="shrink-0 flex items-center gap-3 border-b border-slate-100 px-5 py-4">
             <div
@@ -837,17 +849,31 @@ function PaymentReviewModal({
   onClose,
   onAction,
   childModalOpen,
+  paymentRecords,
 }: {
   payment: BookingRecord
   onClose: () => void
   onAction: (type: PaymentAction) => void
   childModalOpen?: boolean
+  paymentRecords?: any[]
 }) {
   const totalAmount = getSafePrice(payment.totalPrice)
   const amountPaid = getAmountPaid(payment)
   const remainingBalance = Math.max(totalAmount - amountPaid, 0)
   const isActionable = isForReviewPayment(payment)
-  const hasImageProof = isImageProof(payment.paymentProof || payment.proofOfPayment || payment.proofImage || payment.receiptImage)
+
+  const paymentRecordProof = useMemo(() => {
+    if (payment.paymentProof || payment.proofOfPayment) return null
+    if (!paymentRecords?.length) return null
+    const key = payment.id || payment.bookingId || ""
+    const match = paymentRecords.find(
+      (pr: any) => (pr.bookingId === key || pr.id === key) && pr.proofUrl
+    )
+    return match?.proofUrl || null
+  }, [payment, paymentRecords])
+
+  const effectiveProof = payment.paymentProof || payment.proofOfPayment || payment.proofImage || payment.receiptImage || paymentRecordProof
+  const hasImageProof = isImageProof(effectiveProof)
 
   return (
     <div className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)_auto]">
@@ -892,7 +918,7 @@ function PaymentReviewModal({
                     <div className="mx-auto w-full max-w-[260px]">
                       <div className="aspect-[3/4] overflow-hidden rounded-2xl border border-slate-200 bg-white">
                         <img
-                          src={payment.paymentProof || payment.proofOfPayment || payment.proofImage || payment.receiptImage}
+                          src={effectiveProof}
                           alt="Payment proof"
                           className="h-full w-full object-contain"
                         />
@@ -903,11 +929,11 @@ function PaymentReviewModal({
                       <FileImage className="mb-3 h-10 w-10 text-slate-300" />
 
                       <p className="text-sm font-black text-slate-900">
-                        {payment.paymentProof || payment.proofOfPayment || "No receipt file name"}
+                        No proof uploaded
                       </p>
 
                       <p className="mt-1 max-w-sm text-xs leading-5 text-slate-500">
-                        Image preview is only available if the proof is saved as a data URL or image link.
+                        The customer did not upload a proof image for this bank transfer payment.
                       </p>
                     </div>
                   )}
@@ -1615,6 +1641,7 @@ function IncompletePaymentModal({
   const enteredAmount = getAmountValue(verifiedAmount)
   const newAmountPaid = currentAmountPaid + enteredAmount
   const newRemainingBalance = Math.max(totalAmount - newAmountPaid, 0)
+  const expectedRemaining = Math.max(totalAmount - currentAmountPaid, 0)
   const isDownpayment = String(booking.paymentType || "").toLowerCase() === "downpayment"
   const selectedDP = getAmountValue(booking.selectedDownpaymentAmount) || (isDownpayment ? totalAmount * 0.5 : 0)
 
@@ -1687,7 +1714,7 @@ function IncompletePaymentModal({
 
   return (
     <Dialog open={!!booking} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="w-[calc(100vw-32px)] sm:w-fit sm:min-w-[500px] sm:max-w-[calc(100vw-48px)] max-h-[90dvh] overflow-hidden rounded-3xl bg-white shadow-2xl [&>button]:hidden">
+        <DialogContent className="w-[min(94vw,500px)] max-h-[90dvh] overflow-hidden rounded-3xl bg-white shadow-2xl [&>button]:hidden">
         <div className="flex max-h-[90dvh] flex-col overflow-hidden">
           {!confirmStep ? (
             <>
@@ -1735,9 +1762,14 @@ function IncompletePaymentModal({
                     placeholder="Enter actual amount received"
                     className="h-10 rounded-xl border-slate-200 text-xs font-bold focus-visible:ring-amber-600"
                   />
-                  {enteredAmount > 0 && (
+                  {enteredAmount > 0 && enteredAmount < expectedRemaining && (
                     <p className="mt-1.5 text-[11px] font-semibold text-amber-700">
                       Remaining balance after this: ₱{newRemainingBalance.toLocaleString()}
+                    </p>
+                  )}
+                  {enteredAmount >= expectedRemaining && enteredAmount > 0 && (
+                    <p className="mt-1.5 text-[11px] font-semibold text-rose-600">
+                      Amount equals or exceeds remaining balance. Use Verify Payment instead.
                     </p>
                   )}
                 </div>
@@ -1764,7 +1796,7 @@ function IncompletePaymentModal({
                   Cancel
                 </Button>
                 <Button
-                  disabled={enteredAmount <= 0 || !adminReason.trim()}
+                  disabled={enteredAmount <= 0 || enteredAmount >= expectedRemaining || !adminReason.trim()}
                   onClick={() => setConfirmStep(true)}
                   className="h-10 rounded-xl bg-amber-600 text-xs font-black text-white hover:bg-amber-700 disabled:opacity-50"
                 >
@@ -1917,7 +1949,7 @@ function OnsiteVerifyModal({
 
   return (
     <Dialog open={!!booking} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="w-[calc(100vw-32px)] sm:w-fit sm:min-w-[480px] sm:max-w-[calc(100vw-48px)] max-h-[90dvh] overflow-hidden rounded-3xl bg-white shadow-2xl [&>button]:hidden">
+      <DialogContent className="w-[min(94vw,500px)] max-h-[90dvh] overflow-hidden rounded-3xl bg-white shadow-2xl [&>button]:hidden">
         <div className="flex max-h-[90dvh] flex-col overflow-hidden">
           {!confirmStep ? (
             <>

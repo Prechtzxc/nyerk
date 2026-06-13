@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Eye, EyeOff, Pencil, Plus, Save, Trash2, X } from "lucide-react"
+import { ChevronDown, Eye, EyeOff, Pencil, Plus, Save, Trash2, X } from "lucide-react"
 import { Button } from "@shared/components/ui/button"
 import { Input } from "@shared/components/ui/input"
 import { Textarea } from "@shared/components/ui/textarea"
@@ -131,12 +131,15 @@ export function CMSVenuesTab({ onNavigate }: { onNavigate: (tab: string) => void
                 </div>
                 <div>
                   <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">Status</label>
-                  <select value={editingId ? (venues.find((v: any) => v.id === editingId)?.isHidden ? "hidden" : "published") : "published"}
-                    onChange={(e) => { const v = venues.find((v: any) => v.id === editingId); if (v) updateVenue(v.id, { isHidden: e.target.value === "hidden" }) }}
-                    className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold">
-                    <option value="published">Published</option>
-                    <option value="hidden">Hidden</option>
-                  </select>
+                  <div className="relative mt-1">
+                    <select value={editingId ? (venues.find((v: any) => v.id === editingId)?.isHidden ? "hidden" : "published") : "published"}
+                      onChange={(e) => { const v = venues.find((v: any) => v.id === editingId); if (v) updateVenue(v.id, { isHidden: e.target.value === "hidden" }) }}
+                      className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100 cursor-pointer">
+                      <option value="published">Published</option>
+                      <option value="hidden">Hidden</option>
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  </div>
                 </div>
               </div>
               <div>

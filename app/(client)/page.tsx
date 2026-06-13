@@ -143,8 +143,6 @@ function LandingPageContent() {
     const events = Array.isArray(cmsData?.pastEvents) ? cmsData.pastEvents : []
 
     return events
-      .filter((event: any) => event?.isFeatured !== false)
-      .filter((event: any) => event?.hasClientConsent === true)
       .sort((a: any, b: any) => {
         return (
           new Date(b.eventDate || b.createdAt || 0).getTime() -

@@ -35,7 +35,22 @@ export function ReserveDialog({ open, onOpenChange, selectedVenueId, onBackToVen
   useEffect(() => {
     if (typeof window !== "undefined") {
       const loadMaint = () => {
-        setLocalMaint(JSON.parse(localStorage.getItem(MAINTENANCE_STORAGE_KEY) || "[]"))
+        try {
+          const raw = JSON.parse(localStorage.getItem(MAINTENANCE_STORAGE_KEY) || "[]")
+          if (Array.isArray(raw)) {
+            if (raw.length > 0 && typeof raw[0] === "string") {
+              setLocalMaint(raw)
+            } else if (raw.length > 0 && typeof raw[0] === "object") {
+              setLocalMaint(raw.map((r: any) => `${r.spaceId}|${r.date}`))
+            } else {
+              setLocalMaint([])
+            }
+          } else {
+            setLocalMaint([])
+          }
+        } catch {
+          setLocalMaint([])
+        }
       }
       loadMaint()
       window.addEventListener("storage", loadMaint)
@@ -205,6 +220,15 @@ export function ReserveDialog({ open, onOpenChange, selectedVenueId, onBackToVen
 
     if (!user) {
       toast({ title: "Login Required", description: "Please login to book.", variant: "destructive" })
+      return
+    }
+
+    if (activeMaint.some(m => m.endsWith(date) || m === date)) {
+      toast({
+        title: "Date Unavailable",
+        description: "This space is under maintenance on the selected date. Please choose another date.",
+        variant: "destructive",
+      })
       return
     }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useToast } from "@/src/modules/shared/hooks/use-toast";
 
 export type BookingStatus =
@@ -302,10 +302,25 @@ export interface OfficeRental {
   updatedAt?: string;
 }
 
+export interface MaintenanceRecord {
+  id: string;
+  type: "venue" | "office";
+  spaceId: string;
+  spaceName: string;
+  date: string;
+  startDate?: string;
+  endDate?: string;
+  reason?: string;
+  status: "Active";
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface BookingContextType {
   bookings: Booking[];
   officeRentals: OfficeRental[];
   maintenanceDates: string[];
+  maintenanceRecords: MaintenanceRecord[];
 
   addBooking: (booking: Omit<Booking, "id" | "createdAt">) => Promise<string>;
   updateBookingStatus: (id: string, status: BookingStatus) => void;
@@ -340,6 +355,8 @@ interface BookingContextType {
   rejectPayment: (id: string, reason?: string, adminName?: string) => void;
   markIncompletePayment: (id: string, data: { verifiedAmount: number; adminNote: string; adminName?: string }) => void;
   toggleMaintenanceDate: (date: string, venueId: string) => void;
+  addMaintenanceRecord: (record: Omit<MaintenanceRecord, "id" | "createdAt" | "updatedAt">) => void;
+  removeMaintenanceRecord: (id: string) => void;
   submitPayment: (
     id: string,
     paymentData: {
@@ -968,7 +985,11 @@ function normalizeBookingForNewFields(booking: Booking): Booking {
 export function BookingProvider({ children }: { children: React.ReactNode }) {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [officeRentals, setOfficeRentals] = useState<OfficeRental[]>([]);
-  const [maintenanceDates, setMaintenanceDates] = useState<string[]>([]);
+  const [maintenanceRecords, setMaintenanceRecords] = useState<MaintenanceRecord[]>([]);
+  const maintenanceDates = useMemo(() =>
+    maintenanceRecords.map(r => `${r.spaceId}|${r.date}`),
+    [maintenanceRecords]
+  );
   const { toast } = useToast();
 
   useEffect(() => {
@@ -987,9 +1008,39 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         ),
       );
 
-      setMaintenanceDates(
-        safelyParseArray<string>(localStorage.getItem(MAINTENANCE_STORAGE_KEY)),
-      );
+      const rawMaint = localStorage.getItem(MAINTENANCE_STORAGE_KEY);
+      let parsedRecords: MaintenanceRecord[] = [];
+      if (rawMaint) {
+        try {
+          const parsed = JSON.parse(rawMaint);
+          if (Array.isArray(parsed)) {
+            if (parsed.length > 0 && typeof parsed[0] === "string") {
+              parsedRecords = (parsed as string[]).map((entry, idx) => {
+                const [spaceId, date] = entry.split("|");
+                return {
+                  id: `maint_${Date.now()}_${idx}`,
+                  type: (spaceId || "").startsWith("o") ? "office" as const : "venue" as const,
+                  spaceId: spaceId || "",
+                  spaceName: spaceId || "",
+                  date: date || "",
+                  status: "Active" as const,
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                };
+              });
+              localStorage.setItem(MAINTENANCE_STORAGE_KEY, JSON.stringify(parsedRecords));
+            } else {
+              parsedRecords = parsed.filter(
+                (item: unknown): item is MaintenanceRecord =>
+                  !!item && typeof item === "object" && "spaceId" in (item as any) && "date" in (item as any)
+              );
+            }
+          }
+        } catch {
+          parsedRecords = [];
+        }
+      }
+      setMaintenanceRecords(parsedRecords);
     };
 
     loadData();
@@ -1038,11 +1089,11 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const saveMaintenance = (newDates: string[]) => {
-    setMaintenanceDates(newDates);
+  const saveMaintenanceRecords = (newRecords: MaintenanceRecord[]) => {
+    setMaintenanceRecords(newRecords);
 
     if (typeof window !== "undefined") {
-      localStorage.setItem(MAINTENANCE_STORAGE_KEY, JSON.stringify(newDates));
+      localStorage.setItem(MAINTENANCE_STORAGE_KEY, JSON.stringify(newRecords));
       window.dispatchEvent(new Event("bookingsUpdated"));
       window.dispatchEvent(new Event("oneestela_bookings_updated"));
     }
@@ -2141,9 +2192,9 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
 
       return {
         ...booking,
-        status: "confirmed" as BookingStatus,
-        bookingStatus: "Confirmed",
-        isSlotSecured: true,
+        status: (isFullyPaidAfter ? "confirmed" : "verifying") as BookingStatus,
+        bookingStatus: (isFullyPaidAfter ? "Confirmed" : "Pending Verification") as BookingStatusLabel,
+        isSlotSecured: isFullyPaidAfter,
         amountPaid: newAmountPaid,
         lastPaymentAmount: data.verifiedAmount,
         downpaymentPaid: isDownpayment ? newDownpaymentPaid : 0,
@@ -2168,7 +2219,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         adminLogs: makeAdminLog(
           booking,
           "INCOMPLETE_PAYMENT_RECORDED",
-          `Admin recorded incomplete payment. Amount received: ₱${data.verifiedAmount.toLocaleString()}. Total paid: ₱${newAmountPaid.toLocaleString()}. Remaining: ₱${newRemainingBalance.toLocaleString()}. Slot is secured. Note: ${data.adminNote}`,
+          `Admin recorded incomplete payment. Amount received: ₱${data.verifiedAmount.toLocaleString()}. Total paid: ₱${newAmountPaid.toLocaleString()}. Remaining: ₱${newRemainingBalance.toLocaleString()}.${isFullyPaidAfter ? "" : " Slot is NOT secured — payment incomplete."} Note: ${data.adminNote}`,
         ),
       } as Booking;
     });
@@ -2176,23 +2227,51 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     saveBookings(updatedBookings);
   };
 
-  const toggleMaintenanceDate = (date: string, venueId: string) => {
-    const key = `${venueId}|${date}`;
+  const addMaintenanceRecord = (record: Omit<MaintenanceRecord, "id" | "createdAt" | "updatedAt">) => {
+    const now = new Date().toISOString();
+    const newRecord: MaintenanceRecord = {
+      ...record,
+      id: `maint_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      createdAt: now,
+      updatedAt: now,
+    };
+    saveMaintenanceRecords([...maintenanceRecords, newRecord]);
+    toast({
+      title: "Maintenance Added",
+      description: `${record.spaceName} is now blocked on ${record.date}.`,
+      className: "bg-slate-900 text-white",
+    });
+  };
 
-    if (maintenanceDates.includes(key)) {
-      saveMaintenance(maintenanceDates.filter((item) => item !== key));
+  const removeMaintenanceRecord = (id: string) => {
+    const target = maintenanceRecords.find(r => r.id === id);
+    saveMaintenanceRecords(maintenanceRecords.filter(r => r.id !== id));
+    if (target) {
+      toast({
+        title: "Maintenance Removed",
+        description: `${target.spaceName} is now available on ${target.date}.`,
+      });
+    }
+  };
+
+  const toggleMaintenanceDate = (date: string, venueId: string) => {
+    const existing = maintenanceRecords.find(
+      r => r.spaceId === venueId && r.date === date
+    );
+    if (existing) {
+      removeMaintenanceRecord(existing.id);
       toast({
         title: "Maintenance Removed",
         description: `Venue is now available on ${date}.`,
       });
       return;
     }
-
-    saveMaintenance([...maintenanceDates, key]);
-    toast({
-      title: "Maintenance Set",
-      description: `Venue is now blocked on ${date}.`,
-      className: "bg-slate-900 text-white",
+    addMaintenanceRecord({
+      type: venueId.startsWith("o") ? "office" : "venue",
+      spaceId: venueId,
+      spaceName: venueId,
+      date,
+      status: "Active",
     });
   };
 
@@ -2927,6 +3006,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         bookings,
         officeRentals,
         maintenanceDates,
+        maintenanceRecords,
         addBooking,
         updateBookingStatus,
         cancelBooking,
@@ -2952,6 +3032,8 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         rejectPayment,
         markIncompletePayment,
         toggleMaintenanceDate,
+        addMaintenanceRecord,
+        removeMaintenanceRecord,
         submitPayment,
         verifyOfficeReservationPayment,
         addOfficeCheckPayment,

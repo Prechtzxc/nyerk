@@ -36,7 +36,22 @@ export default function CalendarPreviewPage() {
   useEffect(() => {
     if (typeof window !== "undefined") {
       const loadMaint = () => {
-        setLocalMaint(JSON.parse(localStorage.getItem(MAINTENANCE_STORAGE_KEY) || "[]"))
+        try {
+          const raw = JSON.parse(localStorage.getItem(MAINTENANCE_STORAGE_KEY) || "[]")
+          if (Array.isArray(raw)) {
+            if (raw.length > 0 && typeof raw[0] === "string") {
+              setLocalMaint(raw)
+            } else if (raw.length > 0 && typeof raw[0] === "object") {
+              setLocalMaint(raw.map((r: any) => `${r.spaceId}|${r.date}`))
+            } else {
+              setLocalMaint([])
+            }
+          } else {
+            setLocalMaint([])
+          }
+        } catch {
+          setLocalMaint([])
+        }
       }
       loadMaint()
       window.addEventListener("storage", loadMaint)

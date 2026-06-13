@@ -157,106 +157,108 @@ function VenueReviewsDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
 
-      <DialogContent className="w-[95vw] overflow-hidden rounded-2xl border-slate-200 p-0 shadow-xl sm:max-w-lg [&>button]:hidden">
-        <div className="flex items-start justify-between border-b border-slate-100 p-5">
-          <div>
-            <DialogTitle className="text-xl font-black text-slate-950">
-              Venue Reviews
-            </DialogTitle>
-
-            <p className="mt-1 text-sm font-semibold text-slate-500">
-              Reviews for <span className="text-[#ea580c]">{venueName}</span>
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setOpen(false)}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-rose-50 hover:text-rose-500"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        <div className="max-h-[65vh] overflow-y-auto p-5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          <div className="mb-5 flex items-center justify-between rounded-2xl bg-orange-50 p-4">
+      <DialogContent className="w-[95vw] overflow-hidden rounded-2xl border-slate-200 bg-white p-0 shadow-xl sm:max-w-lg [&>button]:hidden">
+        <div className="flex h-full min-h-0 flex-col overflow-hidden">
+          <div className="shrink-0 flex items-start justify-between border-b border-slate-100 p-5">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#ea580c]">
-                Average Rating
-              </p>
+              <DialogTitle className="text-xl font-black text-slate-950">
+                Venue Reviews
+              </DialogTitle>
 
-              <p className="mt-1 text-2xl font-black text-orange-700">
-                {venueReviews.length > 0 ? averageRating.toFixed(1) : "0.0"}
-              </p>
-
-              <p className="mt-1 text-xs font-bold text-orange-500">
-                {venueReviews.length} review{venueReviews.length === 1 ? "" : "s"}
+              <p className="mt-1 text-sm font-semibold text-slate-500">
+                Reviews for <span className="text-[#ea580c]">{venueName}</span>
               </p>
             </div>
 
-            <div className="flex items-center gap-1">
-              {[1, 2, 3, 4, 5].map((value) => (
-                <Star
-                  key={value}
-                  className={`h-5 w-5 ${
-                    value <= Math.round(averageRating)
-                      ? "fill-[#ea580c] text-[#ea580c]"
-                      : "text-orange-200"
-                  }`}
-                />
-              ))}
-            </div>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-rose-50 hover:text-rose-500"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
 
-          {venueReviews.length > 0 ? (
-            <div className="space-y-3">
-              {venueReviews.map((review) => (
-                <div
-                  key={review.id}
-                  className="rounded-2xl border border-slate-200 bg-white p-4"
-                >
-                  <div className="mb-2 flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-black text-slate-950">
-                        {review.customerName || "Customer"}
-                      </p>
+          <div className="min-h-0 flex-1 overflow-y-auto p-5">
+            <div className="mb-5 flex items-center justify-between rounded-2xl bg-orange-50 p-4">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#ea580c]">
+                  Average Rating
+                </p>
 
-                      <p className="text-xs font-semibold text-slate-400">
-                        {formatReviewDate(review.createdAt)}
-                      </p>
+                <p className="mt-1 text-2xl font-black text-orange-700">
+                  {venueReviews.length > 0 ? averageRating.toFixed(1) : "0.0"}
+                </p>
+
+                <p className="mt-1 text-xs font-bold text-orange-500">
+                  {venueReviews.length} review{venueReviews.length === 1 ? "" : "s"}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-1">
+                {[1, 2, 3, 4, 5].map((value) => (
+                  <Star
+                    key={value}
+                    className={`h-5 w-5 ${
+                      value <= Math.round(averageRating)
+                        ? "fill-[#ea580c] text-[#ea580c]"
+                        : "text-orange-200"
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {venueReviews.length > 0 ? (
+              <div className="space-y-3">
+                {venueReviews.map((review) => (
+                  <div
+                    key={review.id}
+                    className="rounded-2xl border border-slate-200 bg-white p-4"
+                  >
+                    <div className="mb-2 flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-black text-slate-950">
+                          {review.customerName || "Customer"}
+                        </p>
+
+                        <p className="text-xs font-semibold text-slate-400">
+                          {formatReviewDate(review.createdAt)}
+                        </p>
+                      </div>
+
+                      <div className="flex shrink-0 gap-0.5">
+                        {[1, 2, 3, 4, 5].map((value) => (
+                          <Star
+                            key={value}
+                            className={`h-4 w-4 ${
+                              value <= Number(review.rating || 0)
+                                ? "fill-[#ea580c] text-[#ea580c]"
+                                : "text-slate-300"
+                            }`}
+                          />
+                        ))}
+                      </div>
                     </div>
 
-                    <div className="flex shrink-0 gap-0.5">
-                      {[1, 2, 3, 4, 5].map((value) => (
-                        <Star
-                          key={value}
-                          className={`h-4 w-4 ${
-                            value <= Number(review.rating || 0)
-                              ? "fill-[#ea580c] text-[#ea580c]"
-                              : "text-slate-300"
-                          }`}
-                        />
-                      ))}
-                    </div>
+                    <p className="text-sm font-medium leading-6 text-slate-600">
+                      {review.comment}
+                    </p>
                   </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+                <MessageSquare className="mx-auto mb-3 h-9 w-9 text-slate-300" />
 
-                  <p className="text-sm font-medium leading-6 text-slate-600">
-                    {review.comment}
-                  </p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
-              <MessageSquare className="mx-auto mb-3 h-9 w-9 text-slate-300" />
+                <p className="font-black text-slate-600">No reviews yet</p>
 
-              <p className="font-black text-slate-600">No reviews yet</p>
-
-              <p className="mt-1 text-sm font-semibold text-slate-400">
-                Reviews from completed bookings will appear here.
-              </p>
-            </div>
-          )}
+                <p className="mt-1 text-sm font-semibold text-slate-400">
+                  Reviews from completed bookings will appear here.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>
@@ -1118,12 +1120,15 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
             })}
           </div>
 
-          <div className="mt-2 grid grid-cols-3 gap-1 border-t border-slate-100 pt-2">
-            <div className="flex items-center justify-center gap-1.5 rounded-full bg-rose-50 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] text-rose-500">
-              <span className="h-1.5 w-1.5 rounded-full bg-rose-200" /> Full
+          <div className="mt-2 grid grid-cols-4 gap-1 border-t border-slate-100 pt-2">
+            <div className="flex items-center justify-center gap-1.5 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] text-emerald-600">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" /> Avail
             </div>
             <div className="flex items-center justify-center gap-1.5 rounded-full bg-amber-50 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] text-amber-600">
               <span className="h-1.5 w-1.5 rounded-full bg-amber-300" /> Few
+            </div>
+            <div className="flex items-center justify-center gap-1.5 rounded-full bg-rose-50 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] text-rose-500">
+              <span className="h-1.5 w-1.5 rounded-full bg-rose-200" /> Full
             </div>
             <div className="flex items-center justify-center gap-1.5 rounded-full bg-slate-100 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] text-slate-500">
               <span className="h-1.5 w-1.5 rounded-full bg-slate-900" /> Maint.
@@ -1361,8 +1366,8 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
 
   const renderDetails = () => {
     const isFormValid = isOffice 
-        ? (eventName && eventType && (eventType !== 'Other' || customEventType) && agreed && !isSubmitting)
-        : (eventName && eventType && (eventType !== 'Other' || customEventType) && guests && agreed && !isSubmitting);
+        ? (eventName && eventType && (eventType !== 'others' || customEventType) && agreed && !isSubmitting)
+        : (eventName && eventType && (eventType !== 'others' || customEventType) && guests && agreed && !isSubmitting);
 
     return (
       <div className="flex-1 flex flex-col md:justify-center px-4 py-4 md:py-6 relative h-full overflow-y-auto">
@@ -1402,7 +1407,7 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
                             <SelectItem value="others">Others</SelectItem>
                         </SelectContent>
                     </Select>
-                    {eventType === 'Other' && (
+                    {eventType === 'others' && (
                         <div className="mt-2 animate-in slide-in-from-top-1">
                             <Input required value={customEventType} onChange={e => setCustomEventType(e.target.value)} placeholder="Please specify business nature..." className="h-10 w-full rounded-xl bg-slate-50 border border-slate-200 px-3 text-xs focus-visible:ring-2 focus-visible:ring-[#ea580c]" />
                         </div>
@@ -1489,59 +1494,61 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
 
         <Dialog open={isTermsOpen} onOpenChange={setIsTermsOpen}>
           <DialogContent showCloseButton={false} className="w-[92vw] overflow-hidden rounded-[2rem] border-0 bg-white p-0 shadow-2xl sm:max-w-2xl">
-            <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-4 md:px-8">
-              <div>
-                <DialogTitle className="flex items-center gap-2 text-xl font-black text-slate-900">
-                  <FileText className="h-5 w-5 text-[#ea580c]" />
-                  Terms & Conditions
-                </DialogTitle>
+            <div className="flex h-full min-h-0 flex-col overflow-hidden">
+              <div className="shrink-0 flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-4 md:px-8">
+                <div>
+                  <DialogTitle className="flex items-center gap-2 text-xl font-black text-slate-900">
+                    <FileText className="h-5 w-5 text-[#ea580c]" />
+                    Terms & Conditions
+                  </DialogTitle>
 
-                <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">
-                  Please read carefully before proceeding with your reservation.
-                </p>
+                  <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">
+                    Please read carefully before proceeding with your reservation.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsTermsOpen(false)}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-rose-50 hover:text-rose-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setIsTermsOpen(false)}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-rose-50 hover:text-rose-600"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
+              <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4 md:px-8">
+                {isOffice ? (
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-black uppercase tracking-[0.18em] text-[#ea580c]">
+                      Office Space Rental Terms and Conditions
+                    </h3>
 
-            <div className="max-h-[62vh] overflow-y-auto px-6 py-4 md:px-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-              {isOffice ? (
-                <div className="space-y-3">
-                  <h3 className="text-sm font-black uppercase tracking-[0.18em] text-[#ea580c]">
-                    Office Space Rental Terms and Conditions
-                  </h3>
+                    <TermsList
+                      items={getPolicyItems("officeTerms")}
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-black uppercase tracking-[0.18em] text-[#ea580c]">
+                      Event Venue Terms and Conditions
+                    </h3>
 
-                  <TermsList
-                    items={getPolicyItems("officeTerms")}
-                  />
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <h3 className="text-sm font-black uppercase tracking-[0.18em] text-[#ea580c]">
-                    Event Venue Terms and Conditions
-                  </h3>
+                    <TermsList
+                      items={getPolicyItems("venueTerms")}
+                    />
+                  </div>
+                )}
+              </div>
 
-                  <TermsList
-                    items={getPolicyItems("venueTerms")}
-                  />
-                </div>
-              )}
-            </div>
-
-            <div className="border-t border-slate-100 bg-white px-6 py-4 md:px-8">
-              <Button
-                type="button"
-                onClick={() => { setAgreed(true); setIsTermsOpen(false); }}
-                className="h-11 w-full rounded-full bg-slate-900 font-bold text-white shadow-sm transition hover:bg-[#ea580c] active:scale-95"
-              >
-                I Understand
-              </Button>
+              <div className="shrink-0 border-t border-slate-100 bg-white px-6 py-4 md:px-8">
+                <Button
+                  type="button"
+                  onClick={() => { setAgreed(true); setIsTermsOpen(false); }}
+                  className="h-11 w-full rounded-full bg-slate-900 font-bold text-white shadow-sm transition hover:bg-[#ea580c] active:scale-95"
+                >
+                  I Understand
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>

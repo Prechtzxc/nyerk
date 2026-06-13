@@ -68,7 +68,7 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          'fixed left-[50%] top-[50%] z-[10002] w-full translate-x-[-50%] translate-y-[-50%]',
+          'fixed left-[50%] top-[50%] z-[10002] w-full max-w-[calc(100vw-32px)] translate-x-[-50%] translate-y-[-50%]',
           className,
         )}
         {...props}

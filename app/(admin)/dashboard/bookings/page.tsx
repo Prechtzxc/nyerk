@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import {
   AlertCircle,
   Calendar,
+  CalendarDays,
   CheckCircle2,
   DollarSign,
   FileText,
@@ -21,6 +22,7 @@ import {
   ChevronRight,
   Wrench,
   Building2,
+  Trash2,
 } from "lucide-react"
 
 import { Button } from "@/src/modules/shared/components/ui/button"
@@ -40,7 +42,7 @@ import {
 } from "@/src/modules/shared/components/ui/select"
 import { useToast } from "@/src/modules/shared/hooks/use-toast"
 import { cn } from "@/src/modules/shared/lib/utils"
-import { useBookings, type Booking } from "@/src/modules/client/contexts/booking-context"
+import { useBookings, type Booking, type BookingStatusLabel } from "@/src/modules/client/contexts/booking-context"
 import { getPaymentMethodLabel } from "@/src/modules/shared/lib/labels"
 import { Textarea } from "@/src/modules/shared/components/ui/textarea"
 import { Label } from "@/src/modules/shared/components/ui/label"
@@ -48,7 +50,6 @@ import { getAllVenues, getAllOffices } from "@/lib/central-data"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/src/modules/shared/components/ui/tabs"
 
 const BOOKING_STORAGE_KEY = "oneestela_global_bookings_v2"
-const MAINTENANCE_STORAGE_KEY = "oneestela_global_maintenance_v2"
 
 function formatDate(date?: string) {
   if (!date) return "—"
@@ -332,11 +333,38 @@ export default function AdminBookingsPage() {
     if (!declineCancellationTarget || !declineCancellationReason.trim()) return
     const target = declineCancellationTarget
     const reason = declineCancellationReason.trim()
-    const restoredBookingStatus = target.previousBookingStatus || target.previousStatus || "confirmed"
+    const restoredStatus = target.previousBookingStatus || target.previousStatus || "confirmed"
+    const restoredBookingStatus: BookingStatusLabel = (() => {
+      if (restoredStatus === "confirmed" || restoredStatus === "reservation_secured") return "Confirmed"
+      if (restoredStatus === "verifying" || restoredStatus === "pending") return "Pending Verification"
+      return "Slot Secured"
+    })()
     const now = new Date().toISOString()
     const next = bookings.map((b) =>
       b.id === target.id
-        ? { ...b, status: restoredBookingStatus, bookingStatus: target.bookingStatus || "Confirmed", cancellationRequested: false, cancellationStatus: "Declined" as const, cancellationStatusLabel: "Declined", cancellationReviewedAt: now, cancellationDeclinedAt: now, cancellationDeclineReason: reason, refundStatus: "Not Applicable" as const, previousStatus: undefined, previousBookingStatus: undefined, previousPaymentStatus: undefined, updatedAt: now }
+        ? {
+            ...b,
+            status: restoredStatus,
+            bookingStatus: restoredBookingStatus,
+            cancellationRequested: false,
+            cancellationStatus: "Declined" as const,
+            cancelStatus: null,
+            cancelReason: "",
+            cancelRequestedAt: null,
+            adminCancelDecision: "continued",
+            adminCancelReason: reason,
+            cancellationUnderReview: false,
+            cancellationStatusLabel: "Declined",
+            cancellationReviewedAt: now,
+            cancellationDeclinedAt: now,
+            cancellationDeclineReason: reason,
+            cancelRequestStatus: null,
+            refundStatus: "Not Applicable" as const,
+            previousStatus: undefined,
+            previousBookingStatus: undefined,
+            previousPaymentStatus: undefined,
+            updatedAt: now,
+          }
         : b,
     )
     persistBookings(next)
@@ -933,7 +961,7 @@ function BookingDetailsModal({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent
         showCloseButton={false}
-        className="w-[min(94vw,580px)] h-[calc(100dvh-48px)] max-h-[720px] overflow-hidden rounded-3xl bg-white shadow-2xl"
+        className="w-[min(94vw,560px)] h-[calc(100dvh-48px)] max-h-[720px] overflow-hidden rounded-3xl bg-white shadow-2xl"
       >
         <div className="flex h-full min-h-0 flex-col overflow-hidden">
         <header className="shrink-0 flex items-start justify-between gap-4 border-b border-slate-100 bg-white px-5 py-4">
@@ -941,7 +969,7 @@ function BookingDetailsModal({
             <p className="text-[10px] font-black uppercase tracking-widest text-orange-600">
               Booking Details
             </p>
-            <DialogTitle className="mt-1 truncate text-xl font-black text-slate-900">
+            <DialogTitle className="mt-1 break-words text-xl font-black text-slate-900">
               {booking.eventName || "Untitled Booking"}
             </DialogTitle>
             <p className="mt-0.5 text-xs font-bold text-slate-500">
@@ -1553,100 +1581,160 @@ function RecordOnsitePaymentModal({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="w-[calc(100vw-28px)] max-w-[520px] rounded-2xl border-0 bg-white p-0 shadow-2xl [&>button]:hidden">
-        <div className="p-6 sm:p-7">
-          {step === "form" ? (
-            <>
-              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
-                <DollarSign className="h-8 w-8" />
-              </div>
-
-              <DialogTitle className="text-2xl font-black text-slate-950">
-                Record Onsite Payment
-              </DialogTitle>
-
-              <p className="mt-2 text-sm leading-6 text-slate-500">
-                Use this only if the customer has already paid at the One Estela Place office.
-              </p>
-
-              <div className="mt-5 space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left">
-                <div className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">Booking ID</span>
-                  <span className="font-bold text-slate-900">{booking.id}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">Customer</span>
-                  <span className="font-bold text-slate-900">{booking.userInfo?.name || "No Name"}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">Total Amount</span>
-                  <span className="font-bold text-slate-900">₱{totalAmount.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">Current Paid</span>
-                  <span className="font-bold text-slate-900">₱{currentAmountPaid.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">Remaining</span>
-                  <span className="font-bold text-amber-700">₱{remainingBalance.toLocaleString()}</span>
-                </div>
-              </div>
-
-              <div className="mt-5 space-y-4">
-                <div>
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                    Payment Type *
-                  </Label>
-                  <Select value={paymentType} onValueChange={setPaymentType}>
-                    <SelectTrigger className="mt-1.5 h-10 w-full rounded-xl border-slate-200 bg-white text-xs font-bold text-slate-700 focus:ring-emerald-600">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl border-slate-200 shadow-xl">
-                      <SelectItem value="downpayment">Downpayment</SelectItem>
-                      <SelectItem value="remaining_balance">Remaining Balance</SelectItem>
-                      <SelectItem value="full_payment">Full Payment</SelectItem>
-                    </SelectContent>
-                  </Select>
+      <DialogContent className="w-[calc(100vw-28px)] max-w-[520px] rounded-2xl border-0 p-0 shadow-2xl [&>button]:hidden bg-white">
+        <div className="flex h-full min-h-0 flex-col overflow-hidden">
+          <div className="min-h-0 flex-1 overflow-y-auto p-6 sm:p-7">
+            {step === "form" ? (
+              <>
+                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+                  <DollarSign className="h-8 w-8" />
                 </div>
 
-                <div>
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                    Actual Method *
-                  </Label>
-                  <div className="mt-1.5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-xs font-bold text-slate-700">
-                    Cash / Onsite
+                <DialogTitle className="text-2xl font-black text-slate-950">
+                  Record Onsite Payment
+                </DialogTitle>
+
+                <p className="mt-2 text-sm leading-6 text-slate-500">
+                  Use this only if the customer has already paid at the One Estela Place office.
+                </p>
+
+                <div className="mt-5 space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left">
+                  <div className="flex justify-between text-xs">
+                    <span className="font-semibold text-slate-400">Booking ID</span>
+                    <span className="font-bold text-slate-900">{booking.id}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="font-semibold text-slate-400">Customer</span>
+                    <span className="font-bold text-slate-900">{booking.userInfo?.name || "No Name"}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="font-semibold text-slate-400">Total Amount</span>
+                    <span className="font-bold text-slate-900">₱{totalAmount.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="font-semibold text-slate-400">Current Paid</span>
+                    <span className="font-bold text-slate-900">₱{currentAmountPaid.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="font-semibold text-slate-400">Remaining</span>
+                    <span className="font-bold text-amber-700">₱{remainingBalance.toLocaleString()}</span>
                   </div>
                 </div>
 
-                <div>
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                    Amount Received *
-                  </Label>
-                  <Input
-                    value={amountReceived}
-                    onChange={(e) => {
-                      const digitsOnly = e.target.value.replace(/[^0-9.]/g, "")
-                      setAmountReceived(digitsOnly)
-                    }}
-                    placeholder="Enter amount received"
-                    className="mt-1.5 h-10 rounded-xl border-slate-200 text-xs font-bold focus-visible:ring-emerald-600"
-                  />
+                <div className="mt-5 space-y-4">
+                  <div>
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                      Payment Type *
+                    </Label>
+                    <Select value={paymentType} onValueChange={setPaymentType}>
+                      <SelectTrigger className="mt-1.5 h-10 w-full rounded-xl border-slate-200 bg-white text-xs font-bold text-slate-700 focus:ring-emerald-600">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                        <SelectItem value="downpayment">Downpayment</SelectItem>
+                        <SelectItem value="remaining_balance">Remaining Balance</SelectItem>
+                        <SelectItem value="full_payment">Full Payment</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                      Actual Method *
+                    </Label>
+                    <div className="mt-1.5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-xs font-bold text-slate-700">
+                      Cash / Onsite
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                      Amount Received *
+                    </Label>
+                    <Input
+                      value={amountReceived}
+                      onChange={(e) => {
+                        const digitsOnly = e.target.value.replace(/[^0-9.]/g, "")
+                        setAmountReceived(digitsOnly)
+                      }}
+                      placeholder="Enter amount received"
+                      className="mt-1.5 h-10 rounded-xl border-slate-200 text-xs font-bold focus-visible:ring-emerald-600"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                      Admin Note / Reference
+                    </Label>
+                    <Textarea
+                      value={adminNote}
+                      onChange={(e) => setAdminNote(e.target.value)}
+                      placeholder="Example: Paid onsite and received by staff."
+                      className="mt-1.5 min-h-[80px] resize-none rounded-xl border-slate-200 text-xs focus-visible:ring-emerald-600"
+                    />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
+                  <AlertCircle className="h-8 w-8" />
                 </div>
 
-                <div>
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                    Admin Note / Reference
-                  </Label>
-                  <Textarea
-                    value={adminNote}
-                    onChange={(e) => setAdminNote(e.target.value)}
-                    placeholder="Example: Paid onsite and received by staff."
-                    className="mt-1.5 min-h-[80px] resize-none rounded-xl border-slate-200 text-xs focus-visible:ring-emerald-600"
-                  />
-                </div>
-              </div>
+                <DialogTitle className="text-2xl font-black text-slate-950">
+                  Confirm Onsite Payment
+                </DialogTitle>
 
-              <div className="mt-6 grid grid-cols-2 gap-3">
+                <p className="mt-2 text-sm leading-6 text-slate-500">
+                  Are you sure you want to record this onsite payment? This should only be done after confirming the actual payment received at the One Estela Place office.
+                </p>
+
+                <div className="mt-5 space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left">
+                  <div className="flex justify-between text-xs">
+                    <span className="font-semibold text-slate-400">Booking ID</span>
+                    <span className="font-bold text-slate-900">{booking.id}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="font-semibold text-slate-400">Customer</span>
+                    <span className="font-bold text-slate-900">{booking.userInfo?.name || "No Name"}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="font-semibold text-slate-400">Type</span>
+                    <span className="font-bold text-slate-900">{typeLabel}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="font-semibold text-slate-400">Method</span>
+                    <span className="font-bold text-slate-900">Cash / Onsite</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="font-semibold text-slate-400">Amount Received</span>
+                    <span className="font-bold text-emerald-700">₱{enteredAmount.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="font-semibold text-slate-400">New Amount Paid</span>
+                    <span className="font-bold text-slate-900">₱{summary.newAmountPaid.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="font-semibold text-slate-400">New Remaining Balance</span>
+                    <span className="font-bold text-amber-700">₱{summary.newRemainingBalance.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="font-semibold text-slate-400">New Status</span>
+                    <span className="font-bold text-slate-900">{summary.newPaymentStatus}</span>
+                  </div>
+                  {adminNote.trim() && (
+                    <div className="flex justify-between text-xs">
+                      <span className="font-semibold text-slate-400">Note</span>
+                      <span className="font-bold text-slate-900">{adminNote.trim()}</span>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+          <div className="shrink-0 border-t p-6 sm:p-7">
+            {step === "form" ? (
+              <div className="grid grid-cols-2 gap-3">
                 <Button
                   variant="outline"
                   onClick={onClose}
@@ -1662,63 +1750,8 @@ function RecordOnsitePaymentModal({
                   Continue
                 </Button>
               </div>
-            </>
-          ) : (
-            <>
-              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
-                <AlertCircle className="h-8 w-8" />
-              </div>
-
-              <DialogTitle className="text-2xl font-black text-slate-950">
-                Confirm Onsite Payment
-              </DialogTitle>
-
-              <p className="mt-2 text-sm leading-6 text-slate-500">
-                Are you sure you want to record this onsite payment? This should only be done after confirming the actual payment received at the One Estela Place office.
-              </p>
-
-              <div className="mt-5 space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left">
-                <div className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">Booking ID</span>
-                  <span className="font-bold text-slate-900">{booking.id}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">Customer</span>
-                  <span className="font-bold text-slate-900">{booking.userInfo?.name || "No Name"}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">Type</span>
-                  <span className="font-bold text-slate-900">{typeLabel}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">Method</span>
-                  <span className="font-bold text-slate-900">Cash / Onsite</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">Amount Received</span>
-                  <span className="font-bold text-emerald-700">₱{enteredAmount.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">New Amount Paid</span>
-                  <span className="font-bold text-slate-900">₱{summary.newAmountPaid.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">New Remaining Balance</span>
-                  <span className="font-bold text-amber-700">₱{summary.newRemainingBalance.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="font-semibold text-slate-400">New Status</span>
-                  <span className="font-bold text-slate-900">{summary.newPaymentStatus}</span>
-                </div>
-                {adminNote.trim() && (
-                  <div className="flex justify-between text-xs">
-                    <span className="font-semibold text-slate-400">Note</span>
-                    <span className="font-bold text-slate-900">{adminNote.trim()}</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-6 grid grid-cols-2 gap-3">
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
                 <Button
                   variant="outline"
                   onClick={() => setStep("form")}
@@ -1733,8 +1766,8 @@ function RecordOnsitePaymentModal({
                   Confirm Onsite Payment
                 </Button>
               </div>
-            </>
-          )}
+            )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>
@@ -2210,304 +2243,319 @@ function MaintenanceCalendarModal({
   open: boolean
   onClose: () => void
 }) {
+  const {
+    maintenanceRecords,
+    addMaintenanceRecord,
+    removeMaintenanceRecord,
+  } = useBookings()
+  const { toast } = useToast()
+
   const venues = getAllVenues()
   const offices = getAllOffices()
-  const [category, setCategory] = useState("venues")
-  const [selectedVenueId, setSelectedVenueId] = useState(venues[0]?.id || "v1")
-  const [selectedOfficeId, setSelectedOfficeId] = useState(offices[0]?.id || "o1")
-  const [maintenanceList, setMaintenanceList] = useState<string[]>([])
-  const [allBookings, setAllBookings] = useState<Booking[]>([])
-  const [calendarMonth, setCalendarMonth] = useState(() => {
-    const d = new Date()
-    d.setDate(1)
-    return d
-  })
 
-  const selectedId = category === "venues" ? selectedVenueId : selectedOfficeId
-
-  const loadMaint = () => {
-    if (typeof window === "undefined") return
-    try {
-      const stored = localStorage.getItem(MAINTENANCE_STORAGE_KEY)
-      const parsed = stored ? JSON.parse(stored) : []
-      setMaintenanceList(Array.isArray(parsed) ? parsed : [])
-    } catch {
-      setMaintenanceList([])
-    }
-  }
-
-  const loadBookingsData = () => {
-    if (typeof window === "undefined") return
-    try {
-      const stored = localStorage.getItem(BOOKING_STORAGE_KEY)
-      const parsed = stored ? JSON.parse(stored) : []
-      setAllBookings(Array.isArray(parsed) ? parsed : [])
-    } catch {
-      setAllBookings([])
-    }
-  }
+  const [maintType, setMaintType] = useState<"venue" | "office">("venue")
+  const [selectedSpaceId, setSelectedSpaceId] = useState(venues[0]?.id || "v1")
+  const [date, setDate] = useState("")
+  const [startDate, setStartDate] = useState("")
+  const [endDate, setEndDate] = useState("")
+  const [useRange, setUseRange] = useState(false)
+  const [reason, setReason] = useState("")
+  const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
-    if (open) { loadMaint(); loadBookingsData() }
-  }, [open])
-
-  const saveMaint = (list: string[]) => {
-    setMaintenanceList(list)
-    if (typeof window !== "undefined") {
-      localStorage.setItem(MAINTENANCE_STORAGE_KEY, JSON.stringify(list))
-      window.dispatchEvent(new Event("bookingsUpdated"))
-      window.dispatchEvent(new Event("oneestela_bookings_updated"))
+    if (open) {
+      const firstVenue = venues[0]?.id || "v1"
+      const firstOffice = offices[0]?.id || "o1"
+      setSelectedSpaceId(maintType === "venue" ? firstVenue : firstOffice)
     }
-  }
+  }, [open, maintType, venues, offices])
 
-  const isDateBlocked = (dateStr: string) => {
-    const key = `${selectedId}|${dateStr}`
-    return maintenanceList.includes(key)
-  }
+  const currentSpaces = maintType === "venue" ? venues : offices
 
-  const toggleDate = (dateStr: string) => {
-    const key = `${selectedId}|${dateStr}`
-    if (maintenanceList.includes(key)) {
-      saveMaint(maintenanceList.filter((item) => item !== key))
-    } else {
-      saveMaint([...maintenanceList, key])
+  const filteredRecords = maintenanceRecords.filter(
+    r => r.type === maintType
+  ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+
+  const handleSave = () => {
+    const dateToUse = useRange ? startDate : date
+    if (!dateToUse) {
+      toast({ title: "Date Required", description: "Please select a date.", variant: "destructive" })
+      return
     }
+    if (!selectedSpaceId) {
+      toast({ title: "Space Required", description: "Please select a space.", variant: "destructive" })
+      return
+    }
+    if (useRange && startDate && endDate && endDate < startDate) {
+      toast({ title: "Invalid Range", description: "End date must be after start date.", variant: "destructive" })
+      return
+    }
+
+    setIsSaving(true)
+    const space = currentSpaces.find(s => s.id === selectedSpaceId)
+
+    const datesToAdd = useRange && startDate && endDate
+      ? getDatesInRange(startDate, endDate)
+      : [dateToUse]
+
+    for (const d of datesToAdd) {
+      const exists = maintenanceRecords.some(
+        r => r.spaceId === selectedSpaceId && r.date === d
+      )
+      if (!exists) {
+        addMaintenanceRecord({
+          type: maintType,
+          spaceId: selectedSpaceId,
+          spaceName: space?.name || selectedSpaceId,
+          date: d,
+          reason: reason || undefined,
+          status: "Active",
+        })
+      }
+    }
+
+    setIsSaving(false)
+    setDate("")
+    setStartDate("")
+    setEndDate("")
+    setReason("")
+    setUseRange(false)
+    toast({
+      title: "Maintenance Saved",
+      description: `${datesToAdd.length} date(s) blocked for ${space?.name || selectedSpaceId}.`,
+    })
   }
 
-  const venueSlots = [
-    { start: 8, end: 14, label: "8:00 AM - 2:00 PM" },
-    { start: 9, end: 15, label: "9:00 AM - 3:00 PM" },
-    { start: 10, end: 16, label: "10:00 AM - 4:00 PM" },
-    { start: 11, end: 17, label: "11:00 AM - 5:00 PM" },
-    { start: 12, end: 18, label: "12:00 PM - 6:00 PM" },
-    { start: 13, end: 19, label: "1:00 PM - 7:00 PM" },
-    { start: 14, end: 20, label: "2:00 PM - 8:00 PM" },
-    { start: 15, end: 21, label: "3:00 PM - 9:00 PM" },
-    { start: 16, end: 22, label: "4:00 PM - 10:00 PM" },
-  ]
-
-  function isPastDate(dateStr: string) {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const targetDate = new Date(dateStr + "T00:00:00")
-    return targetDate < today
-  }
-
-  function getDayAvailability(dateStr: string) {
-    const isMaintenanceDay = isDateBlocked(dateStr)
-    if (isMaintenanceDay) return "maintenance"
-    const isPast = isPastDate(dateStr)
-    if (isPast) return "past"
-    const venueId = selectedId
-    const dayBookings = allBookings.filter((b) =>
-      b.date === dateStr &&
-      b.venueId === venueId &&
-      b.status !== "cancelled" &&
-      b.status !== "declined"
-    )
-    if (dayBookings.length === 0) return "available"
-    const allSlotsOccupied = venueSlots.every((slot) =>
-      dayBookings.some((b) => {
-        if (!b.time) return false
-        const bParsed = venueSlots.find((s) => s.label === b.time)
-        if (!bParsed) return false
-        return slot.start <= bParsed.end && slot.end >= bParsed.start
-      })
-    )
-    if (allSlotsOccupied) return "full"
-    return "partial"
-  }
-
-  const year = calendarMonth.getFullYear()
-  const month = calendarMonth.getMonth()
-  const daysInMonth = new Date(year, month + 1, 0).getDate()
-  const firstDay = new Date(year, month, 1).getDay()
-  const emptySlots = Array.from({ length: firstDay }).map((_, i) => null)
-  const days = Array.from({ length: daysInMonth }).map((_, i) => i + 1)
+  const todayStr = new Date().toISOString().split("T")[0]
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent
-        className="flex flex-col rounded-2xl border-0 bg-white p-0 shadow-2xl gap-0"
-        style={{ maxHeight: "calc(100dvh - 32px)", maxWidth: "calc(100vw - 32px)", width: "min(100%, 520px)" }}
+        className="flex flex-col border-0 bg-white p-0 shadow-2xl gap-0 rounded-3xl overflow-hidden"
+        style={{ maxHeight: "calc(100dvh - 32px)", maxWidth: "calc(100vw - 32px)", width: "min(94vw, 520px)" }}
       >
-        <div className="flex flex-col flex-1 min-h-0">
-          <div className="shrink-0 px-5 pt-5 pb-0">
+        <div className="flex max-h-[90dvh] min-h-0 flex-col overflow-hidden">
+          {/* HEADER */}
+          <div className="shrink-0 border-b border-slate-100 px-5 py-4">
             <DialogTitle className="text-xl font-black text-slate-950">
-              Calendar / Availability
+              Schedule Maintenance
             </DialogTitle>
             <p className="mt-1 text-xs leading-5 text-slate-500">
-              View availability and click a date to toggle maintenance for the selected space.
+              Block dates for maintenance per space.
             </p>
           </div>
 
-          <div className="overflow-y-auto px-5 py-3 min-h-0">
-            <Tabs value={category} onValueChange={(v) => setCategory(v)}>
-              <TabsList className="mb-3 w-full bg-slate-100 rounded-xl p-0.5">
-                <TabsTrigger value="venues" className="flex-1 rounded-lg text-[11px] font-bold data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm text-slate-500 py-1.5">
-                  Event Venues
-                </TabsTrigger>
-                <TabsTrigger value="offices" className="flex-1 rounded-lg text-[11px] font-bold data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm text-slate-500 py-1.5">
-                  Office Spaces
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="venues" className="mt-0">
-                <div className="mb-3">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                    Select Venue
-                  </label>
-                  <Select value={selectedVenueId} onValueChange={setSelectedVenueId}>
-                    <SelectTrigger className="mt-1 h-9 w-full rounded-xl border-slate-200 bg-white text-xs font-bold text-slate-700 focus:ring-slate-900">
-                      <div className="flex items-center gap-2">
-                        <Building2 className="h-3.5 w-3.5 text-slate-400" />
-                        <SelectValue />
-                      </div>
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl border-slate-200 shadow-xl">
-                      {venues.map((v) => (
-                        <SelectItem key={v.id} value={v.id} className="font-bold">
-                          {v.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="offices" className="mt-0">
-                <div className="mb-3">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                    Select Office
-                  </label>
-                  <Select value={selectedOfficeId} onValueChange={setSelectedOfficeId}>
-                    <SelectTrigger className="mt-1 h-9 w-full rounded-xl border-slate-200 bg-white text-xs font-bold text-slate-700 focus:ring-slate-900">
-                      <div className="flex items-center gap-2">
-                        <Building2 className="h-3.5 w-3.5 text-slate-400" />
-                        <SelectValue />
-                      </div>
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl border-slate-200 shadow-xl">
-                      {offices.map((o) => (
-                        <SelectItem key={o.id} value={o.id} className="font-bold">
-                          {o.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </TabsContent>
-            </Tabs>
-
-            <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-              <div className="flex items-center justify-between mb-3">
+          {/* BODY */}
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 space-y-5">
+            {/* Type selector */}
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                Space Type
+              </label>
+              <div className="mt-1.5 flex gap-2">
                 <button
-                  onClick={() => setCalendarMonth(new Date(year, month - 1, 1))}
-                  className="p-1 rounded-lg hover:bg-white transition-colors"
+                  type="button"
+                  onClick={() => { setMaintType("venue"); setSelectedSpaceId(venues[0]?.id || "v1") }}
+                  className={`flex-1 rounded-xl py-2 text-[11px] font-bold transition-all border ${
+                    maintType === "venue"
+                      ? "bg-slate-900 text-white border-slate-900"
+                      : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"
+                  }`}
                 >
-                  <ChevronLeft className="w-3.5 h-3.5 text-slate-600" />
+                  Event Venue
                 </button>
-                <h3 className="font-black text-slate-900 text-xs uppercase tracking-wide">
-                  {calendarMonth.toLocaleString("default", { month: "long", year: "numeric" })}
-                </h3>
                 <button
-                  onClick={() => setCalendarMonth(new Date(year, month + 1, 1))}
-                  className="p-1 rounded-lg hover:bg-white transition-colors"
+                  type="button"
+                  onClick={() => { setMaintType("office"); setSelectedSpaceId(offices[0]?.id || "o1") }}
+                  className={`flex-1 rounded-xl py-2 text-[11px] font-bold transition-all border ${
+                    maintType === "office"
+                      ? "bg-slate-900 text-white border-slate-900"
+                      : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"
+                  }`}
                 >
-                  <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
+                  Office Space
                 </button>
               </div>
+            </div>
 
-              <div className="grid grid-cols-7 gap-0.5 text-center">
-                {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
-                  <div key={d} className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pb-0.5">
-                    {d}
+            {/* Space dropdown */}
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                {maintType === "venue" ? "Select Venue" : "Select Office"}
+              </label>
+              <Select value={selectedSpaceId} onValueChange={setSelectedSpaceId}>
+                <SelectTrigger className="mt-1.5 h-10 w-full rounded-xl border-slate-200 bg-white text-xs font-bold text-slate-700 focus:ring-slate-900">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-3.5 w-3.5 text-slate-400" />
+                    <SelectValue />
                   </div>
-                ))}
-                {emptySlots.map((_, i) => <div key={`empty-${i}`} />)}
-                {days.map((day) => {
-                  const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
-                  const availability = getDayAvailability(dateStr)
-                  const isBlocked = availability === "maintenance"
-                  const isPast = availability === "past"
-                  const isFull = availability === "full"
-                  const isPartial = availability === "partial"
-                  const isAvailable = availability === "available"
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                  {currentSpaces.length === 0 && (
+                    <div className="px-3 py-2 text-xs text-slate-400">No spaces available</div>
+                  )}
+                  {currentSpaces.map((s) => (
+                    <SelectItem key={s.id} value={s.id} className="font-bold">
+                      {s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-                  let cellClass = "bg-white text-slate-700 border-slate-200"
-                  let isClickable = true
-                  if (isBlocked) {
-                    cellClass = "bg-slate-800 text-white border-slate-800 shadow-sm"
-                    isClickable = false
-                  } else if (isPast) {
-                    cellClass = "bg-slate-100 text-slate-300 border-slate-100 cursor-not-allowed"
-                    isClickable = false
-                  } else if (isFull) {
-                    cellClass = "bg-rose-100 text-rose-500 border-rose-200 hover:border-rose-300 hover:shadow-sm"
-                    isClickable = true
-                  } else if (isPartial) {
-                    cellClass = "bg-amber-50 text-amber-700 border-amber-200 hover:border-amber-300 hover:shadow-sm"
-                    isClickable = true
-                  } else {
-                    cellClass = "bg-white text-slate-700 border-slate-200 hover:border-slate-400 hover:shadow-sm"
-                    isClickable = true
-                  }
-
-                  return (
-                    <button
-                      key={day}
-                      disabled={!isClickable}
-                      onClick={() => { if (isClickable) toggleDate(dateStr) }}
-                      className={`flex items-center justify-center rounded-lg text-[10px] font-bold transition-all border h-7 ${cellClass}`}
-                      title={
-                        isBlocked ? "Maintenance day - click to remove maintenance" :
-                        isPast ? "Past date" :
-                        isFull ? "Fully booked" :
-                        isPartial ? "Partially booked" :
-                        "Available - click to mark as maintenance"
-                      }
-                    >
-                      {day}
-                    </button>
-                  )
-                })}
+            {/* Date fields */}
+            <div>
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                  {useRange ? "Date Range" : "Date"}
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setUseRange(!useRange)}
+                  className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg transition-all ${
+                    useRange
+                      ? "bg-slate-900 text-white"
+                      : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                  }`}
+                >
+                  {useRange ? "Single Date" : "Date Range"}
+                </button>
+              </div>
+              <div className="mt-1.5 space-y-2">
+                {useRange ? (
+                  <>
+                    <Input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      min={todayStr}
+                      className="h-10 rounded-xl border-slate-200 text-xs font-bold"
+                      placeholder="Start date"
+                    />
+                    <Input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      min={startDate || todayStr}
+                      className="h-10 rounded-xl border-slate-200 text-xs font-bold"
+                      placeholder="End date"
+                    />
+                  </>
+                ) : (
+                  <Input
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    min={todayStr}
+                    className="h-10 rounded-xl border-slate-200 text-xs font-bold"
+                    placeholder="Select date"
+                  />
+                )}
               </div>
             </div>
 
-            <div className="mt-3 flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-sm bg-white border border-slate-300" />
-                <span className="text-[9px] font-bold text-slate-500">Available</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-sm bg-amber-50 border border-amber-300" />
-                <span className="text-[9px] font-bold text-slate-500">Partial</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-sm bg-rose-100 border border-rose-300" />
-                <span className="text-[9px] font-bold text-slate-500">Full</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-sm bg-slate-800 border border-slate-800" />
-                <span className="text-[9px] font-bold text-slate-500">Maint.</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-sm bg-slate-100 border border-slate-200" />
-                <span className="text-[9px] font-bold text-slate-500">Past</span>
-              </div>
+            {/* Reason */}
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                Reason / Notes <span className="text-slate-300">(optional)</span>
+              </label>
+              <textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="e.g. Annual plumbing inspection"
+                className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-semibold text-slate-700 placeholder:text-slate-300 focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 resize-none min-h-[60px]"
+              />
             </div>
+
+            {/* Save button */}
+            <Button
+              onClick={handleSave}
+              disabled={isSaving || (useRange ? !startDate || !endDate : !date) || !selectedSpaceId}
+              className="h-10 w-full rounded-xl bg-slate-900 text-sm font-black text-white hover:bg-slate-800 disabled:opacity-40"
+            >
+              {isSaving ? "Saving..." : "Block Maintenance"}
+            </Button>
+
+            {/* Existing records */}
+            {filteredRecords.length > 0 && (
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                  Existing Maintenance
+                </label>
+                <div className="mt-1.5 space-y-1.5 max-h-[220px] overflow-y-auto">
+                  {filteredRecords.map((rec) => {
+                    const space = (maintType === "venue" ? venues : offices).find(
+                      s => s.id === rec.spaceId
+                    )
+                    return (
+                      <div
+                        key={rec.id}
+                        className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 gap-2"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[11px] font-bold text-slate-700 truncate">
+                            {space?.name || rec.spaceName}
+                          </p>
+                          <p className="text-[9px] font-semibold text-slate-400">
+                            {formatDateSimple(rec.date)}
+                            {rec.startDate && rec.endDate && rec.startDate !== rec.endDate
+                              ? ` - ${formatDateSimple(rec.endDate)}`
+                              : ""}
+                            {rec.reason ? ` · ${rec.reason}` : ""}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeMaintenanceRecord(rec.id)}
+                          className="shrink-0 p-1.5 rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors"
+                          title="Remove maintenance"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
-          <div className="shrink-0 px-5 pb-5 pt-0">
+          {/* FOOTER */}
+          <div className="shrink-0 border-t border-slate-100 bg-white px-5 py-4">
             <Button
               onClick={onClose}
-              className="h-10 w-full rounded-xl bg-slate-900 text-sm font-black text-white hover:bg-slate-800"
+              variant="outline"
+              className="h-10 w-full rounded-xl border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50"
             >
-              Done
+              Close
             </Button>
           </div>
         </div>
       </DialogContent>
     </Dialog>
   )
+
+  function getDatesInRange(start: string, end: string): string[] {
+    const dates: string[] = []
+    const current = new Date(start + "T00:00:00")
+    const endDateObj = new Date(end + "T00:00:00")
+    while (current <= endDateObj) {
+      dates.push(current.toISOString().split("T")[0])
+      current.setDate(current.getDate() + 1)
+    }
+    return dates
+  }
+}
+
+function formatDateSimple(dateStr: string) {
+  if (!dateStr) return ""
+  try {
+    return new Intl.DateTimeFormat("en-PH", {
+      month: "short",
+      day: "2-digit",
+      year: "numeric",
+    }).format(new Date(dateStr + "T00:00:00"))
+  } catch {
+    return dateStr
+  }
 }

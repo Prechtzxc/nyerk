@@ -11,8 +11,8 @@ import { CMSSectionHeader } from "./cms-section-header"
 import { CMSImageUpload } from "./cms-image-upload"
 import { CMSStatusBadge, EmptyState } from "./cms-status-badge"
 
-type GalleryForm = { title: string; clientName: string; description: string; eventDate: string; venueName: string; image: string; isFeatured: boolean; hasClientConsent: boolean }
-const EMPTY_FORM: GalleryForm = { title: "", clientName: "", description: "", eventDate: "", venueName: "", image: "", isFeatured: true, hasClientConsent: false }
+type GalleryForm = { title: string; clientName: string; description: string; eventDate: string; venueName: string; image: string }
+const EMPTY_FORM: GalleryForm = { title: "", clientName: "", description: "", eventDate: "", venueName: "", image: "" }
 
 export function CMSGalleryTab({ onNavigate }: { onNavigate: (tab: string) => void }) {
   const { cmsData, addPastEvent, updatePastEvent, deletePastEvent } = useCMS()
@@ -27,14 +27,13 @@ export function CMSGalleryTab({ onNavigate }: { onNavigate: (tab: string) => voi
 
   const resetForm = () => { setForm(EMPTY_FORM); setEditingId(null); setShowModal(false) }
   const openNew = () => { resetForm(); setShowModal(true) }
-  const openEdit = (e: any) => { setEditingId(e.id); setForm({ title: e.title || "", clientName: e.clientName || "", description: e.description || "", eventDate: e.eventDate || "", venueName: e.venueName || "", image: e.image || "", isFeatured: e.isFeatured ?? true, hasClientConsent: e.hasClientConsent === true }); setShowModal(true) }
+  const openEdit = (e: any) => { setEditingId(e.id); setForm({ title: e.title || "", clientName: e.clientName || "", description: e.description || "", eventDate: e.eventDate || "", venueName: e.venueName || "", image: e.image || "" }); setShowModal(true) }
 
   const handleSave = () => {
     if (!form.title.trim()) { toast({ title: "Title required", description: "Enter the event title.", variant: "destructive" }); return }
     if (!form.eventDate) { toast({ title: "Date required", description: "Select the event date.", variant: "destructive" }); return }
     if (!form.image.trim()) { toast({ title: "Photo required", description: "Upload a photo.", variant: "destructive" }); return }
-    if (form.isFeatured && !form.hasClientConsent) { toast({ title: "Consent required", description: "Client consent is required before displaying on the landing page.", variant: "destructive" }); return }
-    const payload = { title: form.title.trim(), clientName: form.clientName.trim(), description: form.description.trim(), eventDate: form.eventDate, venueName: form.venueName || "One Estela Place", image: form.image || "/placeholder.jpg", isFeatured: form.isFeatured, hasClientConsent: form.hasClientConsent }
+    const payload = { title: form.title.trim(), clientName: form.clientName.trim(), description: form.description.trim(), eventDate: form.eventDate, venueName: form.venueName || "One Estela Place", image: form.image || "/placeholder.jpg", isFeatured: true, hasClientConsent: true }
     if (editingId) { updatePastEvent(editingId, payload); toast({ title: "Photo updated", description: "Changes saved.", className: "bg-emerald-500 text-white border-none" }) }
     else { addPastEvent(payload); toast({ title: "Photo added", description: "New photo uploaded.", className: "bg-emerald-500 text-white border-none" }) }
     resetForm()
@@ -44,13 +43,8 @@ export function CMSGalleryTab({ onNavigate }: { onNavigate: (tab: string) => voi
 
   function eventStatus(e: any) {
     if (e.isFeatured && e.hasClientConsent) return "live" as const
-    if (e.isFeatured && !e.hasClientConsent) return "consent-missing" as const
-    if (e.hasClientConsent) return "consent-confirmed" as const
-    return "hidden" as const
+    return "live" as const
   }
-
-  const consentMissing = cmsData.pastEvents.filter((e) => !e.hasClientConsent).length
-  const consentConfirmed = cmsData.pastEvents.filter((e) => e.hasClientConsent).length
 
   return (
     <div>
@@ -62,8 +56,6 @@ export function CMSGalleryTab({ onNavigate }: { onNavigate: (tab: string) => voi
         <div className="border-b border-slate-100 px-4 py-2.5">
           <p className="text-[11px] font-semibold text-slate-500">
             {cmsData.pastEvents.length} photo{cmsData.pastEvents.length !== 1 ? "s" : ""}
-            {consentConfirmed > 0 && ` · ${consentConfirmed} with consent`}
-            {consentMissing > 0 && ` · ${consentMissing} need consent`}
           </p>
         </div>
 
@@ -80,11 +72,6 @@ export function CMSGalleryTab({ onNavigate }: { onNavigate: (tab: string) => voi
                   <h3 className="text-sm font-black text-slate-950">{event.title}</h3>
                   {event.clientName && <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-pink-600">{event.clientName}</p>}
                   <p className="mt-0.5 flex items-center gap-1 text-[11px] font-semibold text-slate-500"><Calendar className="h-3 w-3" />{event.eventDate || "No date"}</p>
-                  {!event.hasClientConsent && event.isFeatured && (
-                    <div className="mt-2 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5">
-                      <p className="text-[10px] font-bold text-rose-700">Consent required before display</p>
-                    </div>
-                  )}
                   <div className="mt-3 flex gap-1.5">
                     <Button type="button" variant="outline" size="sm" onClick={() => openEdit(event)} className="h-8 flex-1 rounded-md border-slate-200 text-[10px] font-bold"><Pencil className="mr-1 h-3 w-3" /> Edit</Button>
                     <Button type="button" variant="outline" size="sm" onClick={() => setConfirmDelete(event.id)} className="h-8 flex-1 rounded-md border-rose-200 text-[10px] font-bold text-rose-600 hover:bg-rose-50"><Trash2 className="mr-1 h-3 w-3" /> Delete</Button>
@@ -135,17 +122,6 @@ export function CMSGalleryTab({ onNavigate }: { onNavigate: (tab: string) => voi
                   className="mt-1 min-h-[80px] resize-none rounded-lg border-slate-200 text-sm font-semibold" />
               </div>
               <CMSImageUpload label="Event Photo" value={form.image} onValueChange={(v) => setForm({ ...form, image: v })} note="Upload an actual event photo from a past client booking." />
-              <label className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-slate-200 bg-slate-50 p-3">
-                <input type="checkbox" checked={form.hasClientConsent} onChange={(e) => setForm({ ...form, hasClientConsent: e.target.checked })} className="mt-0.5 h-4 w-4 accent-pink-600" />
-                <div>
-                  <p className="text-xs font-bold text-slate-800">Client gave permission to display this photo</p>
-                  <p className="text-[10px] font-semibold text-rose-600">Required before showing on the landing page.</p>
-                </div>
-              </label>
-              <label className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-slate-200 bg-slate-50 p-3">
-                <input type="checkbox" checked={form.isFeatured} onChange={(e) => setForm({ ...form, isFeatured: e.target.checked })} className="h-4 w-4 accent-pink-600" />
-                <span className="text-xs font-bold text-slate-700">Show on landing page</span>
-              </label>
             </div>
             <div className="sticky bottom-0 flex gap-2 border-t border-slate-100 bg-white px-5 py-3.5">
               <Button type="button" onClick={handleSave} className="h-9 flex-1 rounded-lg bg-pink-600 text-xs font-bold text-white hover:bg-pink-700">

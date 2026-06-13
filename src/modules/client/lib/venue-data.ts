@@ -72,13 +72,20 @@ export function getPublicSpacesFromData(cmsData: any): PublicSpacesResult {
   const rawVenues = Array.isArray(cmsData?.venues) ? cmsData.venues : []
   const rawOffices = Array.isArray(cmsData?.offices) ? cmsData.offices : []
 
+  const mergeSpaces = <T extends { id: string }>(cmsItems: T[], defaults: T[]) => {
+    if (cmsItems.length === 0) return defaults;
+    const merged = [...cmsItems];
+    for (const def of defaults) {
+      if (!merged.some((m) => String(m.id) === String(def.id))) {
+        merged.push(def);
+      }
+    }
+    return merged;
+  }
+
   return {
-    eventVenues: rawVenues.length > 0
-      ? rawVenues.map((v: any) => normalizeItem(v, "venue"))
-      : DEFAULT_VENUES,
-    officeSpaces: rawOffices.length > 0
-      ? rawOffices.map((o: any) => normalizeItem(o, "office"))
-      : DEFAULT_OFFICES,
+    eventVenues: mergeSpaces(rawVenues, DEFAULT_VENUES).map((v: any) => normalizeItem(v, "venue")),
+    officeSpaces: mergeSpaces(rawOffices, DEFAULT_OFFICES).map((o: any) => normalizeItem(o, "office")),
   }
 }
 
