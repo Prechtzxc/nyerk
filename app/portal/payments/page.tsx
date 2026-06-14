@@ -332,6 +332,7 @@ function CurrentTransactionCard({
   const remainingMs = getRemainingMs(booking);
   const isExpired = booking.status === "pending" && remainingMs <= 0;
   const isCashPending = booking.paymentMethod === "cash" && booking.paymentStatus === "cash_pending";
+  const isUnderReview = (booking as any).hasActivePaymentSubmission || paymentStatus === "for_review";
 
   return (
     <div className="group flex w-full min-w-0 flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-orange-200 hover:shadow-md sm:flex-row sm:items-center sm:gap-4">
@@ -403,20 +404,34 @@ function CurrentTransactionCard({
           {booking.status === "pending" && !isCashPending && !isExpired && (
             <Button
               onClick={() => onPay(booking)}
-              className="h-9 rounded-lg bg-orange-600 px-3 text-[11px] font-bold text-white shadow-sm hover:bg-orange-700"
+              disabled={isUnderReview}
+              className={cn(
+                "h-9 rounded-lg px-3 text-[11px] font-bold shadow-sm",
+                isUnderReview
+                  ? "bg-orange-300 text-white cursor-not-allowed opacity-60"
+                  : "bg-orange-600 text-white hover:bg-orange-700"
+              )}
             >
               <CreditCard className="mr-1 h-3.5 w-3.5" />
-              Pay Now
+              {isUnderReview ? "Payment Submitted" : "Pay Now"}
             </Button>
           )}
           {(isDownpaymentActive || hasRemainingPaymentDue) && (
             <Button
               onClick={() => onSettle(booking)}
-              className="h-9 rounded-lg bg-emerald-600 px-3 text-[11px] font-bold text-white shadow-sm hover:bg-emerald-700"
+              disabled={isUnderReview}
+              className={cn(
+                "h-9 rounded-lg px-3 text-[11px] font-bold shadow-sm",
+                isUnderReview
+                  ? "bg-emerald-300 text-white cursor-not-allowed opacity-60"
+                  : "bg-emerald-600 text-white hover:bg-emerald-700"
+              )}
             >
-              {paymentStage === "complete downpayment" || paymentStatus === "incomplete"
-                ? "Submit Remaining Downpayment"
-                : "Settle Remaining Balance"}
+              {isUnderReview
+                ? "Payment Submitted"
+                : paymentStage === "complete downpayment" || paymentStatus === "incomplete"
+                  ? "Submit Remaining Downpayment"
+                  : "Settle Remaining Balance"}
             </Button>
           )}
         </div>
@@ -820,6 +835,7 @@ function TransactionsContent() {
       (booking.status === "reservation_secured" ||
         booking.officeReservationStatus === "reservation_secured");
     const ps = String(booking.paymentStatus || "").toLowerCase();
+    const isUnderReview = (booking as any).hasActivePaymentSubmission || ps === "for_review";
     const bs = String((booking as any).balanceStatus || "").toLowerCase();
     const paymentStage = String((booking as any).paymentStage || "").toLowerCase();
     const totalPrice = booking.totalPrice || 15000;
@@ -1521,6 +1537,7 @@ function TransactionsContent() {
                 onClick={handleSubmitPayment}
                 disabled={
                   isSubmitting ||
+                  isUnderReview ||
                   isOfficeSecured ||
                   isExpired ||
                   (paymentMethod === "bank" &&
@@ -1531,7 +1548,9 @@ function TransactionsContent() {
               >
                 {isSubmitting
                   ? "Processing..."
-                  : isOfficeSecured
+                  : isUnderReview
+                    ? "Payment Submitted"
+                    : isOfficeSecured
                     ? "Reservation Secured"
                     : isExpired
                       ? "Payment Expired"

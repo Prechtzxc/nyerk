@@ -778,10 +778,28 @@ function BookingDetailsModal({
                     <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Venue / Office</p>
                     <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{booking.venue || "—"}</p>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Guests</p>
-                    <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{booking.guestCount ? `${booking.guestCount} pax` : "—"}</p>
-                  </div>
+                  {isOfficeRental && (
+                    <>
+                      <div className="min-w-0">
+                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Company Name</p>
+                        <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{(booking as any).companyName || booking.eventName || "N/A"}</p>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Nature of Business</p>
+                        <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{(booking as any).natureOfBusiness || booking.eventType || "N/A"}</p>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Rental Term</p>
+                        <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{(booking as any).rentalTerm || (booking as any).contractTerm || (booking as any).officeRentalTerm || "—"}</p>
+                      </div>
+                    </>
+                  )}
+                  {!isOfficeRental && (
+                    <div className="min-w-0">
+                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Guests</p>
+                      <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{booking.guestCount ? `${booking.guestCount} pax` : "—"}</p>
+                    </div>
+                  )}
                   <div className="min-w-0">
                     <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Time</p>
                     <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{timeValue}</p>
@@ -1056,15 +1074,25 @@ function BookingDetailsModal({
                   ) : hasRemainingPayment && !showPay && !showReceipt ? (
                     <Button
                       onClick={() => {
-                        if (onPay) {
+                        if (onPay && !isPayUnderReview) {
                           onPay(booking)
                           onClose()
                         }
                       }}
-                      className="h-10 w-full rounded-lg bg-emerald-600 hover:bg-emerald-700 px-5 text-xs font-bold text-white shadow-sm"
+                      disabled={isPayUnderReview}
+                      className={cn(
+                        "h-10 w-full rounded-lg px-5 text-xs font-bold shadow-sm",
+                        isPayUnderReview
+                          ? "bg-emerald-300 text-white cursor-not-allowed opacity-60"
+                          : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                      )}
                     >
                       <CreditCard className="mr-1.5 h-3.5 w-3.5" />
-                      {paymentStage === "complete downpayment" || payStatus === "incomplete" ? "Submit Remaining Downpayment" : "Settle Remaining Balance"}
+                      {isPayUnderReview
+                        ? "Payment Submitted"
+                        : paymentStage === "complete downpayment" || payStatus === "incomplete"
+                          ? "Submit Remaining Downpayment"
+                          : "Settle Remaining Balance"}
                     </Button>
                   ) : null}
                 </div>
