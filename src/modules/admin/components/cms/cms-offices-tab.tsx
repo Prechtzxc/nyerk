@@ -32,7 +32,8 @@ export function CMSOfficesTab({ onNavigate }: { onNavigate: (tab: string) => voi
 
   const handleSave = () => {
     if (!form.name.trim()) { toast({ title: "Name required", description: "Enter an office name.", variant: "destructive" }); return }
-    const data = { name: form.name.trim(), capacity: form.capacity?.trim() || "", price: toPrice(form.price), description: form.description || "", image: form.image || "/placeholder.jpg", panoImage: form.panoImage || "", floor: form.floor, updatedAt: new Date().toISOString() }
+    const pano = form.panoImage || ""
+    const data = { name: form.name.trim(), capacity: form.capacity?.trim() || "", price: toPrice(form.price), description: form.description || "", image: form.image || "/placeholder.jpg", panoImage: pano, panoramaUrl: pano, floor: form.floor, updatedAt: new Date().toISOString() }
     if (editingId) { updateOffice(editingId, data); toast({ title: "Office updated", description: "Changes saved.", className: "bg-emerald-500 text-white border-none" }) }
     else { addOffice({ ...data, type: "office" }); toast({ title: "Office added", description: "New office created.", className: "bg-emerald-500 text-white border-none" }) }
     resetForm()
@@ -138,7 +139,7 @@ export function CMSOfficesTab({ onNavigate }: { onNavigate: (tab: string) => voi
                   <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">Floor</label>
                   <div className="relative mt-1">
                     <select value={form.floor} onChange={(e) => setForm({ ...form, floor: e.target.value })}
-                      className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100 cursor-pointer">
+                      className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 pr-10 text-sm font-semibold text-slate-700 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100 cursor-pointer">
                       <option value="ground">Ground Floor</option>
                       <option value="second">Second Floor</option>
                     </select>

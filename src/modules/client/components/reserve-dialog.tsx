@@ -755,6 +755,8 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
       ? rentalTermMap[selectedDuration] || "6_months"
       : undefined
 
+    const resolvedNatureOfBusiness = eventType === "others" ? customEventType.trim() : eventType
+
     const payload = {
       userId: user.id,
       venueId: selectedItem.id,
@@ -762,7 +764,10 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
         ? `${selectedItem.name} - Room ${selectedRoom}`
         : selectedItem.name,
       eventName: eventName.trim() || "Space Rental",
-      eventType: eventType === "others" ? customEventType.trim() : eventType,
+      eventType: resolvedNatureOfBusiness,
+      companyName: isOfficeBooking ? eventName.trim() : undefined,
+      natureOfBusiness: isOfficeBooking ? resolvedNatureOfBusiness : undefined,
+      customEventType: isOfficeBooking && eventType === "others" ? customEventType.trim() : "",
       guestCount: isOfficeBooking ? 1 : Number(guests || 1),
       date: selectedDate,
       endDate: isOfficeBooking ? calculateOfficeEndDate(selectedDate, rentalTerm as any) : undefined,
@@ -1397,16 +1402,19 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
                     <label className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">
                         Nature of Business *
                     </label>
-                    <Select value={eventType} onValueChange={setEventType} required>
-                        <SelectTrigger className="h-10 w-full rounded-xl bg-slate-50 border border-slate-200 px-3 text-xs focus:ring-2 focus:ring-[#ea580c]"><SelectValue placeholder="Select type" /></SelectTrigger>
-                        <SelectContent className="rounded-xl border-slate-200 shadow-xl max-h-[200px]">
-                            <SelectItem value="tech">Tech / IT</SelectItem>
-                            <SelectItem value="freelance">Freelance / Consultant</SelectItem>
-                            <SelectItem value="agency">Creative Agency</SelectItem>
-                            <SelectItem value="corporate">Corporate Branch</SelectItem>
-                            <SelectItem value="others">Others</SelectItem>
-                        </SelectContent>
-                    </Select>
+                    <select
+                      value={eventType}
+                      onChange={(e) => setEventType(e.target.value)}
+                      required
+                      className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
+                    >
+                      <option value="" disabled>Select nature of business</option>
+                      <option value="tech">Technology / IT</option>
+                      <option value="freelance">Freelance / Professional Services</option>
+                      <option value="agency">Agency / Creative Studio</option>
+                      <option value="corporate">Corporate Office</option>
+                      <option value="others">Others</option>
+                    </select>
                     {eventType === 'others' && (
                         <div className="mt-2 animate-in slide-in-from-top-1">
                             <Input required value={customEventType} onChange={e => setCustomEventType(e.target.value)} placeholder="Please specify business nature..." className="h-10 w-full rounded-xl bg-slate-50 border border-slate-200 px-3 text-xs focus-visible:ring-2 focus-visible:ring-[#ea580c]" />

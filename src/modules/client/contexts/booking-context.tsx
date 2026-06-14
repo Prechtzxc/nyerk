@@ -986,10 +986,23 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [officeRentals, setOfficeRentals] = useState<OfficeRental[]>([]);
   const [maintenanceRecords, setMaintenanceRecords] = useState<MaintenanceRecord[]>([]);
-  const maintenanceDates = useMemo(() =>
-    maintenanceRecords.map(r => `${r.spaceId}|${r.date}`),
-    [maintenanceRecords]
-  );
+  const maintenanceDates = useMemo(() => {
+    const result: string[] = []
+    for (const r of maintenanceRecords) {
+      if (r.date) result.push(`${r.spaceId}|${r.date}`)
+      if (r.startDate && r.endDate) {
+        const start = new Date(r.startDate + "T00:00:00")
+        const end = new Date(r.endDate + "T00:00:00")
+        const current = new Date(start)
+        while (current <= end) {
+          const dateStr = current.toISOString().split("T")[0]
+          result.push(`${r.spaceId}|${dateStr}`)
+          current.setDate(current.getDate() + 1)
+        }
+      }
+    }
+    return result
+  }, [maintenanceRecords]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -1338,6 +1351,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     const daysBefore = calculateDaysBeforeEvent(eventDate);
     const eligibilityNote = getRefundEligibilityNote(eventDate);
     const likelyEligible = daysBefore >= REFUND_ELIGIBLE_DAYS;
+    const now = new Date().toISOString();
 
     const updatedBookings = bookings.map((booking) => {
       if (booking.id !== id) return booking;
@@ -1350,10 +1364,16 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         status: "cancellation_requested" as BookingStatus,
         bookingStatus: "Cancellation Under Review",
         cancellationRequested: true,
-        cancellationRequestedAt: new Date().toISOString(),
+        cancellationRequestedAt: now,
         cancellationStatus: "Under Review" as const,
         cancellationStatusLabel: "Under Review",
         cancellationReason: reason,
+        cancelRequestStatus: "Pending",
+        cancellationUnderReview: true,
+        cancelReason: reason,
+        cancelRequestedAt: now,
+        adminCancelDecision: null,
+        adminCancelReason: "",
         refundEligible: likelyEligible,
         refundMethod: likelyEligible ? "Cash" : undefined,
         refundMode: likelyEligible ? "Cash" : undefined,
@@ -1363,7 +1383,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           ? "If approved by admin, refund may be claimed onsite in cash within the allowed processing period."
           : "No refund will be processed if admin confirms the request is non-refundable based on policy.",
         daysBeforeEventAtCancellation: daysBefore,
-        updatedAt: new Date().toISOString(),
+        updatedAt: now,
         adminLogs: makeAdminLog(
           booking,
           "REQUEST_CANCELLATION",
@@ -1393,6 +1413,10 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         cancellationStatus: "Approved" as const,
         cancellationStatusLabel: "Approved",
         cancellationReviewedAt: approvedAt.toISOString(),
+        cancelRequestStatus: null,
+        cancellationUnderReview: false,
+        adminCancelDecision: "approved",
+        adminCancelReason: "",
         refundEligible: eligible,
         refundMethod: eligible ? ("Cash" as const) : undefined,
         refundMode: eligible ? ("Cash" as const) : undefined,
@@ -2189,6 +2213,8 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         : total * 0.5;
       const newDPRemaining = isDownpayment ? Math.max(selectedDP - newDownpaymentPaid, 0) : 0;
       const isFullyPaidAfter = newAmountPaid >= total;
+      const paymentStage = isDownpayment ? "Complete Downpayment" : (isFullyPaidAfter ? "Fully Paid" : "Settle Remaining Balance");
+      const dpRemaining = isDownpayment ? Math.max(selectedDP - newDownpaymentPaid, 0) : 0;
 
       return {
         ...booking,
@@ -2198,12 +2224,12 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         amountPaid: newAmountPaid,
         lastPaymentAmount: data.verifiedAmount,
         downpaymentPaid: isDownpayment ? newDownpaymentPaid : 0,
-        downpaymentRemaining: newDPRemaining,
+        downpaymentRemaining: dpRemaining,
         selectedDownpaymentAmount: isDownpayment ? selectedDP : 0,
-        paymentStatus: isFullyPaidAfter ? ("paid" as PaymentStatus) : ("incomplete" as PaymentStatus),
-        remainingBalance: newRemainingBalance,
+        paymentStatus: (isFullyPaidAfter ? ("paid" as PaymentStatus) : ("incomplete" as PaymentStatus)),
+        remainingBalance: isDownpayment ? dpRemaining : newRemainingBalance,
         balanceStatus: isFullyPaidAfter ? "Settled" : "With Remaining Balance",
-        paymentStage: isFullyPaidAfter ? "Fully Paid" : (newRemainingBalance > 0 ? "Settle Remaining Balance" : "Fully Paid"),
+        paymentStage,
         hasActivePaymentSubmission: false,
         incompletePaymentNote: data.adminNote,
         incompletePaymentReason: data.adminNote,
@@ -2219,7 +2245,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         adminLogs: makeAdminLog(
           booking,
           "INCOMPLETE_PAYMENT_RECORDED",
-          `Admin recorded incomplete payment. Amount received: ₱${data.verifiedAmount.toLocaleString()}. Total paid: ₱${newAmountPaid.toLocaleString()}. Remaining: ₱${newRemainingBalance.toLocaleString()}.${isFullyPaidAfter ? "" : " Slot is NOT secured — payment incomplete."} Note: ${data.adminNote}`,
+          `Admin recorded incomplete payment. Amount received: ₱${data.verifiedAmount.toLocaleString()}. Total paid: ₱${newAmountPaid.toLocaleString()}.${isDownpayment ? ` Downpayment remaining: ₱${dpRemaining.toLocaleString()}.` : ` Remaining: ₱${newRemainingBalance.toLocaleString()}.`}${isFullyPaidAfter ? "" : " Slot is NOT secured — payment incomplete."} Note: ${data.adminNote}`,
         ),
       } as Booking;
     });
@@ -2396,7 +2422,9 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
             paymentAmount: Number(dpAmount),
             pendingPaymentAmount: Number(dpAmount),
             paymentSubmittedAt: new Date().toISOString(),
-            selectedDownpaymentAmount: Number(dpAmount),
+            selectedDownpaymentAmount: typeof booking.selectedDownpaymentAmount === "number" && booking.selectedDownpaymentAmount > 0
+              ? booking.selectedDownpaymentAmount
+              : Number(dpAmount),
             amountPaid: 0,
             remainingBalance: total,
             remainingBalancePaid: false,
@@ -2424,7 +2452,9 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           paymentAmount: Number(dpAmount),
           pendingPaymentAmount: Number(dpAmount),
           paymentSubmittedAt: new Date().toISOString(),
-          selectedDownpaymentAmount: Number(dpAmount),
+          selectedDownpaymentAmount: typeof booking.selectedDownpaymentAmount === "number" && booking.selectedDownpaymentAmount > 0
+            ? booking.selectedDownpaymentAmount
+            : Number(dpAmount),
           amountPaid: 0,
           remainingBalance: total,
           remainingBalancePaid: false,

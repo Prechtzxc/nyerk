@@ -236,6 +236,14 @@ export default function AdminPaymentsPage() {
         item.proofOfPayment = matchingPayment.proofUrl
       }
 
+      const totalFromPaymentRecords = allPaymentRecords
+        .filter((pr: any) => pr.bookingId === key || pr.id === key)
+        .reduce((sum: number, pr: any) => sum + getSafePrice(pr.amountPaid || pr.amount), 0)
+
+      if (totalFromPaymentRecords > 0 && getSafePrice(item.amountPaid) < totalFromPaymentRecords) {
+        item.amountPaid = totalFromPaymentRecords
+      }
+
       return true
     })
 
@@ -359,7 +367,16 @@ export default function AdminPaymentsPage() {
       // Refresh from storage after context update
       const refreshed = readStoredBookings()
       setBookings(refreshed)
-      const updatedBooking = refreshed.find((b: BookingRecord) => b.id === bookingId)
+      let updatedBooking = refreshed.find((b: BookingRecord) => b.id === bookingId)
+      if (updatedBooking && !updatedBooking.paymentProof && !updatedBooking.proofOfPayment) {
+        const allPayments = readArray<any>(PAYMENTS_STORAGE_KEY)
+        const matchingPayment = allPayments.find(
+          (pr: any) => (pr.bookingId === bookingId || pr.id === bookingId) && pr.proofUrl
+        )
+        if (matchingPayment) {
+          updatedBooking = { ...updatedBooking, paymentProof: matchingPayment.proofUrl, proofOfPayment: matchingPayment.proofUrl }
+        }
+      }
       setSelectedPayment(updatedBooking || null)
 
       if (type === "verify" && updatedBooking) {
@@ -410,8 +427,17 @@ export default function AdminPaymentsPage() {
             })
             const refreshed = readStoredBookings()
             setBookings(refreshed)
-            const updated = refreshed.find((b: BookingRecord) => b.id === updatedBooking.id)
+            let updated = refreshed.find((b: BookingRecord) => b.id === updatedBooking.id)
             if (updated) {
+              if (!updated.paymentProof && !updated.proofOfPayment) {
+                const allPayments = readArray<any>(PAYMENTS_STORAGE_KEY)
+                const matchingPayment = allPayments.find(
+                  (pr: any) => (pr.bookingId === updated.id || pr.id === updated.id) && pr.proofUrl
+                )
+                if (matchingPayment) {
+                  updated = { ...updated, paymentProof: matchingPayment.proofUrl, proofOfPayment: matchingPayment.proofUrl }
+                }
+              }
               setSelectedPayment(updated)
               ensureReceiptForVerifiedBooking(updated)
             }
@@ -435,8 +461,17 @@ export default function AdminPaymentsPage() {
             })
             const refreshed = readStoredBookings()
             setBookings(refreshed)
-            const updated = refreshed.find((b: BookingRecord) => b.id === updatedBooking.id)
+            let updated = refreshed.find((b: BookingRecord) => b.id === updatedBooking.id)
             if (updated) {
+              if (!updated.paymentProof && !updated.proofOfPayment) {
+                const allPayments = readArray<any>(PAYMENTS_STORAGE_KEY)
+                const matchingPayment = allPayments.find(
+                  (pr: any) => (pr.bookingId === updated.id || pr.id === updated.id) && pr.proofUrl
+                )
+                if (matchingPayment) {
+                  updated = { ...updated, paymentProof: matchingPayment.proofUrl, proofOfPayment: matchingPayment.proofUrl }
+                }
+              }
               setSelectedPayment(updated)
               ensureReceiptForVerifiedBooking(updated)
             }
@@ -1313,8 +1348,7 @@ function isForReviewPayment(booking: BookingRecord) {
     paymentStatus === "for_review" ||
     paymentStatus === "pending_verification" ||
     paymentStatus === "for verification" ||
-    paymentStatus === "pending verification" ||
-    paymentStatus === "incomplete"
+    paymentStatus === "pending verification"
   )
 
   const hasActiveOnsite = (
@@ -1570,8 +1604,8 @@ function buildIncompletePaymentBooking(booking: BookingRecord, note: string, ver
     downpaymentPaid: isDownpayment ? newDpPaid : booking.downpaymentPaid,
     downpaymentRemaining: newDPRemaining,
     lastPaymentAmount: verifiedAmount || booking.lastPaymentAmount,
-    remainingBalance: remaining,
-    balanceStatus: remaining === 0 ? "Settled" : "With Remaining Balance",
+    remainingBalance: isDownpayment ? newDPRemaining : remaining,
+    balanceStatus: "With Remaining Balance",
     incompletePaymentNote: note,
     incompletePaymentReason: note,
     incompletePaymentAt: new Date().toISOString(),
@@ -1637,12 +1671,13 @@ function IncompletePaymentModal({
   const currentAmountPaid = getAmountValue(
     (booking as any).amountPaid || (booking as any).paymentAmount || (booking as any).paidAmount
   )
+  const isDownpayment = String(booking.paymentType || "").toLowerCase() === "downpayment"
   const currentDownpaymentPaid = getAmountValue(booking.downpaymentPaid)
   const enteredAmount = getAmountValue(verifiedAmount)
   const newAmountPaid = currentAmountPaid + enteredAmount
+  const newDownpaymentPaid = isDownpayment ? currentDownpaymentPaid + enteredAmount : 0
   const newRemainingBalance = Math.max(totalAmount - newAmountPaid, 0)
   const expectedRemaining = Math.max(totalAmount - currentAmountPaid, 0)
-  const isDownpayment = String(booking.paymentType || "").toLowerCase() === "downpayment"
   const selectedDP = getAmountValue(booking.selectedDownpaymentAmount) || (isDownpayment ? totalAmount * 0.5 : 0)
 
   const getNewPaymentStatus = () => {
@@ -1664,7 +1699,8 @@ function IncompletePaymentModal({
     if (enteredAmount <= 0) return
 
     const office = isOfficeRental(booking)
-    const nextStatus = office ? "reservation_secured" : "confirmed"
+    const latestStatus = isDownpayment ? "verifying" : (office ? "reservation_secured" : "confirmed")
+    const latestBookingStatus = isDownpayment ? "Pending Verification" : (office ? "Slot Secured" : "Confirmed")
     const newPaymentStatus = getNewPaymentStatus()
     const newBalanceStatus = getNewBalanceStatus()
     const paymentLabel = getPaymentLabel()
@@ -1673,17 +1709,17 @@ function IncompletePaymentModal({
 
     const updatedBooking: BookingRecord = {
       ...booking,
-      status: nextStatus,
-      bookingStatus: office ? "Slot Secured" : "Confirmed",
-      isSlotSecured: true,
+      status: latestStatus,
+      bookingStatus: latestBookingStatus,
+      isSlotSecured: !isDownpayment,
       amountPaid: newAmountPaid,
       downpaymentPaid: isDownpayment ? newDownpaymentPaid : 0,
       downpaymentRemaining: newDPRemaining,
       selectedDownpaymentAmount: isDownpayment ? selectedDP : 0,
       lastPaymentAmount: enteredAmount,
-      paymentStatus: newPaymentStatus,
-      remainingBalance: newRemainingBalance,
-      balanceStatus: newBalanceStatus,
+      paymentStatus: isDownpayment ? "incomplete" : newPaymentStatus,
+      remainingBalance: isDownpayment ? newDPRemaining : newRemainingBalance,
+      balanceStatus: isDownpayment ? "With Remaining Balance" : newBalanceStatus,
       contractStatus: "Pending Signature",
       hasActivePaymentSubmission: false,
       incompletePaymentReason: adminReason.trim(),
@@ -1698,7 +1734,7 @@ function IncompletePaymentModal({
       adminLogs: appendAdminLog(
         booking,
         "INCOMPLETE_PAYMENT_RECORDED",
-        `Admin recorded incomplete payment. Amount received: ₱${enteredAmount.toLocaleString()}. Total paid: ₱${newAmountPaid.toLocaleString()}. Remaining: ₱${newRemainingBalance.toLocaleString()}. Slot is secured. Note: ${adminReason.trim() || "N/A"}.`
+        `Admin recorded incomplete payment. Amount received: ₱${enteredAmount.toLocaleString()}. Total paid: ₱${newAmountPaid.toLocaleString()}.${isDownpayment ? ` Downpayment remaining: ₱${newDPRemaining.toLocaleString()}.` : ` Remaining: ₱${newRemainingBalance.toLocaleString()}.`} Slot is ${isDownpayment ? "NOT" : ""} secured. Note: ${adminReason.trim() || "N/A"}.`
       ),
     }
 
@@ -1764,7 +1800,7 @@ function IncompletePaymentModal({
                   />
                   {enteredAmount > 0 && enteredAmount < expectedRemaining && (
                     <p className="mt-1.5 text-[11px] font-semibold text-amber-700">
-                      Remaining balance after this: ₱{newRemainingBalance.toLocaleString()}
+                      Remaining {isDownpayment ? "downpayment" : "balance"} after this: ₱{(isDownpayment ? Math.max(selectedDP - newDownpaymentPaid, 0) : newRemainingBalance).toLocaleString()}
                     </p>
                   )}
                   {enteredAmount >= expectedRemaining && enteredAmount > 0 && (
@@ -1832,8 +1868,8 @@ function IncompletePaymentModal({
                     <span className="font-bold text-amber-700">₱{enteredAmount.toLocaleString()}</span>
                   </p>
                   <p className="flex justify-between text-xs">
-                    <span className="font-semibold text-slate-400">Remaining Balance</span>
-                    <span className="font-bold text-amber-700">₱{newRemainingBalance.toLocaleString()}</span>
+                    <span className="font-semibold text-slate-400">{isDownpayment ? "Downpayment Remaining" : "Remaining Balance"}</span>
+                    <span className="font-bold text-amber-700">₱{(isDownpayment ? Math.max(selectedDP - newDownpaymentPaid, 0) : newRemainingBalance).toLocaleString()}</span>
                   </p>
                   <p className="flex justify-between text-xs">
                     <span className="font-semibold text-slate-400">New Status</span>

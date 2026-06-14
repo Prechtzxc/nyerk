@@ -21,8 +21,9 @@ export function CMSVirtualTourTab({ onNavigate }: { onNavigate: (tab: string) =>
 
   const handleSave = () => {
     if (!editing) return
-    if (editing.type === "venue") updateVenue(editing.id, { panoImage: editing.panoImage, updatedAt: new Date().toISOString() })
-    else updateOffice(editing.id, { panoImage: editing.panoImage, updatedAt: new Date().toISOString() })
+    const pano = editing.panoImage
+    if (editing.type === "venue") updateVenue(editing.id, { panoImage: pano, panoramaUrl: pano, updatedAt: new Date().toISOString() })
+    else updateOffice(editing.id, { panoImage: pano, panoramaUrl: pano, updatedAt: new Date().toISOString() })
     toast({ title: "Panorama saved", description: "360 tour image updated.", className: "bg-emerald-500 text-white border-none" })
     setEditing(null)
   }

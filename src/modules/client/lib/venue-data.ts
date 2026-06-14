@@ -63,10 +63,12 @@ function normalizeItem(item: any, category: "venue" | "office"): PublicSpace {
     capacity: String(item.capacity || ""),
     description: String(item.description || ""),
     image: String(item.image || ""),
-    panoramaUrl: String(item.panoImage || item.panoramaUrl || item.panorama || ""),
-    panoImage: String(item.panoImage || item.panoramaUrl || item.panorama || ""),
+    panoramaUrl: String(item.panoramaUrl || item.panoImage || item.panorama || item.tourImage || ""),
+    panoImage: String(item.panoImage || item.panoramaUrl || item.panorama || item.tourImage || ""),
   }
 }
+
+const NON_BOOKABLE_VENUE_NAMES = ["Grand Ballroom", "Intimate Lounge"]
 
 export function getPublicSpacesFromData(cmsData: any): PublicSpacesResult {
   const rawVenues = Array.isArray(cmsData?.venues) ? cmsData.venues : []
@@ -84,24 +86,37 @@ export function getPublicSpacesFromData(cmsData: any): PublicSpacesResult {
   }
 
   return {
-    eventVenues: mergeSpaces(rawVenues, DEFAULT_VENUES).map((v: any) => normalizeItem(v, "venue")),
+    eventVenues: mergeSpaces(rawVenues, DEFAULT_VENUES)
+      .map((v: any) => normalizeItem(v, "venue"))
+      .filter((v) => !NON_BOOKABLE_VENUE_NAMES.includes(v.name)),
     officeSpaces: mergeSpaces(rawOffices, DEFAULT_OFFICES).map((o: any) => normalizeItem(o, "office")),
   }
 }
 
 export function getPublicSpaces(): PublicSpacesResult {
   if (typeof window === "undefined") {
-    return { eventVenues: DEFAULT_VENUES, officeSpaces: DEFAULT_OFFICES }
+    return {
+      eventVenues: DEFAULT_VENUES.filter((v) => !NON_BOOKABLE_VENUE_NAMES.includes(v.name)),
+      officeSpaces: DEFAULT_OFFICES,
+    }
   }
 
   try {
     const stored = localStorage.getItem(CMS_STORAGE_KEY)
-    if (!stored) return { eventVenues: DEFAULT_VENUES, officeSpaces: DEFAULT_OFFICES }
+    if (!stored) {
+      return {
+        eventVenues: DEFAULT_VENUES.filter((v) => !NON_BOOKABLE_VENUE_NAMES.includes(v.name)),
+        officeSpaces: DEFAULT_OFFICES,
+      }
+    }
 
     const parsed = JSON.parse(stored)
     return getPublicSpacesFromData(parsed)
   } catch {
-    return { eventVenues: DEFAULT_VENUES, officeSpaces: DEFAULT_OFFICES }
+    return {
+      eventVenues: DEFAULT_VENUES.filter((v) => !NON_BOOKABLE_VENUE_NAMES.includes(v.name)),
+      officeSpaces: DEFAULT_OFFICES,
+    }
   }
 }
 

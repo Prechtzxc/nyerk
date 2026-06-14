@@ -50,9 +50,11 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  plain,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
+  plain?: boolean
 }) {
   React.useEffect(() => {
     const originalOverflow = document.body.style.overflow
@@ -73,18 +75,22 @@ function DialogContent({
         )}
         {...props}
       >
-        <div className="relative flex max-h-[calc(100dvh-32px)] w-full flex-col overflow-hidden rounded-2xl bg-white shadow-lg">
-          {children}
-          {showCloseButton && (
-            <DialogPrimitive.Close
-              data-slot="dialog-close"
-              className="ring-offset-background focus:ring-ring absolute top-3 right-3 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-white shadow-md text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none"
-            >
-              <XIcon className="h-4 w-4" />
-              <span className="sr-only">Close</span>
-            </DialogPrimitive.Close>
-          )}
-        </div>
+        {plain ? (
+          children
+        ) : (
+          <div className="relative flex max-h-[calc(100dvh-32px)] w-full flex-col overflow-hidden rounded-2xl bg-white shadow-lg">
+            {children}
+            {showCloseButton && (
+              <DialogPrimitive.Close
+                data-slot="dialog-close"
+                className="ring-offset-background focus:ring-ring absolute top-3 right-3 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-white shadow-md text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none"
+              >
+                <XIcon className="h-4 w-4" />
+                <span className="sr-only">Close</span>
+              </DialogPrimitive.Close>
+            )}
+          </div>
+        )}
       </DialogPrimitive.Content>
     </DialogPortal>
   )

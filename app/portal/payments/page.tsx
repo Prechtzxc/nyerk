@@ -443,15 +443,13 @@ function HistoryRow({
     String(booking.status).toLowerCase() === "declined";
   const displayTotal = isCancelled ? 0 : total;
   const amountPaid =
-    typeof (booking as any).amountPaid === "number"
+    typeof (booking as any).amountPaid === "number" && (booking as any).amountPaid > 0
       ? (booking as any).amountPaid
-      : (booking as any).paymentType === "downpayment"
-        ? displayTotal * 0.5
-        : ["paid", "verified", "slot_verified"].includes(
-            String(booking.paymentStatus).toLowerCase(),
-          )
-          ? displayTotal
-          : 0;
+      : ["paid", "verified", "slot_verified"].includes(
+          String(booking.paymentStatus).toLowerCase(),
+        )
+        ? (booking as any).paymentType === "downpayment" ? displayTotal * 0.5 : displayTotal
+        : 0;
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
@@ -885,6 +883,15 @@ function TransactionsContent() {
 
     const submitSelectedPayment = async () => {
       if (isSubmitting) return;
+      if ((booking as any).hasActivePaymentSubmission || String(booking.paymentStatus || "").toLowerCase() === "for_review") {
+        toast({
+          title: "Already Submitted",
+          description: "This payment is already pending admin review.",
+          variant: "destructive",
+        });
+        setIsPaymentConfirmOpen(false);
+        return;
+      }
       setIsSubmitting(true);
       try {
         const finalPaymentType = isOfficeRental
@@ -943,6 +950,14 @@ function TransactionsContent() {
     };
 
     const handleSubmitPayment = () => {
+      if ((booking as any).hasActivePaymentSubmission || String(booking.paymentStatus || "").toLowerCase() === "for_review") {
+        toast({
+          title: "Payment Already Submitted",
+          description: "You already have a payment pending review. Please wait for admin verification before submitting again.",
+          variant: "destructive",
+        });
+        return;
+      }
       if (isOfficeSecured) {
         toast({
           title: "Reservation Already Secured",

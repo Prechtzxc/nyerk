@@ -4,15 +4,9 @@ import { useEffect, useMemo, useState } from "react"
 import { Input } from "@/src/modules/shared/components/ui/input"
 import { Button } from "@/src/modules/shared/components/ui/button"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/src/modules/shared/components/ui/select"
-import {
   Search,
   Users,
+  ChevronDown,
 } from "lucide-react"
 
 type CustomerStatus = "Active" | "Inactive"
@@ -268,20 +262,18 @@ export default function UsersPage() {
           />
         </div>
 
-        <Select
-          value={statusFilter}
-          onValueChange={(value) => setStatusFilter(value as "all" | CustomerStatus)}
-        >
-          <SelectTrigger className="h-11 w-full rounded-xl border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100 sm:w-[170px]">
-            <SelectValue placeholder="All Status" />
-          </SelectTrigger>
-
-          <SelectContent className="rounded-xl shadow-xl">
-            <SelectItem value="all" className="font-bold text-sm">All Status</SelectItem>
-            <SelectItem value="Active" className="font-bold text-sm">Active</SelectItem>
-            <SelectItem value="Inactive" className="font-bold text-sm">Inactive</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="relative w-full sm:w-auto">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as "all" | CustomerStatus)}
+            className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 pr-10 text-sm font-medium text-slate-700 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100 sm:w-[170px]"
+          >
+            <option value="all">All Status</option>
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        </div>
 
         {(searchTerm || statusFilter !== "all") && (
           <Button

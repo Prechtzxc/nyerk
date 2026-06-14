@@ -649,7 +649,8 @@ function BookingDetailsModal({
 
   const hasActiveCancellationRequest =
     normalizeStatus(booking.cancellationStatus) === "under review" ||
-    normalizeStatus(booking.bookingStatus) === "cancellation under review"
+    normalizeStatus(booking.bookingStatus) === "cancellation under review" ||
+    normalizeStatus((booking as any).cancelRequestStatus) === "pending"
 
   const hasActiveModificationRequest =
     normalizeStatus(booking.modificationStatus) === "under review" ||
@@ -688,179 +689,182 @@ function BookingDetailsModal({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent
         showCloseButton={false}
+        plain
         className="w-[min(94vw,500px)] h-[calc(100dvh-48px)] max-h-[720px] overflow-hidden rounded-3xl bg-white shadow-2xl"
       >
         <div className="flex h-full min-h-0 flex-col overflow-hidden">
-        <header className="shrink-0 flex items-start justify-between gap-4 border-b border-slate-100 bg-white px-5 py-4">
-          <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-widest text-orange-600">
-              Booking Details
-            </p>
-            <DialogTitle className="mt-1 break-words text-xl font-black text-slate-900">
-              {booking.eventName || "Untitled Booking"}
-            </DialogTitle>
-            <p className="mt-0.5 text-xs font-bold text-slate-500">
-              {typeLabel}{" "}
-              <span className="mx-1.5 text-slate-300">·</span> #
-              {booking.id}
-            </p>
-          </div>
-          <DialogClose asChild>
-            <button
-              type="button"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 transition hover:bg-slate-100 hover:text-slate-900"
-              aria-label="Close"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </DialogClose>
-        </header>
-
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-          <div className="mb-4 flex flex-wrap items-center gap-2">
-            <span
-              className={cn(
-                "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
-                getStatusBadgeClass(booking.status),
-              )}
-            >
-              {getStatusLabel(booking.status)}
-            </span>
-            <span
-              className={cn(
-                "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
-                getPaymentBadgeClass(booking.paymentStatus, (booking as any).paymentStage, remainingBalance),
-              )}
-            >
-              {getPaymentStatusLabel(booking.paymentStatus, (booking as any).paymentStage, remainingBalance)}
-            </span>
-            {booking.cancellationStatus &&
-              booking.cancellationStatus !== "None" && (
-                <>
-                  <span className="inline-block rounded-md border border-amber-100 bg-amber-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-amber-700">
-                    Cancel: {booking.cancellationStatus}
-                  </span>
-                  {booking.refundStatus && (
-                    <span className="inline-block rounded-md border border-blue-100 bg-blue-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-blue-700">
-                      Refund: {booking.refundStatus}
-                    </span>
-                  )}
-                </>
-              )}
-          </div>
-
-          <div className="space-y-4">
-            <section className="rounded-2xl border border-slate-200 p-4">
-              <div className="mb-3 flex items-center gap-2">
-                <div className="h-1.5 w-1.5 rounded-full bg-slate-400" />
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                  Booking Information
+          <header className="shrink-0 border-b border-slate-100 px-5 py-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-[10px] font-black uppercase tracking-widest text-orange-600">
+                  Booking Details
+                </p>
+                <DialogTitle className="mt-1 break-words text-xl font-black text-slate-900">
+                  {booking.eventName || "Untitled Booking"}
+                </DialogTitle>
+                <p className="mt-0.5 text-xs font-bold text-slate-500">
+                  {typeLabel}{" "}
+                  <span className="mx-1.5 text-slate-300">·</span> #
+                  {booking.id}
                 </p>
               </div>
-              <div className="space-y-3">
-                <div className="min-w-0">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Booking Date</p>
-                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{formatDate(booking.createdAt) || "—"}</p>
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">{isOfficeRental ? "Start Date" : "Event Date"}</p>
-                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{startDate || "—"}</p>
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">End Date</p>
-                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{endDate || "—"}</p>
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Venue / Office</p>
-                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{booking.venue || "—"}</p>
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Guests</p>
-                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{booking.guestCount ? `${booking.guestCount} pax` : "—"}</p>
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Time</p>
-                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{timeValue}</p>
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Booking ID</p>
-                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">#{booking.id}</p>
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Event Type</p>
-                  <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{typeLabel}</p>
-                </div>
-              </div>
-            </section>
+              <DialogClose asChild>
+                <button
+                  type="button"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 transition hover:bg-slate-100 hover:text-slate-900"
+                  aria-label="Close"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </DialogClose>
+            </div>
+          </header>
 
-            <section className="rounded-2xl border border-slate-200 p-4">
-              <PaymentSummaryCard booking={booking} bankRef={bankRef} />
-            </section>
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <span
+                className={cn(
+                  "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
+                  getStatusBadgeClass(booking.status),
+                )}
+              >
+                {getStatusLabel(booking.status)}
+              </span>
+              <span
+                className={cn(
+                  "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
+                  getPaymentBadgeClass(booking.paymentStatus, (booking as any).paymentStage, remainingBalance),
+                )}
+              >
+                {getPaymentStatusLabel(booking.paymentStatus, (booking as any).paymentStage, remainingBalance)}
+              </span>
+              {booking.cancellationStatus &&
+                booking.cancellationStatus !== "None" && (
+                  <>
+                    <span className="inline-block rounded-md border border-amber-100 bg-amber-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-amber-700">
+                      Cancel: {booking.cancellationStatus}
+                    </span>
+                    {booking.refundStatus && (
+                      <span className="inline-block rounded-md border border-blue-100 bg-blue-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-blue-700">
+                        Refund: {booking.refundStatus}
+                      </span>
+                    )}
+                  </>
+                )}
+            </div>
 
-            {booking.specialRequests && (
+            <div className="space-y-4">
               <section className="rounded-2xl border border-slate-200 p-4">
-                <div className="mb-2 flex items-center gap-2">
+                <div className="mb-3 flex items-center gap-2">
                   <div className="h-1.5 w-1.5 rounded-full bg-slate-400" />
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                    Special Requests
+                    Booking Information
                   </p>
                 </div>
-                <p className="break-words text-sm font-semibold leading-relaxed text-slate-700">
-                  {booking.specialRequests}
-                </p>
+                <div className="space-y-3">
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Booking Date</p>
+                    <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{formatDate(booking.createdAt) || "—"}</p>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">{isOfficeRental ? "Start Date" : "Event Date"}</p>
+                    <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{startDate || "—"}</p>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">End Date</p>
+                    <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{endDate || "—"}</p>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Venue / Office</p>
+                    <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{booking.venue || "—"}</p>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Guests</p>
+                    <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{booking.guestCount ? `${booking.guestCount} pax` : "—"}</p>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Time</p>
+                    <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{timeValue}</p>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Booking ID</p>
+                    <p className="mt-0.5 break-words text-xs font-bold text-slate-800">#{booking.id}</p>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Event Type</p>
+                    <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{typeLabel}</p>
+                  </div>
+                </div>
               </section>
-            )}
 
-            {showNotice && (
-              <div className="rounded-2xl bg-amber-50 p-4">
-                <div className="flex gap-3">
-                  <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
-                  <div className="text-xs font-semibold leading-5 text-amber-800">
-                    <p className="mb-1.5 font-black uppercase tracking-wider">
-                      Important Notice
+              <section className="rounded-2xl border border-slate-200 p-4">
+                <PaymentSummaryCard booking={booking} bankRef={bankRef} />
+              </section>
+
+              {booking.specialRequests && (
+                <section className="rounded-2xl border border-slate-200 p-4">
+                  <div className="mb-2 flex items-center gap-2">
+                    <div className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      Special Requests
                     </p>
-                    <ul className="list-disc space-y-1 pl-4 text-[11px]">
-                      <li>
-                        Cancellation requests made 14 days before the event date
-                        may be eligible for a refund.
-                      </li>
-                      <li>
-                        Cancellations made within 7 days before the scheduled
-                        event date are non-refundable.
-                      </li>
-                      <li>
-                        Remaining balances must be fully settled at least 7 days
-                        before the event date.
-                      </li>
-                    </ul>
                   </div>
-                </div>
-              </div>
-            )}
+                  <p className="break-words text-sm font-semibold leading-relaxed text-slate-700">
+                    {booking.specialRequests}
+                  </p>
+                </section>
+              )}
 
-            {hasRemainingPayment && remainingBalance > 0 && (
-              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
-                  <div>
-                    <p className="text-sm font-black text-amber-900">
-                      {payStatus === "incomplete" ? "Incomplete Payment" : "Partial Payment"}
-                    </p>
-                    <p className="mt-1 text-lg font-black text-amber-700">
-                      Remaining Balance: ₱{remainingBalance.toLocaleString()}
-                    </p>
-                    {showBalanceReminderNotice && (
-                      <p className="mt-2 text-xs font-semibold text-amber-600">
-                        Reminder: Please settle your remaining balance of ₱{remainingBalance.toLocaleString()}.
+              {showNotice && (
+                <div className="rounded-2xl bg-amber-50 p-4">
+                  <div className="flex gap-3">
+                    <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+                    <div className="text-xs font-semibold leading-5 text-amber-800">
+                      <p className="mb-1.5 font-black uppercase tracking-wider">
+                        Important Notice
                       </p>
-                    )}
+                      <ul className="list-disc space-y-1 pl-4 text-[11px]">
+                        <li>
+                          Cancellation requests made 14 days before the event date
+                          may be eligible for a refund.
+                        </li>
+                        <li>
+                          Cancellations made within 7 days before the scheduled
+                          event date are non-refundable.
+                        </li>
+                        <li>
+                          Remaining balances must be fully settled at least 7 days
+                          before the event date.
+                        </li>
+                      </ul>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {booking.cancellationStatus &&
-              booking.cancellationStatus !== "None" && (
+              {hasRemainingPayment && remainingBalance > 0 && (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+                    <div>
+                      <p className="text-sm font-black text-amber-900">
+                        {payStatus === "incomplete" ? "Incomplete Payment" : "Partial Payment"}
+                      </p>
+                      <p className="mt-1 text-lg font-black text-amber-700">
+                        Remaining Balance: ₱{remainingBalance.toLocaleString()}
+                      </p>
+                      {showBalanceReminderNotice && (
+                        <p className="mt-2 text-xs font-semibold text-amber-600">
+                          Reminder: Please settle your remaining balance of ₱{remainingBalance.toLocaleString()}.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+            {(booking.cancellationStatus && booking.cancellationStatus !== "None") ||
+              ((booking as any).cancelRequestStatus && (booking as any).cancelRequestStatus !== "None") ? (
               <section className="rounded-2xl border border-slate-200 p-4">
                 <div className="mb-3 flex items-center gap-2">
                   <div className="h-1.5 w-1.5 rounded-full bg-rose-400" />
@@ -872,9 +876,17 @@ function BookingDetailsModal({
                   <div className="flex justify-between">
                     <span className="text-slate-400">Cancellation</span>
                     <span className="font-bold text-slate-900">
-                      {booking.cancellationStatus}
+                      {booking.cancellationStatus || (booking as any).cancelRequestStatus || "None"}
                     </span>
                   </div>
+                  {(booking.cancellationReason || (booking as any).cancelReason) && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Reason</span>
+                      <span className="font-bold text-slate-900 max-w-[60%] text-right">
+                        {booking.cancellationReason || (booking as any).cancelReason}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-slate-400">Refund</span>
                     <span className="font-bold text-slate-900">
@@ -911,82 +923,81 @@ function BookingDetailsModal({
                   )}
                 </div>
               </section>
-            )}
+            ) : null}
 
-            {isPaymentVerified && (
-              <section className="rounded-2xl border border-slate-200 bg-white p-4">
-                <div className="mb-3 flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-slate-500" />
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                    Contract
-                  </p>
-                </div>
-                <div className="flex flex-wrap items-center gap-2 mb-3">
-                  <span
-                    className={cn(
-                      "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
-                      booking.contractStatus === "Signed"
-                        ? "border-emerald-100 bg-emerald-50 text-emerald-700"
-                        : "border-orange-100 bg-orange-50 text-orange-700",
-                    )}
-                  >
-                    {booking.contractStatus === "Signed" ? "Signed" : "Pending Signature"}
-                  </span>
-                </div>
-                {booking.contractStatus === "Signed" ? (
-                  <div className="space-y-1">
-                    <p className="text-sm font-semibold text-emerald-700">
-                      {booking.contractSignedDate
-                        ? `Signed on ${formatDate(booking.contractSignedDate)}`
-                        : "Contract has been signed."}
-                    </p>
-                    <p className="text-xs font-semibold text-slate-500">
-                      Your contract has been marked as signed by the administrator.
+              {isPaymentVerified && (
+                <section className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-slate-500" />
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      Contract
                     </p>
                   </div>
-                ) : (
-                  <div className="flex flex-col gap-3">
-                    <div className="space-y-2">
-                      <p className="text-sm font-semibold text-orange-700">
-                        Contract signing must be completed onsite at the One Estela Place office.
+                  <div className="flex flex-wrap items-center gap-2 mb-3">
+                    <span
+                      className={cn(
+                        "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
+                        booking.contractStatus === "Signed"
+                          ? "border-emerald-100 bg-emerald-50 text-emerald-700"
+                          : "border-orange-100 bg-orange-50 text-orange-700",
+                      )}
+                    >
+                      {booking.contractStatus === "Signed" ? "Signed" : "Pending Signature"}
+                    </span>
+                  </div>
+                  {booking.contractStatus === "Signed" ? (
+                    <div className="space-y-1">
+                      <p className="text-sm font-semibold text-emerald-700">
+                        {booking.contractSignedDate
+                          ? `Signed on ${formatDate(booking.contractSignedDate)}`
+                          : "Contract has been signed."}
                       </p>
                       <p className="text-xs font-semibold text-slate-500">
-                        Please visit the One Estela Place office to personally sign the official contract. This preview is for review purposes only and does not replace onsite contract signing.
+                        Your contract has been marked as signed by the administrator.
                       </p>
                     </div>
-                    <Button
-                      onClick={() => setShowContractPreview(true)}
-                      className="w-full h-10 rounded-lg bg-emerald-600 px-4 text-xs font-bold text-white shadow-sm hover:bg-emerald-700"
-                    >
-                      <FileText className="mr-1.5 h-3.5 w-3.5" />
-                      Preview Contract
-                    </Button>
-                  </div>
-                )}
-              </section>
-            )}
+                  ) : (
+                    <div className="flex flex-col gap-3">
+                      <div className="space-y-2">
+                        <p className="text-sm font-semibold text-orange-700">
+                          Contract signing must be completed onsite at the One Estela Place office.
+                        </p>
+                        <p className="text-xs font-semibold text-slate-500">
+                          Please visit the One Estela Place office to personally sign the official contract. This preview is for review purposes only and does not replace onsite contract signing.
+                        </p>
+                      </div>
+                      <Button
+                        onClick={() => setShowContractPreview(true)}
+                        className="w-full h-10 rounded-lg bg-emerald-600 px-4 text-xs font-bold text-white shadow-sm hover:bg-emerald-700"
+                      >
+                        <FileText className="mr-1.5 h-3.5 w-3.5" />
+                        Preview Contract
+                      </Button>
+                    </div>
+                  )}
+                </section>
+              )}
+            </div>
           </div>
-        </div>
 
-        <div className="shrink-0 border-t border-slate-100 bg-white px-5 py-4">
-          <div className="flex flex-col gap-3 w-full">
-            {isPayUnderReview && (
-              <div className="rounded-xl bg-amber-50 p-3 text-center">
-                <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">Payment Under Review</p>
-                <p className="mt-1 text-xs font-semibold text-amber-700">
-                  Your payment is currently under review. Please wait for admin verification.
-                </p>
-              </div>
-            )}
-            {hasActiveCancellationRequest && (
-              <div className="rounded-xl bg-rose-50 p-3 text-center">
-                <p className="text-[10px] font-black uppercase tracking-widest text-rose-600">Cancellation Under Review</p>
-                <p className="mt-1 text-xs font-semibold text-rose-700">
-                  Your cancellation request is under review. Please wait for admin response.
-                </p>
-              </div>
-            )}
-            <div className="flex flex-col gap-3 w-full">
+          <footer className="shrink-0 border-t border-slate-100 bg-white px-5 py-4">
+            <div className="space-y-3">
+              {isPayUnderReview && (
+                <div className="rounded-xl bg-amber-50 p-3 text-center">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">Payment Under Review</p>
+                  <p className="mt-1 text-xs font-semibold text-amber-700">
+                    Your payment is currently under review. Please wait for admin verification.
+                  </p>
+                </div>
+              )}
+              {hasActiveCancellationRequest && (
+                <div className="rounded-xl bg-rose-50 p-3 text-center">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-rose-600">Cancellation Under Review</p>
+                  <p className="mt-1 text-xs font-semibold text-rose-700">
+                    Your cancellation request is under review. Please wait for admin response.
+                  </p>
+                </div>
+              )}
               {(showModify || showReceipt || showPay || hasRemainingPayment) && (
                 <div className="grid grid-cols-2 gap-3">
                   {(showModify || isModifyDisabled) && (
@@ -1080,8 +1091,7 @@ function BookingDetailsModal({
                 </Button>
               )}
             </div>
-          </div>
-        </div>
+          </footer>
         </div>
       </DialogContent>
 
@@ -1606,25 +1616,32 @@ function ModifyBookingFlowModal({
   const isMaintenanceBlocked = (dateKey: string) => {
     if (!dateKey || !maintenanceDates?.length || !booking) return false
     const venueId = booking.venueId || ""
+    const venueName = (booking.venue || "").toLowerCase().trim()
     return maintenanceDates.some((storedValue) => {
       const stored = String(storedValue || "").trim()
       if (!stored) return false
       if (stored === dateKey) return true
       const [storedVenueKey, storedDateKey] = stored.split("|")
-      return storedDateKey === dateKey && storedVenueKey === venueId
+      if (storedDateKey !== dateKey) return false
+      if (storedVenueKey === venueId) return true
+      return storedVenueKey && storedVenueKey.toLowerCase().trim() === venueName
     })
   }
 
   // Available time slots for selected date
   const availableVenueSlots = useMemo(() => {
     if (!selectedDate || !booking) return venueSlots
-    const existingBookings = (bookings || []).filter(b =>
-      b.date === selectedDate &&
-      b.venueId === booking.venueId &&
-      b.id !== booking.id &&
-      b.status !== 'cancelled' &&
-      b.status !== 'declined'
-    )
+    const venueMatchId = booking.venueId || ""
+    const venueMatchName = (booking.venue || "").toLowerCase().trim()
+    const existingBookings = (bookings || []).filter(b => {
+      if (b.date !== selectedDate) return false
+      if (b.id === booking.id) return false
+      if (b.status === 'cancelled' || b.status === 'declined') return false
+      const bVenueId = (b.venueId || "").toLowerCase().trim()
+      const bVenueName = (b.venue || "").toLowerCase().trim()
+      if (venueMatchId && bVenueId) return bVenueId === venueMatchId
+      return bVenueName === venueMatchName
+    })
     return venueSlots.filter(slot =>
       !existingBookings.some(b => {
         if (!b.time) return false
@@ -1712,13 +1729,17 @@ function ModifyBookingFlowModal({
       statusClass = "cursor-not-allowed border-slate-900 bg-slate-900 text-slate-400"
       isDisabled = true
     } else {
-      const dayBookings = (bookings || []).filter(b =>
-        b.date === iterDateStr &&
-        b.venueId === booking?.venueId &&
-        b.id !== booking?.id &&
-        b.status !== 'cancelled' &&
-        b.status !== 'declined'
-      )
+      const venueMatchId = booking?.venueId || ""
+      const venueMatchName = (booking?.venue || "").toLowerCase().trim()
+      const dayBookings = (bookings || []).filter(b => {
+        if (b.date !== iterDateStr) return false
+        if (b.id === booking?.id) return false
+        if (b.status === 'cancelled' || b.status === 'declined') return false
+        const bVenueId = (b.venueId || "").toLowerCase().trim()
+        const bVenueName = (b.venue || "").toLowerCase().trim()
+        if (venueMatchId && bVenueId) return bVenueId === venueMatchId
+        return bVenueName === venueMatchName
+      })
       const available = venueSlots.filter(slot =>
         !dayBookings.some(b => {
           if (!b.time) return false

@@ -21,7 +21,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Wrench,
-  Building2,
   Trash2,
 } from "lucide-react"
 
@@ -318,7 +317,21 @@ export default function AdminBookingsPage() {
     setShowApproveCancellationTarget(null)
     const next = bookings.map((b) =>
       b.id === id
-        ? { ...b, status: "cancelled" as const, bookingStatus: "Cancelled" as const, cancellationRequested: false, cancellationStatus: "Approved" as const, cancellationStatusLabel: "Approved", cancellationReviewedAt: now, refundStatus: "Refund Eligible" as const, updatedAt: now }
+        ? {
+            ...b,
+            status: "cancelled" as const,
+            bookingStatus: "Cancelled" as const,
+            cancellationRequested: false,
+            cancellationStatus: "Approved" as const,
+            cancellationStatusLabel: "Approved",
+            cancellationReviewedAt: now,
+            cancelRequestStatus: null,
+            cancellationUnderReview: false,
+            adminCancelDecision: "approved",
+            adminCancelReason: "",
+            refundStatus: "Refund Eligible" as const,
+            updatedAt: now,
+          }
         : b,
     )
     persistBookings(next)
@@ -910,7 +923,7 @@ function BookingDetailsModal({
   const paymentStage = normalizeStatus((booking as any).paymentStage)
 
   const bookingStatus = normalizeStatus((booking as any).bookingStatus || booking.status)
-  const isCancellationRequested = normalizeStatus(booking.status) === "cancellation_requested"
+  const isCancellationRequested = normalizeStatus(booking.status) === "cancellation_requested" || normalizeStatus((booking as any).cancelRequestStatus) === "pending"
   const isModificationUnderReview = normalizeStatus(booking.status) === "modification_under_review"
 
   const hasActiveProof = (() => {
@@ -1084,7 +1097,7 @@ function BookingDetailsModal({
             </section>
           )}
 
-          {booking.cancellationStatus && booking.cancellationStatus !== "None" && (
+          {(booking.cancellationStatus && booking.cancellationStatus !== "None") || ((booking as any).cancelRequestStatus && (booking as any).cancelRequestStatus !== "None") ? (
             <section className="rounded-2xl border border-slate-200 p-4">
               <div className="mb-3 flex items-center gap-2">
                 <div className="h-1.5 w-1.5 rounded-full bg-rose-400" />
@@ -1093,18 +1106,18 @@ function BookingDetailsModal({
               <div className="space-y-2.5 text-xs font-semibold text-slate-700">
                 <div className="flex justify-between">
                   <span className="text-slate-400">Cancellation</span>
-                  <span className="font-bold text-slate-900">{booking.cancellationStatus}</span>
+                  <span className="font-bold text-slate-900">{booking.cancellationStatus || (booking as any).cancelRequestStatus || "None"}</span>
                 </div>
-                {booking.cancellationReason && (
+                {(booking.cancellationReason || (booking as any).cancelReason) && (
                   <div className="flex justify-between">
                     <span className="text-slate-400">Reason</span>
-                    <span className="font-bold text-slate-900 max-w-[60%] text-right">{booking.cancellationReason}</span>
+                    <span className="font-bold text-slate-900 max-w-[60%] text-right">{booking.cancellationReason || (booking as any).cancelReason}</span>
                   </div>
                 )}
-                {booking.cancellationRequestedAt && (
+                {(booking.cancellationRequestedAt || (booking as any).cancelRequestedAt) && (
                   <div className="flex justify-between">
                     <span className="text-slate-400">Request Date</span>
-                    <span className="font-bold text-slate-900">{formatDate(booking.cancellationRequestedAt)}</span>
+                    <span className="font-bold text-slate-900">{formatDate(booking.cancellationRequestedAt || (booking as any).cancelRequestedAt)}</span>
                   </div>
                 )}
                 <div className="flex justify-between">
@@ -1135,7 +1148,7 @@ function BookingDetailsModal({
                 )}
               </div>
             </section>
-          )}
+          ) : null}
 
           {booking.modificationRequested && booking.modificationStatus && booking.modificationStatus !== "None" && (
             <section className="rounded-2xl border border-slate-200 p-4">
@@ -2254,13 +2267,17 @@ function MaintenanceCalendarModal({
   const offices = getAllOffices()
 
   const [maintType, setMaintType] = useState<"venue" | "office">("venue")
-  const [selectedSpaceId, setSelectedSpaceId] = useState(venues[0]?.id || "v1")
-  const [date, setDate] = useState("")
+  const [selectedSpaceId, setSelectedSpaceId] = useState("")
+  const [selectedDate, setSelectedDate] = useState("")
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
   const [useRange, setUseRange] = useState(false)
   const [reason, setReason] = useState("")
   const [isSaving, setIsSaving] = useState(false)
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const now = new Date()
+    return new Date(now.getFullYear(), now.getMonth(), 1)
+  })
 
   useEffect(() => {
     if (open) {
@@ -2276,8 +2293,33 @@ function MaintenanceCalendarModal({
     r => r.type === maintType
   ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
+  const spaceFilteredRecords = selectedSpaceId
+    ? filteredRecords.filter(r => r.spaceId === selectedSpaceId || r.spaceName === selectedSpaceId)
+    : filteredRecords
+
+  // Calendar computations
+  const calYear = calendarMonth.getFullYear()
+  const calMonth = calendarMonth.getMonth()
+  const firstDayOfWeek = new Date(calYear, calMonth, 1).getDay()
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate()
+  const daysInMonthArray = Array.from({ length: daysInMonth }, (_, i) => i + 1)
+
+  const spaceMaintDates = useMemo(() => {
+    const dates = new Set<string>()
+    if (!selectedSpaceId) return dates
+    for (const rec of maintenanceRecords) {
+      if (rec.spaceId !== selectedSpaceId && rec.spaceName !== selectedSpaceId) continue
+      if (rec.date) dates.add(rec.date)
+      if (rec.startDate && rec.endDate) {
+        const rangeDates = getDatesInRange(rec.startDate, rec.endDate)
+        for (const d of rangeDates) dates.add(d)
+      }
+    }
+    return dates
+  }, [maintenanceRecords, selectedSpaceId])
+
   const handleSave = () => {
-    const dateToUse = useRange ? startDate : date
+    const dateToUse = useRange ? startDate : selectedDate
     if (!dateToUse) {
       toast({ title: "Date Required", description: "Please select a date.", variant: "destructive" })
       return
@@ -2308,6 +2350,8 @@ function MaintenanceCalendarModal({
           spaceId: selectedSpaceId,
           spaceName: space?.name || selectedSpaceId,
           date: d,
+          startDate: useRange ? startDate : undefined,
+          endDate: useRange ? endDate : undefined,
           reason: reason || undefined,
           status: "Active",
         })
@@ -2315,7 +2359,7 @@ function MaintenanceCalendarModal({
     }
 
     setIsSaving(false)
-    setDate("")
+    setSelectedDate("")
     setStartDate("")
     setEndDate("")
     setReason("")
@@ -2352,30 +2396,17 @@ function MaintenanceCalendarModal({
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
                 Space Type
               </label>
-              <div className="mt-1.5 flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => { setMaintType("venue"); setSelectedSpaceId(venues[0]?.id || "v1") }}
-                  className={`flex-1 rounded-xl py-2 text-[11px] font-bold transition-all border ${
-                    maintType === "venue"
-                      ? "bg-slate-900 text-white border-slate-900"
-                      : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"
-                  }`}
-                >
-                  Event Venue
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setMaintType("office"); setSelectedSpaceId(offices[0]?.id || "o1") }}
-                  className={`flex-1 rounded-xl py-2 text-[11px] font-bold transition-all border ${
-                    maintType === "office"
-                      ? "bg-slate-900 text-white border-slate-900"
-                      : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"
-                  }`}
-                >
-                  Office Space
-                </button>
-              </div>
+              <select
+                value={maintType}
+                onChange={(e) => {
+                  setMaintType(e.target.value as "venue" | "office")
+                  setSelectedSpaceId("")
+                }}
+                className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
+              >
+                <option value="venue">Event Venue</option>
+                <option value="office">Office Space</option>
+              </select>
             </div>
 
             {/* Space dropdown */}
@@ -2383,31 +2414,27 @@ function MaintenanceCalendarModal({
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
                 {maintType === "venue" ? "Select Venue" : "Select Office"}
               </label>
-              <Select value={selectedSpaceId} onValueChange={setSelectedSpaceId}>
-                <SelectTrigger className="mt-1.5 h-10 w-full rounded-xl border-slate-200 bg-white text-xs font-bold text-slate-700 focus:ring-slate-900">
-                  <div className="flex items-center gap-2">
-                    <Building2 className="h-3.5 w-3.5 text-slate-400" />
-                    <SelectValue />
-                  </div>
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border-slate-200 shadow-xl">
-                  {currentSpaces.length === 0 && (
-                    <div className="px-3 py-2 text-xs text-slate-400">No spaces available</div>
-                  )}
-                  {currentSpaces.map((s) => (
-                    <SelectItem key={s.id} value={s.id} className="font-bold">
-                      {s.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <select
+                value={selectedSpaceId}
+                onChange={(e) => setSelectedSpaceId(e.target.value)}
+                className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
+              >
+                <option value="" disabled>
+                  {maintType === "venue" ? "Select event venue" : "Select office space"}
+                </option>
+                {currentSpaces.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            {/* Date fields */}
+            {/* Calendar */}
             <div>
               <div className="flex items-center justify-between">
                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                  {useRange ? "Date Range" : "Date"}
+                  {useRange ? "Date Range" : "Select Date"}
                 </label>
                 <button
                   type="button"
@@ -2421,37 +2448,141 @@ function MaintenanceCalendarModal({
                   {useRange ? "Single Date" : "Date Range"}
                 </button>
               </div>
-              <div className="mt-1.5 space-y-2">
-                {useRange ? (
-                  <>
-                    <Input
-                      type="date"
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                      min={todayStr}
-                      className="h-10 rounded-xl border-slate-200 text-xs font-bold"
-                      placeholder="Start date"
-                    />
-                    <Input
-                      type="date"
-                      value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                      min={startDate || todayStr}
-                      className="h-10 rounded-xl border-slate-200 text-xs font-bold"
-                      placeholder="End date"
-                    />
-                  </>
-                ) : (
+
+              {useRange ? (
+                <div className="mt-1.5 space-y-2">
                   <Input
                     type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
                     min={todayStr}
                     className="h-10 rounded-xl border-slate-200 text-xs font-bold"
-                    placeholder="Select date"
+                    placeholder="Start date"
                   />
-                )}
-              </div>
+                  <Input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    min={startDate || todayStr}
+                    className="h-10 rounded-xl border-slate-200 text-xs font-bold"
+                    placeholder="End date"
+                  />
+                </div>
+              ) : !selectedSpaceId ? (
+                <div className="mt-2 flex min-h-[160px] items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50">
+                  <p className="text-[11px] font-bold text-slate-400 text-center px-4">
+                    Select a space first before choosing a maintenance date.
+                  </p>
+                </div>
+              ) : (
+                <div className="mt-1.5 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+                  {/* Month navigation */}
+                  <div className="flex items-center justify-between mb-3">
+                    <button
+                      type="button"
+                      onClick={() => setCalendarMonth(new Date(calYear, calMonth - 1, 1))}
+                      className="flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
+                      aria-label="Previous month"
+                    >
+                      <ChevronLeft className="h-3.5 w-3.5" />
+                    </button>
+                    <h5 className="text-[13px] font-black leading-none text-slate-950">
+                      {calendarMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                    </h5>
+                    <button
+                      type="button"
+                      onClick={() => setCalendarMonth(new Date(calYear, calMonth + 1, 1))}
+                      className="flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
+                      aria-label="Next month"
+                    >
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+
+                  {/* Day-of-week headers */}
+                  <div className="mb-1.5 grid grid-cols-7 text-center">
+                    {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
+                      <div key={d} className="text-[7px] font-black uppercase tracking-[0.1em] text-slate-400">
+                        {d}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Day grid */}
+                  <div className="grid grid-cols-7 justify-items-center gap-0.5">
+                    {Array.from({ length: firstDayOfWeek }).map((_, i) => (
+                      <div key={`empty-${i}`} className="h-7 w-7 2xl:h-8 2xl:w-8" />
+                    ))}
+                    {daysInMonthArray.map((day) => {
+                      const dateStr = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+                      const isPast = dateStr < todayStr
+                      const isMaint = spaceMaintDates.has(dateStr)
+                      const isSel = selectedDate === dateStr
+
+                      let dayClass = "border-slate-200 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-50"
+                      let dayTitle = "Available"
+                      let isDisabled = false
+
+                      if (isPast) {
+                        dayClass = "cursor-not-allowed border-slate-100 bg-slate-100 text-slate-300 opacity-60"
+                        isDisabled = true
+                        dayTitle = "Past date"
+                      } else if (isMaint) {
+                        dayClass = "cursor-not-allowed border-slate-900 bg-slate-900 text-slate-400"
+                        isDisabled = true
+                        dayTitle = "Maintenance"
+                      }
+
+                      if (isSel && !isDisabled) {
+                        dayClass = "border-orange-600 bg-orange-600 text-white shadow-md shadow-orange-200 scale-105"
+                        dayTitle = "Selected date"
+                      }
+
+                      return (
+                        <button
+                          key={day}
+                          type="button"
+                          title={dayTitle}
+                          disabled={isDisabled}
+                          onClick={() => setSelectedDate(dateStr)}
+                          className={`flex h-7 w-7 2xl:h-8 2xl:w-8 items-center justify-center rounded-full border text-[10px] xl:text-[11px] font-black outline-none transition-all focus-visible:ring-2 focus-visible:ring-orange-300 ${dayClass}`}
+                        >
+                          {day}
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  {/* Legend */}
+                  <div className="mt-3 grid grid-cols-4 gap-1 border-t border-slate-100 pt-2.5">
+                    <div className="flex items-center justify-center gap-1.5">
+                      <div className="h-2.5 w-2.5 rounded-full border border-slate-200 bg-white" />
+                      <span className="text-[7px] font-black uppercase tracking-[0.08em] text-slate-400">Available</span>
+                    </div>
+                    <div className="flex items-center justify-center gap-1.5">
+                      <div className="h-2.5 w-2.5 rounded-full bg-orange-600 shadow-sm shadow-orange-200" />
+                      <span className="text-[7px] font-black uppercase tracking-[0.08em] text-orange-600">Selected</span>
+                    </div>
+                    <div className="flex items-center justify-center gap-1.5">
+                      <div className="h-2.5 w-2.5 rounded-full bg-slate-900" />
+                      <span className="text-[7px] font-black uppercase tracking-[0.08em] text-slate-600">Maintenance</span>
+                    </div>
+                    <div className="flex items-center justify-center gap-1.5">
+                      <div className="h-2.5 w-2.5 rounded-full bg-slate-100 border border-slate-200" />
+                      <span className="text-[7px] font-black uppercase tracking-[0.08em] text-slate-300">Past Date</span>
+                    </div>
+                  </div>
+
+                  {/* Selected date display */}
+                  {selectedDate && (
+                    <div className="mt-2 rounded-lg bg-orange-50 border border-orange-100 px-3 py-2 text-center">
+                      <p className="text-[9px] font-bold text-orange-700">
+                        Selected: {new Date(selectedDate + "T00:00:00").toLocaleDateString("en-PH", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Reason */}
@@ -2470,20 +2601,20 @@ function MaintenanceCalendarModal({
             {/* Save button */}
             <Button
               onClick={handleSave}
-              disabled={isSaving || (useRange ? !startDate || !endDate : !date) || !selectedSpaceId}
+              disabled={isSaving || (useRange ? !startDate || !endDate : !selectedDate) || !selectedSpaceId}
               className="h-10 w-full rounded-xl bg-slate-900 text-sm font-black text-white hover:bg-slate-800 disabled:opacity-40"
             >
               {isSaving ? "Saving..." : "Block Maintenance"}
             </Button>
 
             {/* Existing records */}
-            {filteredRecords.length > 0 && (
+            {spaceFilteredRecords.length > 0 && (
               <div>
                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
                   Existing Maintenance
                 </label>
                 <div className="mt-1.5 space-y-1.5 max-h-[220px] overflow-y-auto">
-                  {filteredRecords.map((rec) => {
+                  {spaceFilteredRecords.map((rec) => {
                     const space = (maintType === "venue" ? venues : offices).find(
                       s => s.id === rec.spaceId
                     )

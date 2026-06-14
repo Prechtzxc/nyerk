@@ -32,7 +32,8 @@ export function CMSVenuesTab({ onNavigate }: { onNavigate: (tab: string) => void
 
   const handleSave = () => {
     if (!form.name.trim()) { toast({ title: "Name required", description: "Enter a venue name.", variant: "destructive" }); return }
-    const data = { name: form.name.trim(), capacity: form.capacity?.trim() || "", price: toPrice(form.price), description: form.description || "", image: form.image || "/placeholder.jpg", panoImage: form.panoImage || "", updatedAt: new Date().toISOString() }
+    const pano = form.panoImage || ""
+    const data = { name: form.name.trim(), capacity: form.capacity?.trim() || "", price: toPrice(form.price), description: form.description || "", image: form.image || "/placeholder.jpg", panoImage: pano, panoramaUrl: pano, updatedAt: new Date().toISOString() }
     if (editingId) { updateVenue(editingId, data); toast({ title: "Venue updated", description: "Changes saved.", className: "bg-emerald-500 text-white border-none" }) }
     else { addVenue({ ...data, type: "venue" }); toast({ title: "Venue added", description: "New venue created.", className: "bg-emerald-500 text-white border-none" }) }
     resetForm()
@@ -134,7 +135,7 @@ export function CMSVenuesTab({ onNavigate }: { onNavigate: (tab: string) => void
                   <div className="relative mt-1">
                     <select value={editingId ? (venues.find((v: any) => v.id === editingId)?.isHidden ? "hidden" : "published") : "published"}
                       onChange={(e) => { const v = venues.find((v: any) => v.id === editingId); if (v) updateVenue(v.id, { isHidden: e.target.value === "hidden" }) }}
-                      className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100 cursor-pointer">
+                      className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 pr-10 text-sm font-semibold text-slate-700 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100 cursor-pointer">
                       <option value="published">Published</option>
                       <option value="hidden">Hidden</option>
                     </select>
