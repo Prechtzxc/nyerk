@@ -393,34 +393,18 @@ export default function AdminBookingsPage() {
 
   const confirmApproveModification = () => {
     const id = showApproveModificationTarget
-    if (!id) return
-    const now = new Date().toISOString()
-    const next = bookings.map((b) => {
-      if (b.id !== id) return b
-      const changes = (b as any).requestedChanges as Record<string, unknown> | undefined
-      const previousStatus = (b as any).modificationPreviousStatus || "pending"
-      const paymentVerified = b.paymentStatus === "verified" || b.paymentStatus === "paid" || b.paymentStatus === "slot_verified"
-      const restoredStatus: Booking["status"] = previousStatus === "modification_under_review"
-        ? paymentVerified ? "confirmed" : "pending"
-        : previousStatus as Booking["status"]
-      return {
-        ...b,
-        ...(changes || {}),
-        status: restoredStatus,
-        bookingStatus: "Modified",
-        modificationRequested: false,
-        modificationStatus: "Approved" as const,
-        modificationReviewedAt: now,
-        modificationPreviousStatus: undefined,
-        modificationPreviousBookingStatus: undefined,
-        requestedChanges: undefined,
-        originalBookingSnapshot: undefined,
-        updatedAt: now,
-      } as unknown as Booking
-    })
-    persistBookings(next)
+    if (!id || !bookingCtx?.approveModification) return
+    bookingCtx.approveModification(id)
     setShowApproveModificationConfirm(false)
     setShowApproveModificationTarget(null)
+    try {
+      const stored = localStorage.getItem(BOOKING_STORAGE_KEY)
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        const updated = parsed.find((b: Booking) => b.id === id)
+        if (updated) setSelectedBooking(updated)
+      }
+    } catch {}
     toast({
       title: "Modification Approved",
       description: `Booking ${id} has been updated with the requested changes.`,
@@ -429,20 +413,21 @@ export default function AdminBookingsPage() {
   }
 
   const confirmDeclineModification = () => {
-    if (!declineModificationTarget || !declineModificationReason.trim()) return
+    if (!declineModificationTarget || !declineModificationReason.trim() || !bookingCtx?.declineModification) return
     const target = declineModificationTarget
     const reason = declineModificationReason.trim()
-    const previousStatus = (target as any).modificationPreviousStatus || "pending"
-    const now = new Date().toISOString()
-    const next = bookings.map((b) =>
-      b.id === target.id
-        ? { ...b, status: previousStatus, bookingStatus: b.bookingStatus || "Confirmed", modificationRequested: false, modificationStatus: "Declined" as const, modificationDeclineReason: reason, modificationReviewedAt: now, modificationPreviousStatus: undefined, modificationPreviousBookingStatus: undefined, requestedChanges: undefined, originalBookingSnapshot: undefined, updatedAt: now }
-        : b,
-    )
-    persistBookings(next)
+    bookingCtx.declineModification(target.id, reason)
     setShowDeclineModificationModal(false)
     setDeclineModificationTarget(null)
     setDeclineModificationReason("")
+    try {
+      const stored = localStorage.getItem(BOOKING_STORAGE_KEY)
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        const updated = parsed.find((b: Booking) => b.id === target.id)
+        if (updated) setSelectedBooking(updated)
+      }
+    } catch {}
     toast({
       title: "Modification Declined",
       description: `Booking ${target.id} has been declined. Original booking unchanged.`,

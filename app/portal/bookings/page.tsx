@@ -1583,6 +1583,9 @@ function ModifyBookingFlowModal({
   const [eventType, setEventType] = useState("")
   const [guestCount, setGuestCount] = useState("")
   const [notes, setNotes] = useState("")
+  const [companyName, setCompanyName] = useState("")
+  const [natureOfBusiness, setNatureOfBusiness] = useState("")
+  const [natureCustom, setNatureCustom] = useState("")
   const [reason, setReason] = useState("")
   const [reasonError, setReasonError] = useState(false)
 
@@ -1700,6 +1703,12 @@ function ModifyBookingFlowModal({
       setEventType(booking.eventType || "")
       setGuestCount(String(booking.guestCount || ""))
       setNotes(booking.specialRequests || "")
+      setCompanyName((booking as any).companyName || booking.eventName || "")
+      const biz = (booking as any).natureOfBusiness || booking.eventType || ""
+      setNatureOfBusiness(biz)
+      setNatureCustom(
+        biz && !["Technology / IT","Freelance","Agency","Corporate","Others"].includes(biz) ? biz : ""
+      )
       setReason("")
       setReasonError(false)
 
@@ -1740,12 +1749,22 @@ function ModifyBookingFlowModal({
       return
     }
     const changes: Record<string, unknown> = {}
-    if (eventName !== booking.eventName) changes.eventName = eventName
-    if (eventType !== booking.eventType) changes.eventType = eventType
-    if (String(guestCount) !== String(booking.guestCount)) changes.guestCount = Number(guestCount) || booking.guestCount
-    if ((notes || "") !== (booking.specialRequests || "")) changes.specialRequests = notes
     if (selectedDate !== booking.date) changes.date = selectedDate
     if (isOfficeBooking(booking)) {
+      const resolvedNature = natureOfBusiness === "Others" && natureCustom.trim()
+        ? natureCustom.trim()
+        : natureOfBusiness
+      if (companyName !== ((booking as any).companyName || booking.eventName || "")) {
+        changes.companyName = companyName
+        changes.eventName = companyName
+      }
+      if (resolvedNature !== ((booking as any).natureOfBusiness || booking.eventType || "")) {
+        changes.natureOfBusiness = resolvedNature
+        changes.eventType = resolvedNature
+      }
+      changes.bookingType = "office"
+      changes.bookingCategory = "office"
+      changes.isOfficeRental = true
       const storedRental =
         (booking as any).rentalTerm ||
         (booking as any).contractTerm ||
@@ -1754,17 +1773,24 @@ function ModifyBookingFlowModal({
       const displayRental = rentalTermToDisplay[storedRental] || ""
       if (selectedDuration && selectedDuration !== displayRental) {
         changes.time = selectedDuration
-        changes.rentalTerm = displayToRentalTerm[selectedDuration] || "6_months"
-        changes.contractTerm = displayToRentalTerm[selectedDuration] || "6_months"
-        changes.officeRentalTerm = displayToRentalTerm[selectedDuration] || "6_months"
+        const term = displayToRentalTerm[selectedDuration] || "6_months"
+        changes.rentalTerm = term
+        changes.contractTerm = term
+        changes.officeRentalTerm = term
       }
-    } else if (selectedDuration !== booking.time) {
-      changes.time = selectedDuration
-      if (selectedDuration) {
-        const parsed = getParsedTime(selectedDuration)
-        if (parsed) {
-          changes.startTime = parsed.startTimeLabel
-          changes.endTime = `${parsed.end > 12 ? parsed.end - 12 : parsed.end}:00 ${parsed.end >= 12 ? 'PM' : 'AM'}`
+    } else {
+      if (eventName !== booking.eventName) changes.eventName = eventName
+      if (eventType !== booking.eventType) changes.eventType = eventType
+      if (String(guestCount) !== String(booking.guestCount)) changes.guestCount = Number(guestCount) || booking.guestCount
+      if ((notes || "") !== (booking.specialRequests || "")) changes.specialRequests = notes
+      if (selectedDuration !== booking.time) {
+        changes.time = selectedDuration
+        if (selectedDuration) {
+          const parsed = getParsedTime(selectedDuration)
+          if (parsed) {
+            changes.startTime = parsed.startTimeLabel
+            changes.endTime = `${parsed.end > 12 ? parsed.end - 12 : parsed.end}:00 ${parsed.end >= 12 ? 'PM' : 'AM'}`
+          }
         }
       }
     }
@@ -2102,66 +2128,145 @@ function ModifyBookingFlowModal({
                     Final Details
                   </h2>
                   <p className="text-slate-500 mt-1 text-xs">
-                    Update your event information.
+                    {isOffice ? "Update your office rental details." : "Update your event information."}
                   </p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                  <h3 className="shrink-0 text-xs font-black text-slate-900 flex items-center gap-2 mb-1">
-                    <PartyPopper className="w-4 h-4 text-[#ea580c]" />
-                    Event Information
-                  </h3>
+                  {isOffice ? (
+                    <>
+                      <h3 className="shrink-0 text-xs font-black text-slate-900 flex items-center gap-2 mb-1">
+                        <Calendar className="w-4 h-4 text-[#ea580c]" />
+                        Office Details
+                      </h3>
 
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">
-                      Event Name <span className="text-rose-500">*</span>
-                    </label>
-                    <Input
-                      value={eventName}
-                      onChange={(e) => setEventName(e.target.value)}
-                      placeholder="e.g. 18th Birthday Party"
-                      className="h-10 w-full rounded-xl bg-slate-50 border border-slate-200 px-3 text-xs focus-visible:ring-2 focus-visible:ring-[#ea580c]"
-                    />
-                  </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">
+                          Company Name <span className="text-rose-500">*</span>
+                        </label>
+                        <Input
+                          value={companyName}
+                          onChange={(e) => setCompanyName(e.target.value)}
+                          placeholder="e.g. Acme Corp"
+                          className="h-10 w-full rounded-xl bg-slate-50 border border-slate-200 px-3 text-xs focus-visible:ring-2 focus-visible:ring-[#ea580c]"
+                        />
+                      </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">
-                        Event Type <span className="text-rose-500">*</span>
-                      </label>
-                      <Select value={eventType} onValueChange={setEventType}>
-                        <SelectTrigger className="h-10 w-full rounded-xl bg-slate-50 border border-slate-200 px-3 text-xs focus:ring-2 focus:ring-[#ea580c]">
-                          <SelectValue placeholder="Choose Event Type" />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl border-slate-200 shadow-xl max-h-[200px] z-[10003]">
-                          <SelectItem value="wedding" className="font-bold text-xs text-slate-700 py-2 cursor-pointer focus:bg-orange-50 focus:text-[#ea580c]">Wedding</SelectItem>
-                          <SelectItem value="birthday" className="font-bold text-xs text-slate-700 py-2 cursor-pointer focus:bg-orange-50 focus:text-[#ea580c]">Birthday / Debut</SelectItem>
-                          <SelectItem value="corporate" className="font-bold text-xs text-slate-700 py-2 cursor-pointer focus:bg-orange-50 focus:text-[#ea580c]">Corporate Event</SelectItem>
-                          <SelectItem value="seminar" className="font-bold text-xs text-slate-700 py-2 cursor-pointer focus:bg-orange-50 focus:text-[#ea580c]">Seminar / Workshop</SelectItem>
-                          <SelectItem value="other" className="font-bold text-xs text-slate-700 py-2 cursor-pointer focus:bg-orange-50 focus:text-[#ea580c]">Other Event</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">
-                        Estimated Guests <span className="text-rose-500">*</span>
-                      </label>
-                      <Input
-                        type="number"
-                        min={1}
-                        max={venueMaxPax}
-                        value={guestCount}
-                        onChange={(e) => {
-                          let val = parseInt(e.target.value)
-                          if (val > venueMaxPax) val = venueMaxPax
-                          if (val < 1) val = 1
-                          setGuestCount(val ? String(val) : "")
-                        }}
-                        placeholder={`Up to ${venueMaxPax} pax`}
-                        className="h-10 w-full rounded-xl bg-slate-50 border border-slate-200 px-3 text-xs focus-visible:ring-2 focus-visible:ring-[#ea580c]"
-                      />
-                    </div>
-                  </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">
+                          Nature of Business <span className="text-rose-500">*</span>
+                        </label>
+                        <select
+                          value={natureOfBusiness}
+                          onChange={(e) => setNatureOfBusiness(e.target.value)}
+                          className="h-10 w-full rounded-xl bg-slate-50 border border-slate-200 px-3 text-xs focus:ring-2 focus:ring-[#ea580c] outline-none"
+                        >
+                          <option value="" disabled>Select Nature of Business</option>
+                          <option value="Technology / IT">Technology / IT</option>
+                          <option value="Freelance">Freelance</option>
+                          <option value="Agency">Agency</option>
+                          <option value="Corporate">Corporate</option>
+                          <option value="Others">Others</option>
+                        </select>
+                        {natureOfBusiness === "Others" && (
+                          <Input
+                            value={natureCustom}
+                            onChange={(e) => setNatureCustom(e.target.value)}
+                            placeholder="Specify your nature of business"
+                            className="mt-2 h-10 w-full rounded-xl bg-slate-50 border border-slate-200 px-3 text-xs focus-visible:ring-2 focus-visible:ring-[#ea580c]"
+                          />
+                        )}
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">
+                          Rental Term / Contract Duration <span className="text-rose-500">*</span>
+                        </label>
+                        <div className="flex flex-col gap-2">
+                          {["6 Months", "1 Year", "2 Years"].map((slot) => (
+                            <button
+                              key={slot}
+                              type="button"
+                              onClick={() => setSelectedDuration(slot)}
+                              className={`w-full flex items-center justify-between p-3 min-h-[44px] rounded-lg border-2 transition-all focus-visible:ring-2 focus-visible:ring-orange-200 outline-none ${
+                                selectedDuration === slot
+                                  ? 'border-[#ea580c] bg-orange-50 shadow-sm ring-2 ring-orange-50'
+                                  : 'border-slate-100 bg-white hover:border-[#ea580c]'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <Calendar className={`w-4 h-4 ${selectedDuration === slot ? 'text-[#ea580c]' : 'text-slate-400'}`} />
+                                <span className={`font-bold text-xs ${selectedDuration === slot ? 'text-orange-900' : 'text-slate-700'}`}>{slot}</span>
+                              </div>
+                              <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                                selectedDuration === slot ? 'border-[#ea580c] bg-[#ea580c]' : 'border-slate-200'
+                              }`}>
+                                {selectedDuration === slot && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <h3 className="shrink-0 text-xs font-black text-slate-900 flex items-center gap-2 mb-1">
+                        <PartyPopper className="w-4 h-4 text-[#ea580c]" />
+                        Event Information
+                      </h3>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">
+                          Event Name <span className="text-rose-500">*</span>
+                        </label>
+                        <Input
+                          value={eventName}
+                          onChange={(e) => setEventName(e.target.value)}
+                          placeholder="e.g. 18th Birthday Party"
+                          className="h-10 w-full rounded-xl bg-slate-50 border border-slate-200 px-3 text-xs focus-visible:ring-2 focus-visible:ring-[#ea580c]"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">
+                            Event Type <span className="text-rose-500">*</span>
+                          </label>
+                          <Select value={eventType} onValueChange={setEventType}>
+                            <SelectTrigger className="h-10 w-full rounded-xl bg-slate-50 border border-slate-200 px-3 text-xs focus:ring-2 focus:ring-[#ea580c]">
+                              <SelectValue placeholder="Choose Event Type" />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl border-slate-200 shadow-xl max-h-[200px] z-[10003]">
+                              <SelectItem value="wedding" className="font-bold text-xs text-slate-700 py-2 cursor-pointer focus:bg-orange-50 focus:text-[#ea580c]">Wedding</SelectItem>
+                              <SelectItem value="birthday" className="font-bold text-xs text-slate-700 py-2 cursor-pointer focus:bg-orange-50 focus:text-[#ea580c]">Birthday / Debut</SelectItem>
+                              <SelectItem value="corporate" className="font-bold text-xs text-slate-700 py-2 cursor-pointer focus:bg-orange-50 focus:text-[#ea580c]">Corporate Event</SelectItem>
+                              <SelectItem value="seminar" className="font-bold text-xs text-slate-700 py-2 cursor-pointer focus:bg-orange-50 focus:text-[#ea580c]">Seminar / Workshop</SelectItem>
+                              <SelectItem value="other" className="font-bold text-xs text-slate-700 py-2 cursor-pointer focus:bg-orange-50 focus:text-[#ea580c]">Other Event</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">
+                            Estimated Guests <span className="text-rose-500">*</span>
+                          </label>
+                          <Input
+                            type="number"
+                            min={1}
+                            max={venueMaxPax}
+                            value={guestCount}
+                            onChange={(e) => {
+                              let val = parseInt(e.target.value)
+                              if (val > venueMaxPax) val = venueMaxPax
+                              if (val < 1) val = 1
+                              setGuestCount(val ? String(val) : "")
+                            }}
+                            placeholder={`Up to ${venueMaxPax} pax`}
+                            className="h-10 w-full rounded-xl bg-slate-50 border border-slate-200 px-3 text-xs focus-visible:ring-2 focus-visible:ring-[#ea580c]"
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
 
                   {/* Reason for Modification */}
                   <div className="space-y-1.5 pt-3 border-t border-slate-100">

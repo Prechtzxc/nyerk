@@ -333,6 +333,9 @@ function CurrentTransactionCard({
   const isExpired = booking.status === "pending" && remainingMs <= 0;
   const isCashPending = booking.paymentMethod === "cash" && booking.paymentStatus === "cash_pending";
   const isUnderReview = (booking as any).hasActivePaymentSubmission || paymentStatus === "for_review";
+  const isPendingRemainingDP = isUnderReview &&
+    booking.paymentType === "downpayment" &&
+    Number((booking as any).downpaymentPaid || 0) > 0;
 
   return (
     <div className="group flex w-full min-w-0 flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-orange-200 hover:shadow-md sm:flex-row sm:items-center sm:gap-4">
@@ -416,7 +419,7 @@ function CurrentTransactionCard({
               {isUnderReview ? "Payment Submitted" : "Pay Now"}
             </Button>
           )}
-          {(isDownpaymentActive || hasRemainingPaymentDue) && (
+          {(isDownpaymentActive || hasRemainingPaymentDue || isPendingRemainingDP) && (
             <Button
               onClick={() => onSettle(booking)}
               disabled={isUnderReview}

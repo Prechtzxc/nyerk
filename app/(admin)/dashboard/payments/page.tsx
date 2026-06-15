@@ -240,7 +240,7 @@ export default function AdminPaymentsPage() {
         .filter((pr: any) => pr.bookingId === key || pr.id === key)
         .reduce((sum: number, pr: any) => sum + getSafePrice(pr.amountPaid || pr.amount), 0)
 
-      if (totalFromPaymentRecords > 0 && getSafePrice(item.amountPaid) < totalFromPaymentRecords) {
+      if (getSafePrice(item.amountPaid) === 0 && totalFromPaymentRecords > 0) {
         item.amountPaid = totalFromPaymentRecords
       }
 
@@ -709,7 +709,7 @@ function PaymentActionConfirmModal({
                 {payment.paymentMethod === "bank" && (
                   <ConfirmLine label="Bank Reference No." value={getBankReferenceNumber(payment)} />
                 )}
-                <ConfirmLine label="Amount Submitted" value={formatCurrency(getAmountPaid(payment))} />
+                <ConfirmLine label="Amount Submitted" value={formatCurrency(getSafePrice(payment.pendingPaymentAmount || payment.paymentAmount || getAmountPaid(payment)))} />
                 <ConfirmLine label="Current Status" value={getPaymentStatusText(payment)} />
                 <ConfirmLine label="Action" value={getActionLabel(actionType || "verify")} />
               </div>
@@ -894,7 +894,11 @@ function PaymentReviewModal({
 }) {
   const totalAmount = getSafePrice(payment.totalPrice)
   const amountPaid = getAmountPaid(payment)
+  const transactionAmount = getSafePrice(payment.pendingPaymentAmount || payment.paymentAmount || amountPaid)
   const remainingBalance = Math.max(totalAmount - amountPaid, 0)
+  const dpTarget = getSafePrice(payment.selectedDownpaymentAmount) || (payment.paymentType === "downpayment" ? totalAmount * 0.5 : 0)
+  const acceptedDPPaid = getSafePrice(payment.downpaymentPaid)
+  const thisSubmission = getSafePrice(payment.pendingPaymentAmount || payment.paymentAmount)
   const isActionable = isForReviewPayment(payment)
 
   const paymentRecordProof = useMemo(() => {
@@ -1009,7 +1013,7 @@ function PaymentReviewModal({
                 </p>
 
                 <p className="mt-1 text-3xl font-black tracking-tight text-orange-600">
-                  {formatCurrency(amountPaid)}
+                  {formatCurrency(transactionAmount)}
                 </p>
 
                 <p className="mt-2 text-xs font-semibold text-orange-700/70">
@@ -1018,20 +1022,42 @@ function PaymentReviewModal({
               </div>
             </ModalSection>
 
-            {payment.paymentType === "downpayment" && (
+            {payment.paymentType === "downpayment" && acceptedDPPaid > 0 && thisSubmission > 0 ? (
+              <div className="rounded-2xl bg-slate-950 p-4 text-white">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">
+                  Downpayment Summary
+                </p>
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex justify-between">
+                    <span className="font-semibold text-slate-400">DP Target</span>
+                    <span className="font-bold text-white">₱{dpTarget.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-semibold text-slate-400">Accepted DP Paid</span>
+                    <span className="font-bold text-white">₱{acceptedDPPaid.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-semibold text-slate-400">This Submission</span>
+                    <span className="font-bold text-amber-300">₱{thisSubmission.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between border-t border-white/10 pt-1.5">
+                    <span className="font-semibold text-slate-400">Remaining DP After Verification</span>
+                    <span className="font-bold text-emerald-400">₱{Math.max(dpTarget - (acceptedDPPaid + thisSubmission), 0).toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+            ) : payment.paymentType === "downpayment" ? (
               <div className="rounded-2xl bg-slate-950 p-4 text-white">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-amber-300">
                     <AlertCircle className="h-5 w-5" />
                   </div>
-
                   <div className="flex-1">
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                       {payment.downpaymentRemaining && Number(payment.downpaymentRemaining) > 0
                         ? "Downpayment Remaining"
                         : "Remaining Balance"}
                     </p>
-
                     <p className="mt-1 text-xl font-black">
                       {formatCurrency(remainingBalance)}
                     </p>
@@ -1043,7 +1069,7 @@ function PaymentReviewModal({
                   </p>
                 )}
               </div>
-            )}
+            ) : null}
 
             <ModalSection title="Payment Details">
               <div className="space-y-3 rounded-2xl border border-slate-100 bg-slate-50 p-4">
@@ -1779,10 +1805,6 @@ function IncompletePaymentModal({
                     <span className="font-semibold text-slate-400">Expected Amount</span>
                     <span className="font-bold text-slate-900">₱{totalAmount.toLocaleString()}</span>
                   </p>
-                  <p className="flex justify-between text-xs">
-                    <span className="font-semibold text-slate-400">Current Paid</span>
-                    <span className="font-bold text-slate-900">₱{currentAmountPaid.toLocaleString()}</span>
-                  </p>
                 </div>
 
                 <div>
@@ -1798,14 +1820,13 @@ function IncompletePaymentModal({
                     placeholder="Enter actual amount received"
                     className="h-10 rounded-xl border-slate-200 text-xs font-bold focus-visible:ring-amber-600"
                   />
-                  {enteredAmount > 0 && enteredAmount < expectedRemaining && (
-                    <p className="mt-1.5 text-[11px] font-semibold text-amber-700">
-                      Remaining {isDownpayment ? "downpayment" : "balance"} after this: ₱{(isDownpayment ? Math.max(selectedDP - newDownpaymentPaid, 0) : newRemainingBalance).toLocaleString()}
-                    </p>
-                  )}
-                  {enteredAmount >= expectedRemaining && enteredAmount > 0 && (
+                  {enteredAmount >= expectedRemaining && enteredAmount > 0 ? (
                     <p className="mt-1.5 text-[11px] font-semibold text-rose-600">
                       Amount equals or exceeds remaining balance. Use Verify Payment instead.
+                    </p>
+                  ) : (
+                    <p className="mt-1.5 text-[11px] font-semibold text-amber-700">
+                      Remaining Balance After This Payment: ₱{(isDownpayment ? Math.max(selectedDP - newDownpaymentPaid, 0) : Math.max(totalAmount - enteredAmount, 0)).toLocaleString()}
                     </p>
                   )}
                 </div>

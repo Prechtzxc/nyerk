@@ -2403,6 +2403,8 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         const targetDP = typeof booking.selectedDownpaymentAmount === "number" && booking.selectedDownpaymentAmount > 0
           ? booking.selectedDownpaymentAmount
           : getDownpaymentAmount(booking);
+        const existingDownpaymentPaid = typeof booking.downpaymentPaid === "number" ? booking.downpaymentPaid : 0;
+        const isRemainingDPSubmission = existingDownpaymentPaid > 0;
         if (isCash) {
           return {
             ...booking,
@@ -2421,8 +2423,8 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
             pendingPaymentAmount: Number(dpAmount),
             paymentSubmittedAt: new Date().toISOString(),
             selectedDownpaymentAmount: targetDP,
-            amountPaid: 0,
-            remainingBalance: total,
+            amountPaid: isRemainingDPSubmission ? (typeof booking.amountPaid === "number" ? booking.amountPaid : 0) : 0,
+            remainingBalance: isRemainingDPSubmission ? (typeof booking.remainingBalance === "number" ? booking.remainingBalance : total) : total,
             remainingBalancePaid: false,
             verifiedByAdmin: false,
             hasActivePaymentSubmission: true,
@@ -2449,8 +2451,8 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           pendingPaymentAmount: Number(dpAmount),
           paymentSubmittedAt: new Date().toISOString(),
           selectedDownpaymentAmount: targetDP,
-          amountPaid: 0,
-          remainingBalance: total,
+          amountPaid: isRemainingDPSubmission ? (typeof booking.amountPaid === "number" ? booking.amountPaid : 0) : 0,
+          remainingBalance: isRemainingDPSubmission ? (typeof booking.remainingBalance === "number" ? booking.remainingBalance : total) : total,
           remainingBalancePaid: false,
           verifiedByAdmin: false,
           hasActivePaymentSubmission: true,
