@@ -429,9 +429,7 @@ function CurrentTransactionCard({
             >
               {isUnderReview
                 ? "Payment Submitted"
-                : paymentStage === "complete downpayment" || paymentStatus === "incomplete"
-                  ? "Submit Remaining Downpayment"
-                  : "Settle Remaining Balance"}
+                : "Settle Remaining Balance"}
             </Button>
           )}
         </div>
@@ -912,9 +910,11 @@ function TransactionsContent() {
       try {
         const finalPaymentType = isOfficeRental
           ? ("slot_reservation" as any)
-          : isSettlingBalance
-            ? "full"
-            : paymentType;
+          : isCompletingDownpayment
+            ? "downpayment"
+            : isSettlingBalance
+              ? "full"
+              : paymentType;
         const proofDataUrl =
           paymentMethod === "bank" && proofFile
             ? await compressImageToDataUrl(proofFile)

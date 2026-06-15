@@ -1337,20 +1337,11 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
 
     if (!targetBooking) return;
 
-    if (!isBookingSlotSecured(targetBooking)) {
-      toast({
-        title: "Cancellation Not Available",
-        description:
-          "Cancellation and refund requests are only available after the slot has been secured and payment has been verified.",
-        variant: "destructive",
-      });
-      return;
-    }
-
+    const isSlotSecured = isBookingSlotSecured(targetBooking);
     const eventDate = getBookingEventDate(targetBooking);
     const daysBefore = calculateDaysBeforeEvent(eventDate);
-    const eligibilityNote = getRefundEligibilityNote(eventDate);
-    const likelyEligible = daysBefore >= REFUND_ELIGIBLE_DAYS;
+    const eligibilityNote = isSlotSecured ? getRefundEligibilityNote(eventDate) : undefined;
+    const likelyEligible = isSlotSecured ? daysBefore >= REFUND_ELIGIBLE_DAYS : false;
     const now = new Date().toISOString();
 
     const updatedBookings = bookings.map((booking) => {
@@ -1375,19 +1366,23 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         adminCancelDecision: null,
         adminCancelReason: "",
         refundEligible: likelyEligible,
-        refundMethod: likelyEligible ? "Cash" : undefined,
-        refundMode: likelyEligible ? "Cash" : undefined,
+        refundMethod: isSlotSecured && likelyEligible ? "Cash" : undefined,
+        refundMode: isSlotSecured && likelyEligible ? "Cash" : undefined,
         refundStatus: "Pending Review" as RefundStatus,
         refundEligibilityNote: eligibilityNote,
-        refundClaimNote: likelyEligible
-          ? "If approved by admin, refund may be claimed onsite in cash within the allowed processing period."
-          : "No refund will be processed if admin confirms the request is non-refundable based on policy.",
-        daysBeforeEventAtCancellation: daysBefore,
+        refundClaimNote: isSlotSecured
+          ? likelyEligible
+            ? "If approved by admin, refund may be claimed onsite in cash within the allowed processing period."
+            : "No refund will be processed if admin confirms the request is non-refundable based on policy."
+          : "No payment has been made, so no refund is applicable.",
+        daysBeforeEventAtCancellation: isSlotSecured ? daysBefore : undefined,
         updatedAt: now,
         adminLogs: makeAdminLog(
           booking,
           "REQUEST_CANCELLATION",
-          `Client requested cancellation. Refund eligibility note: ${eligibilityNote}. Days before event: ${daysBefore}.`,
+          isSlotSecured
+            ? `Client requested cancellation. Refund eligibility note: ${eligibilityNote}. Days before event: ${daysBefore}.`
+            : `Client requested cancellation. No payment has been made yet.`,
         ),
       };
     });
@@ -2405,6 +2400,9 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
 
       if (paymentData.type === "downpayment") {
         const dpAmount = paymentData.amount || getDownpaymentAmount(booking);
+        const targetDP = typeof booking.selectedDownpaymentAmount === "number" && booking.selectedDownpaymentAmount > 0
+          ? booking.selectedDownpaymentAmount
+          : getDownpaymentAmount(booking);
         if (isCash) {
           return {
             ...booking,
@@ -2422,9 +2420,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
             paymentAmount: Number(dpAmount),
             pendingPaymentAmount: Number(dpAmount),
             paymentSubmittedAt: new Date().toISOString(),
-            selectedDownpaymentAmount: typeof booking.selectedDownpaymentAmount === "number" && booking.selectedDownpaymentAmount > 0
-              ? booking.selectedDownpaymentAmount
-              : Number(dpAmount),
+            selectedDownpaymentAmount: targetDP,
             amountPaid: 0,
             remainingBalance: total,
             remainingBalancePaid: false,
@@ -2452,9 +2448,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           paymentAmount: Number(dpAmount),
           pendingPaymentAmount: Number(dpAmount),
           paymentSubmittedAt: new Date().toISOString(),
-          selectedDownpaymentAmount: typeof booking.selectedDownpaymentAmount === "number" && booking.selectedDownpaymentAmount > 0
-            ? booking.selectedDownpaymentAmount
-            : Number(dpAmount),
+          selectedDownpaymentAmount: targetDP,
           amountPaid: 0,
           remainingBalance: total,
           remainingBalancePaid: false,
@@ -2509,6 +2503,8 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           paymentMethod: paymentData.method,
           bankReferenceNumber: paymentData.bankReferenceNumber?.trim(),
           paymentReference: paymentData.bankReferenceNumber?.trim(),
+          paymentProof: paymentData.proof,
+          proofOfPayment: paymentData.proof,
           paymentAmount: paymentAmount,
           pendingPaymentAmount: paymentAmount,
           paymentSubmittedAt: new Date().toISOString(),
@@ -2578,12 +2574,10 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     if (updatedBooking) {
       try {
         const existingPayments = readArray<any>(PAYMENTS_STORAGE_KEY)
-        const existingPayment = existingPayments.find(
-          (p: any) => p.bookingId === id || p.bookingCode === id || p.bookingId === updatedBooking.bookingCode
-        )
         const methodLabel = paymentData.method === "cash" ? "Pay at the Office" : "Bank Transfer"
+        const isRemainingDP = paymentData.type === "downpayment" && (typeof updatedBooking.downpaymentPaid === "number" ? updatedBooking.downpaymentPaid : 0) > 0
         const paymentRecord = {
-          id: existingPayment?.id ?? `PAY-${Date.now()}`,
+          id: `PAY-${Date.now()}`,
           bookingId: id,
           bookingCode: updatedBooking.bookingCode ?? id,
           customerId: updatedBooking.userId ?? "",
@@ -2600,6 +2594,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           proofUrl: paymentData.proof ?? "",
           status: paymentData.method === "cash" ? "Awaiting Onsite Payment" : "For Verification",
           verificationStatus: paymentData.method === "cash" ? "Pending Onsite Verification" : "Pending",
+          isRemainingDownPayment: isRemainingDP,
           submittedAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         }

@@ -1609,7 +1609,7 @@ function ModifyBookingFlowModal({
     return matches ? Math.max(...matches.map(Number)) : 100
   }, [venueInfo])
 
-  const isOffice = venueInfo?.type === 'office'
+  const isOffice = booking ? isOfficeBooking(booking) : false
 
   // Calendar calculations (replicating New Booking Step 3)
   const minBookableDate = useMemo(() => {
@@ -1680,6 +1680,18 @@ function ModifyBookingFlowModal({
     )
   }, [selectedDate, bookings, booking])
 
+  const rentalTermToDisplay: Record<string, string> = {
+    "6_months": "6 Months",
+    "1_year": "1 Year",
+    "2_years": "2 Years",
+  }
+
+  const displayToRentalTerm: Record<string, string> = {
+    "6 Months": "6_months",
+    "1 Year": "1_year",
+    "2 Years": "2_years",
+  }
+
   // Pre-fill from booking data
   useEffect(() => {
     if (open && booking) {
@@ -1697,7 +1709,17 @@ function ModifyBookingFlowModal({
       minDate.setHours(0, 0, 0, 0)
       setCalendarMonth(new Date(minDate.getFullYear(), minDate.getMonth(), 1))
       setSelectedDate(booking.date || null)
-      setSelectedDuration(booking.time || null)
+
+      const storedRental =
+        (booking as any).rentalTerm ||
+        (booking as any).contractTerm ||
+        (booking as any).officeRentalTerm ||
+        ""
+      if (isOfficeBooking(booking) && storedRental) {
+        setSelectedDuration(rentalTermToDisplay[storedRental] || null)
+      } else {
+        setSelectedDuration(booking.time || null)
+      }
     }
   }, [open, booking])
 
@@ -1723,7 +1745,20 @@ function ModifyBookingFlowModal({
     if (String(guestCount) !== String(booking.guestCount)) changes.guestCount = Number(guestCount) || booking.guestCount
     if ((notes || "") !== (booking.specialRequests || "")) changes.specialRequests = notes
     if (selectedDate !== booking.date) changes.date = selectedDate
-    if (selectedDuration !== booking.time) {
+    if (isOfficeBooking(booking)) {
+      const storedRental =
+        (booking as any).rentalTerm ||
+        (booking as any).contractTerm ||
+        (booking as any).officeRentalTerm ||
+        ""
+      const displayRental = rentalTermToDisplay[storedRental] || ""
+      if (selectedDuration && selectedDuration !== displayRental) {
+        changes.time = selectedDuration
+        changes.rentalTerm = displayToRentalTerm[selectedDuration] || "6_months"
+        changes.contractTerm = displayToRentalTerm[selectedDuration] || "6_months"
+        changes.officeRentalTerm = displayToRentalTerm[selectedDuration] || "6_months"
+      }
+    } else if (selectedDuration !== booking.time) {
       changes.time = selectedDuration
       if (selectedDuration) {
         const parsed = getParsedTime(selectedDuration)
@@ -1744,7 +1779,8 @@ function ModifyBookingFlowModal({
     const iterDate = new Date(year, month, day)
     const iterDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
     const isSelected = selectedDate === iterDateStr
-    const isBeforeAllowedWindow = iterDate < minBookableDate
+    const isBookingOwnDate = booking?.date === iterDateStr
+    const isBeforeAllowedWindow = iterDate < minBookableDate && !isBookingOwnDate
     const isMaintenance = isMaintenanceBlocked(iterDateStr)
 
     let statusClass = "border-slate-200 bg-white text-slate-700 hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700"
@@ -2005,7 +2041,7 @@ function ModifyBookingFlowModal({
                               <SelectTrigger className="w-full h-10 md:h-11 rounded-lg bg-white border-2 border-slate-200 px-3 font-bold text-xs text-slate-700 focus-visible:ring-2 focus-visible:ring-[#ea580c] transition-all data-[state=open]:border-[#ea580c]">
                                 <SelectValue placeholder="Select Start Time" />
                               </SelectTrigger>
-                              <SelectContent className="rounded-xl border-slate-200 shadow-xl max-h-[150px] md:max-h-[180px]">
+                              <SelectContent className="rounded-xl border-slate-200 shadow-xl max-h-[150px] md:max-h-[180px] z-[10003]">
                                 {availableVenueSlots.length > 0 ? (
                                   availableVenueSlots.map(slot => (
                                     <SelectItem key={slot.label} value={slot.label} className="font-bold text-xs text-slate-700 py-2 cursor-pointer focus:bg-orange-50 focus:text-[#ea580c]">
@@ -2097,7 +2133,7 @@ function ModifyBookingFlowModal({
                         <SelectTrigger className="h-10 w-full rounded-xl bg-slate-50 border border-slate-200 px-3 text-xs focus:ring-2 focus:ring-[#ea580c]">
                           <SelectValue placeholder="Choose Event Type" />
                         </SelectTrigger>
-                        <SelectContent className="rounded-xl border-slate-200 shadow-xl max-h-[200px]">
+                        <SelectContent className="rounded-xl border-slate-200 shadow-xl max-h-[200px] z-[10003]">
                           <SelectItem value="wedding" className="font-bold text-xs text-slate-700 py-2 cursor-pointer focus:bg-orange-50 focus:text-[#ea580c]">Wedding</SelectItem>
                           <SelectItem value="birthday" className="font-bold text-xs text-slate-700 py-2 cursor-pointer focus:bg-orange-50 focus:text-[#ea580c]">Birthday / Debut</SelectItem>
                           <SelectItem value="corporate" className="font-bold text-xs text-slate-700 py-2 cursor-pointer focus:bg-orange-50 focus:text-[#ea580c]">Corporate Event</SelectItem>
