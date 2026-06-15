@@ -1691,45 +1691,35 @@ function IncompletePaymentModal({
 
   if (!booking) return null
 
+  const office = isOfficeRental(booking)
+  const isDownpayment = String(booking.paymentType || "").toLowerCase() === "downpayment"
   const totalAmount = getAmountValue(
     (booking as any).totalAmount || booking.totalPrice || (booking as any).amount || (booking as any).price
   )
+  const expectedAmount = office
+    ? getAmountValue((booking as any).expectedAmount || (booking as any).paymentAmount || (booking as any).amount || (booking as any).amountPaid || totalAmount)
+    : totalAmount
   const currentAmountPaid = getAmountValue(
     (booking as any).amountPaid || (booking as any).paymentAmount || (booking as any).paidAmount
   )
-  const isDownpayment = String(booking.paymentType || "").toLowerCase() === "downpayment"
   const currentDownpaymentPaid = getAmountValue(booking.downpaymentPaid)
   const enteredAmount = getAmountValue(verifiedAmount)
   const newAmountPaid = currentAmountPaid + enteredAmount
   const newDownpaymentPaid = isDownpayment ? currentDownpaymentPaid + enteredAmount : 0
   const newRemainingBalance = Math.max(totalAmount - newAmountPaid, 0)
   const expectedRemaining = Math.max(totalAmount - currentAmountPaid, 0)
+  const remainingAfterInput = Math.max(expectedAmount - enteredAmount, 0)
   const selectedDP = getAmountValue(booking.selectedDownpaymentAmount) || (isDownpayment ? totalAmount * 0.5 : 0)
-
-  const getNewPaymentStatus = () => {
-    if (newAmountPaid >= totalAmount) return "paid"
-    return "incomplete"
-  }
-
-  const getPaymentLabel = () => {
-    if (newAmountPaid >= totalAmount) return "Fully Paid"
-    return "Incomplete Payment"
-  }
-
-  const getNewBalanceStatus = () => {
-    if (newAmountPaid >= totalAmount) return "Settled"
-    return "With Remaining Balance"
-  }
+  const isEmpty = verifiedAmount.trim() === ""
+  const isZeroOrNegative = enteredAmount <= 0
+  const isEqualOrOver = enteredAmount >= expectedAmount
+  const isValidIncompleteAmount = !isEmpty && enteredAmount > 0 && enteredAmount < expectedAmount
 
   const handleConfirm = () => {
     if (enteredAmount <= 0) return
 
-    const office = isOfficeRental(booking)
     const latestStatus = isDownpayment ? "verifying" : (office ? "reservation_secured" : "confirmed")
     const latestBookingStatus = isDownpayment ? "Pending Verification" : (office ? "Slot Secured" : "Confirmed")
-    const newPaymentStatus = getNewPaymentStatus()
-    const newBalanceStatus = getNewBalanceStatus()
-    const paymentLabel = getPaymentLabel()
     const newDownpaymentPaid = currentDownpaymentPaid + enteredAmount
     const newDPRemaining = isDownpayment ? Math.max(selectedDP - newDownpaymentPaid, 0) : 0
 
@@ -1738,18 +1728,21 @@ function IncompletePaymentModal({
       status: latestStatus,
       bookingStatus: latestBookingStatus,
       isSlotSecured: !isDownpayment,
-      amountPaid: newAmountPaid,
+      amountPaid: office ? enteredAmount : newAmountPaid,
+      paidAmount: office ? enteredAmount : undefined,
       downpaymentPaid: isDownpayment ? newDownpaymentPaid : 0,
       downpaymentRemaining: newDPRemaining,
       selectedDownpaymentAmount: isDownpayment ? selectedDP : 0,
       lastPaymentAmount: enteredAmount,
-      paymentStatus: isDownpayment ? "incomplete" : newPaymentStatus,
-      remainingBalance: isDownpayment ? newDPRemaining : newRemainingBalance,
-      balanceStatus: isDownpayment ? "With Remaining Balance" : newBalanceStatus,
+      paymentStatus: "incomplete",
+      remainingBalance: office ? remainingAfterInput : (isDownpayment ? newDPRemaining : newRemainingBalance),
+      balanceStatus: "With Remaining Balance",
       contractStatus: "Pending Signature",
       hasActivePaymentSubmission: false,
       incompletePaymentReason: adminReason.trim(),
       incompletePaymentNote: adminReason.trim(),
+      verifiedAmount: office ? enteredAmount : undefined,
+      remainingAmount: office ? remainingAfterInput : undefined,
       paymentVerifiedAt: new Date().toISOString(),
       paymentReviewedAt: new Date().toISOString(),
       paymentReviewedBy: "Administrator",
@@ -1760,7 +1753,7 @@ function IncompletePaymentModal({
       adminLogs: appendAdminLog(
         booking,
         "INCOMPLETE_PAYMENT_RECORDED",
-        `Admin recorded incomplete payment. Amount received: ₱${enteredAmount.toLocaleString()}. Total paid: ₱${newAmountPaid.toLocaleString()}.${isDownpayment ? ` Downpayment remaining: ₱${newDPRemaining.toLocaleString()}.` : ` Remaining: ₱${newRemainingBalance.toLocaleString()}.`} Slot is ${isDownpayment ? "NOT" : ""} secured. Note: ${adminReason.trim() || "N/A"}.`
+        `Admin recorded incomplete payment. Amount received: ₱${enteredAmount.toLocaleString()}.${isDownpayment ? ` Downpayment remaining: ₱${newDPRemaining.toLocaleString()}.` : ` Remaining: ₱${remainingAfterInput.toLocaleString()}.`} Note: ${adminReason.trim() || "N/A"}.`
       ),
     }
 
@@ -1820,13 +1813,21 @@ function IncompletePaymentModal({
                     placeholder="Enter actual amount received"
                     className="h-10 rounded-xl border-slate-200 text-xs font-bold focus-visible:ring-amber-600"
                   />
-                  {enteredAmount >= expectedRemaining && enteredAmount > 0 ? (
+                  {isEmpty ? (
+                    <p className="mt-1.5 text-[11px] font-semibold text-slate-500">
+                      Enter the amount actually received.
+                    </p>
+                  ) : isZeroOrNegative ? (
                     <p className="mt-1.5 text-[11px] font-semibold text-rose-600">
-                      Amount equals or exceeds remaining balance. Use Verify Payment instead.
+                      Amount must be greater than ₱0.
+                    </p>
+                  ) : isEqualOrOver ? (
+                    <p className="mt-1.5 text-[11px] font-semibold text-rose-600">
+                      Amount equals or exceeds the expected amount. Use Verify Payment instead.
                     </p>
                   ) : (
                     <p className="mt-1.5 text-[11px] font-semibold text-amber-700">
-                      Remaining Balance After This Payment: ₱{(isDownpayment ? Math.max(selectedDP - newDownpaymentPaid, 0) : Math.max(totalAmount - enteredAmount, 0)).toLocaleString()}
+                      Remaining Balance After This Payment: ₱{remainingAfterInput.toLocaleString()}
                     </p>
                   )}
                 </div>
@@ -1853,7 +1854,7 @@ function IncompletePaymentModal({
                   Cancel
                 </Button>
                 <Button
-                  disabled={enteredAmount <= 0 || enteredAmount >= expectedRemaining || !adminReason.trim()}
+                  disabled={!isValidIncompleteAmount || !adminReason.trim()}
                   onClick={() => setConfirmStep(true)}
                   className="h-10 rounded-xl bg-amber-600 text-xs font-black text-white hover:bg-amber-700 disabled:opacity-50"
                 >
@@ -1890,11 +1891,11 @@ function IncompletePaymentModal({
                   </p>
                   <p className="flex justify-between text-xs">
                     <span className="font-semibold text-slate-400">{isDownpayment ? "Downpayment Remaining" : "Remaining Balance"}</span>
-                    <span className="font-bold text-amber-700">₱{(isDownpayment ? Math.max(selectedDP - newDownpaymentPaid, 0) : newRemainingBalance).toLocaleString()}</span>
+                    <span className="font-bold text-amber-700">₱{(office ? remainingAfterInput : (isDownpayment ? Math.max(selectedDP - newDownpaymentPaid, 0) : newRemainingBalance)).toLocaleString()}</span>
                   </p>
                   <p className="flex justify-between text-xs">
                     <span className="font-semibold text-slate-400">New Status</span>
-                    <span className="font-bold text-amber-700">{getPaymentLabel()}</span>
+                    <span className="font-bold text-amber-700">Incomplete Payment</span>
                   </p>
                   {adminReason.trim() && (
                     <p className="flex justify-between text-xs">

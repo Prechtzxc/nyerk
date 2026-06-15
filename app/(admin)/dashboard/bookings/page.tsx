@@ -41,7 +41,7 @@ import {
 } from "@/src/modules/shared/components/ui/select"
 import { useToast } from "@/src/modules/shared/hooks/use-toast"
 import { cn } from "@/src/modules/shared/lib/utils"
-import { useBookings, type Booking, type BookingStatusLabel } from "@/src/modules/client/contexts/booking-context"
+import { useBookings, type Booking, type BookingStatusLabel, getRestoredStatus } from "@/src/modules/client/contexts/booking-context"
 import { getPaymentMethodLabel } from "@/src/modules/shared/lib/labels"
 import { Textarea } from "@/src/modules/shared/components/ui/textarea"
 import { Label } from "@/src/modules/shared/components/ui/label"
@@ -346,19 +346,14 @@ export default function AdminBookingsPage() {
     if (!declineCancellationTarget || !declineCancellationReason.trim()) return
     const target = declineCancellationTarget
     const reason = declineCancellationReason.trim()
-    const restoredStatus = target.previousBookingStatus || target.previousStatus || "confirmed"
-    const restoredBookingStatus: BookingStatusLabel = (() => {
-      if (restoredStatus === "confirmed" || restoredStatus === "reservation_secured") return "Confirmed"
-      if (restoredStatus === "verifying" || restoredStatus === "pending") return "Pending Verification"
-      return "Slot Secured"
-    })()
+    const restored = getRestoredStatus(target)
     const now = new Date().toISOString()
     const next = bookings.map((b) =>
       b.id === target.id
         ? {
             ...b,
-            status: restoredStatus,
-            bookingStatus: restoredBookingStatus,
+            status: restored.status,
+            bookingStatus: restored.bookingStatus,
             cancellationRequested: false,
             cancellationStatus: "Declined" as const,
             cancelStatus: null,

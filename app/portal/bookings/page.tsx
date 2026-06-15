@@ -645,30 +645,45 @@ function BookingDetailsModal({
     booking.status !== "completed" &&
     booking.status !== "cancelled" &&
     booking.status !== "modification_under_review" &&
-    booking.cancellationStatus !== "Under Review"
+    booking.cancellationStatus !== "Under Review" &&
+    booking.cancellationStatus !== "Pending"
 
   const hasActiveCancellationRequest =
     normalizeStatus(booking.cancellationStatus) === "under review" ||
+    normalizeStatus(booking.cancellationStatus) === "pending" ||
     normalizeStatus(booking.bookingStatus) === "cancellation under review" ||
-    normalizeStatus((booking as any).cancelRequestStatus) === "pending"
+    normalizeStatus((booking as any).cancelRequestStatus) === "pending" ||
+    booking.status === "cancellation_requested"
 
   const hasActiveModificationRequest =
     normalizeStatus(booking.modificationStatus) === "under review" ||
-    normalizeStatus(booking.bookingStatus) === "modification under review"
+    normalizeStatus(booking.bookingStatus) === "modification under review" ||
+    booking.status === "modification_under_review" ||
+    (booking as any).modificationUnderReview === true ||
+    normalizeStatus((booking as any).modifyRequestStatus) === "pending"
+
+  const hasCancellationHistory =
+    !!booking.cancellationStatus &&
+    booking.cancellationStatus !== "None"
 
   const showCancelAction =
     onCancel &&
     booking.status !== "completed" &&
     booking.status !== "cancelled" &&
-    booking.cancellationStatus !== "Approved"
+    booking.status !== "modification_under_review" &&
+    booking.cancellationStatus !== "Approved" &&
+    !hasActiveCancellationRequest &&
+    !hasCancellationHistory &&
+    !hasActiveModificationRequest
 
   const showModify =
     booking.status !== "completed" &&
     booking.status !== "cancelled" &&
-    booking.cancellationStatus !== "Approved"
-
-  const isCancelDisabled = showCancelAction && hasActiveModificationRequest
-  const isModifyDisabled = showModify && hasActiveCancellationRequest
+    booking.status !== "modification_under_review" &&
+    booking.cancellationStatus !== "Approved" &&
+    !hasActiveModificationRequest &&
+    !hasActiveCancellationRequest &&
+    !hasCancellationHistory
 
   const hasReceipt = !!(
     booking.receipt || getStoredReceiptByBookingId(booking.id)
@@ -1018,22 +1033,16 @@ function BookingDetailsModal({
               )}
               {(showModify || showReceipt || showPay || hasRemainingPayment) && (
                 <div className="grid grid-cols-2 gap-3">
-                  {(showModify || isModifyDisabled) && (
+                  {showModify && (
                     <Button
                       variant="outline"
-                      disabled={isModifyDisabled}
                       onClick={() => {
-                        if (onEdit && !isModifyDisabled) {
+                        if (onEdit) {
                           onEdit(booking)
                           onClose()
                         }
                       }}
-                      className={cn(
-                        "h-10 w-full rounded-lg border-slate-200 px-4 text-xs font-bold",
-                        isModifyDisabled
-                          ? "text-slate-400 opacity-60 cursor-not-allowed"
-                          : "text-slate-700 hover:bg-slate-100"
-                      )}
+                      className="h-10 w-full rounded-lg border-slate-200 px-4 text-xs font-bold text-slate-700 hover:bg-slate-100"
                     >
                       <Pencil className="mr-1.5 h-3.5 w-3.5" />
                       Modify Booking
@@ -1097,22 +1106,16 @@ function BookingDetailsModal({
                   ) : null}
                 </div>
               )}
-              {(showCancelAction || isCancelDisabled) && (
+              {showCancelAction && (
                 <Button
                   variant="outline"
-                  disabled={isCancelDisabled}
                   onClick={() => {
-                    if (onCancel && !isCancelDisabled) {
+                    if (onCancel) {
                       onCancel(booking)
                       onClose()
                     }
                   }}
-                  className={cn(
-                    "h-11 w-full rounded-xl border-rose-200 px-4 text-xs font-bold",
-                    isCancelDisabled
-                      ? "text-rose-300 opacity-60 cursor-not-allowed"
-                      : "text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-                  )}
+                  className="h-11 w-full rounded-xl border-rose-200 px-4 text-xs font-bold text-rose-600 hover:bg-rose-50 hover:text-rose-700"
                 >
                   <X className="mr-1.5 h-3.5 w-3.5" />
                   Cancel Booking
@@ -2547,6 +2550,15 @@ export default function MyBookingsPage() {
       return
     }
     requestCancellation(bookingToCancel.id, cancelReason.trim())
+    // Update booking details modal immediately
+    const stored = localStorage.getItem("oneestela_global_bookings_v2")
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored)
+        const updated = parsed.find((b: any) => b.id === bookingToCancel.id)
+        if (updated) setViewingBooking(updated)
+      } catch {}
+    }
     toast({
       title: "Cancellation Requested",
       description: isRefundEligible(bookingToCancel.date)
@@ -2591,6 +2603,14 @@ export default function MyBookingsPage() {
           onSubmitChanges={(changes, reason) => {
             if (modifyTarget) {
               requestModification(modifyTarget.id, changes, reason)
+              const stored = localStorage.getItem("oneestela_global_bookings_v2")
+              if (stored) {
+                try {
+                  const parsed = JSON.parse(stored)
+                  const updated = parsed.find((b: any) => b.id === modifyTarget.id)
+                  if (updated) setViewingBooking(updated)
+                } catch {}
+              }
               toast({
                 title: "Modification Requested",
                 description: "Your modification request is under review.",

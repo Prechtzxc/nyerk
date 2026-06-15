@@ -36,6 +36,7 @@ export type PaymentStatus =
 
 export type CancellationStatus =
   | "None"
+  | "Pending"
   | "Under Review"
   | "Approved"
   | "Declined"
@@ -586,12 +587,30 @@ export function canRequestCancellation(booking: Partial<Booking>): boolean {
   if (!booking) return false;
   if (booking.status === "cancelled" || booking.status === "completed") return false;
   if (booking.status === "cancellation_requested") return false;
-  if (booking.cancellationStatus === "Under Review" || booking.cancellationStatus === "Approved") return false;
+  if (booking.cancellationStatus === "Under Review" || booking.cancellationStatus === "Pending" || booking.cancellationStatus === "Approved") return false;
   if (!canShowCancellationNotice(booking)) return false;
   const daysBefore = calculateDaysBeforeEvent(booking.date);
   return daysBefore > 0;
 }
 
+export function getRestoredStatus(booking: Booking): { status: BookingStatus; bookingStatus: BookingStatusLabel } {
+  const prevStatus = booking.previousStatus || booking.modificationPreviousStatus
+  const prevBookingStatus = booking.previousBookingStatus || booking.modificationPreviousBookingStatus
+  const isUnpaidNotSecured = booking.paymentStatus === "unpaid" && !booking.isSlotSecured && !isBookingSlotSecured(booking)
+
+  if (prevStatus && prevBookingStatus) {
+    if (isUnpaidNotSecured) {
+      return { status: "pending", bookingStatus: "Pending Verification" }
+    }
+    return { status: prevStatus as BookingStatus, bookingStatus: prevBookingStatus as BookingStatusLabel }
+  }
+
+  if (isUnpaidNotSecured) {
+    return { status: "pending", bookingStatus: "Pending Verification" }
+  }
+
+  return { status: "confirmed", bookingStatus: "Confirmed" }
+}
 
 function getDisplayBookingStatus(booking: Partial<Booking>): BookingStatusLabel {
   if (booking.status === "completed") return "Completed"
@@ -908,7 +927,7 @@ function normalizeBookingForNewFields(booking: Booking): Booking {
     ? calculateOfficeEndDate(booking.date, booking.officeRentalTerm)
     : undefined;
 
-  return {
+  const normalized: Booking = {
     ...booking,
     endDate: booking.endDate || computedEndDate,
     selectedDownpaymentAmount: booking.selectedDownpaymentAmount ?? 0,
@@ -980,6 +999,17 @@ function normalizeBookingForNewFields(booking: Booking): Booking {
     refundMode: booking.refundMode || booking.refundMethod,
     refundClaimNote: booking.refundClaimNote || booking.refundInstructions,
   };
+
+  if (
+    normalized.status === "confirmed" &&
+    normalized.paymentStatus === "unpaid" &&
+    !normalized.isSlotSecured
+  ) {
+    normalized.status = "pending";
+    normalized.bookingStatus = getDisplayBookingStatus(normalized);
+  }
+
+  return normalized;
 }
 
 export function BookingProvider({ children }: { children: React.ReactNode }) {
@@ -1356,8 +1386,8 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         bookingStatus: "Cancellation Under Review",
         cancellationRequested: true,
         cancellationRequestedAt: now,
-        cancellationStatus: "Under Review" as const,
-        cancellationStatusLabel: "Under Review",
+        cancellationStatus: "Pending" as CancellationStatus,
+        cancellationStatusLabel: "Pending",
         cancellationReason: reason,
         cancelRequestStatus: "Pending",
         cancellationUnderReview: true,
@@ -1454,18 +1484,17 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     const updatedBookings = bookings.map((booking) => {
       if (booking.id !== id) return booking;
 
-      const restoredBookingStatus =
-        booking.previousBookingStatus || booking.previousStatus || "confirmed";
+      const restored = getRestoredStatus(booking);
 
       const restoredPaymentStatus =
         booking.previousPaymentStatus || booking.paymentStatus || "paid";
 
       const restoredBooking = {
         ...booking,
-        status: restoredBookingStatus,
-        bookingStatus: getDisplayBookingStatus({ ...booking, status: restoredBookingStatus }),
+        status: restored.status,
+        bookingStatus: restored.bookingStatus,
         paymentStatus: restoredPaymentStatus,
-        isSlotSecured: isBookingSlotSecured({ ...booking, status: restoredBookingStatus, paymentStatus: restoredPaymentStatus }),
+        isSlotSecured: isBookingSlotSecured({ ...booking, status: restored.status, paymentStatus: restoredPaymentStatus }),
         cancellationRequested: false,
         cancellationStatus: "Declined" as const,
         cancellationStatusLabel: "Declined",
@@ -1511,6 +1540,8 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         status: "modification_under_review" as BookingStatus,
         bookingStatus: "Modification Under Review",
         modificationRequested: true,
+        modificationUnderReview: true,
+        modifyRequestStatus: "Pending",
         modificationStatus: "Under Review" as ModificationStatus,
         modificationReason: reason.trim(),
         modificationRequestedAt: new Date().toISOString(),
@@ -1546,24 +1577,13 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       const changes = booking.requestedChanges as Record<string, unknown> | undefined;
       if (!changes) return booking;
 
-      const previousStatus = booking.modificationPreviousStatus || "pending";
-      const paymentVerified =
-        booking.paymentStatus === "verified" ||
-        booking.paymentStatus === "paid" ||
-        booking.paymentStatus === "slot_verified";
-
-      const restoredStatus: BookingStatus =
-        previousStatus === "modification_under_review"
-          ? paymentVerified
-            ? "confirmed"
-            : "pending"
-          : (previousStatus as BookingStatus);
+      const restored = getRestoredStatus(booking);
 
       return {
         ...booking,
         ...changes,
-        status: restoredStatus,
-        bookingStatus: getDisplayBookingStatus({ ...booking, ...changes, status: restoredStatus }),
+        status: restored.status,
+        bookingStatus: restored.bookingStatus,
         modificationRequested: false,
         modificationStatus: "Approved" as ModificationStatus,
         modificationReviewedAt: new Date().toISOString(),
@@ -1596,13 +1616,12 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     const updatedBookings = bookings.map((booking) => {
       if (booking.id !== id) return booking;
 
-      const previousStatus = booking.modificationPreviousStatus || "pending";
-      const previousBookingStatus = booking.modificationPreviousBookingStatus;
+      const restored = getRestoredStatus(booking);
 
       return {
         ...booking,
-        status: previousStatus,
-        bookingStatus: previousBookingStatus || getDisplayBookingStatus({ ...booking, status: previousStatus }),
+        status: restored.status,
+        bookingStatus: restored.bookingStatus,
         modificationRequested: false,
         modificationStatus: "Declined" as ModificationStatus,
         modificationDeclineReason: reason.trim(),

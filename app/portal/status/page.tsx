@@ -214,6 +214,7 @@ function StatusCard({ booking }: { booking: StatusBooking }) {
   const isCancelReq =
     String(booking.status).toLowerCase() === "cancellation_requested" ||
     cancellationStatus === "under review" ||
+    cancellationStatus === "pending" ||
     cancellationStatus === "requested"
 
   const refundStatus = (booking as any).refundStatus as string | undefined
