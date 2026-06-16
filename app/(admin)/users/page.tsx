@@ -4,9 +4,16 @@ import { useEffect, useMemo, useState } from "react"
 import { Input } from "@/src/modules/shared/components/ui/input"
 import { Button } from "@/src/modules/shared/components/ui/button"
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/src/modules/shared/components/ui/select"
+import { cn } from "@/src/modules/shared/lib/utils"
+import {
   Search,
   Users,
-  ChevronDown,
 } from "lucide-react"
 
 type CustomerStatus = "Active" | "Inactive"
@@ -112,15 +119,6 @@ function getStatusBadgeClass(status: CustomerStatus) {
     : "border-slate-200 bg-slate-100 text-slate-500"
 }
 
-function formatDate(dateStr?: string) {
-  if (!dateStr) return "N/A"
-  try {
-    return new Intl.DateTimeFormat("en-PH", { month: "short", day: "2-digit", year: "numeric" }).format(new Date(dateStr))
-  } catch {
-    return "N/A"
-  }
-}
-
 function getProfilePicture(user: any): string | undefined {
   if (user?.profilePicture) return user.profilePicture
   if (typeof window === "undefined") return undefined
@@ -201,10 +199,73 @@ function loadCustomersFromLocalStorage() {
   return customers.length > 0 ? removeDuplicateCustomers(customers) : FALLBACK_CUSTOMERS
 }
 
+function UserCard({ customer }: { customer: CustomerAccount }) {
+  return (
+    <div className="group flex w-full max-w-full min-w-0 flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-orange-200 hover:shadow-md sm:flex-row sm:items-center sm:gap-4">
+      <div className="flex shrink-0 items-center gap-3 sm:w-[220px]">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 text-slate-600 ring-2 ring-white shadow-sm">
+          {customer.profilePicture ? (
+            <img src={customer.profilePicture} alt={customer.name} className="h-full w-full object-cover" />
+          ) : (
+            <span className="text-[10px] font-black uppercase">{getInitials(customer.name)}</span>
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+            User
+          </p>
+          <p className="break-words whitespace-normal text-sm font-black text-slate-900">
+            {customer.name}
+          </p>
+          <p className="break-words whitespace-normal text-[11px] font-bold text-slate-500">
+            {customer.phone !== "No phone provided" ? customer.phone : ""}
+          </p>
+        </div>
+      </div>
+
+      <div className="grid min-w-0 flex-1 grid-cols-2 gap-x-2 gap-y-1.5 sm:grid-cols-3 sm:gap-x-3">
+        <div className="min-w-0 max-w-full">
+          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">Email</p>
+          <p className="whitespace-normal break-words text-xs font-black text-slate-800">{customer.email}</p>
+        </div>
+        <div className="min-w-0 max-w-full">
+          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">Role</p>
+          <span
+            className={cn(
+              "inline-flex rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest whitespace-nowrap",
+              getRoleBadgeClass(customer.role),
+            )}
+          >
+            {customer.role === "customer" || customer.role === "client" || customer.role === "user" ? "Customer" : customer.role}
+          </span>
+        </div>
+        <div className="min-w-0 max-w-full">
+          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">Status</p>
+          <span
+            className={cn(
+              "inline-flex rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest whitespace-nowrap",
+              getStatusBadgeClass(customer.status),
+            )}
+          >
+            {customer.status}
+          </span>
+        </div>
+      </div>
+
+      <div className="flex shrink-0 items-center justify-between gap-2 sm:flex-col sm:items-end sm:gap-1">
+        <div className="text-right">
+          <p className="whitespace-nowrap text-[9px] font-black uppercase tracking-widest text-slate-400">Last Activity</p>
+          <p className="whitespace-nowrap text-xs font-semibold text-slate-400">N/A</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function UsersPage() {
   const [customers, setCustomers] = useState<CustomerAccount[]>([])
   const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState<"all" | CustomerStatus>("all")
+  const [statusFilter, setStatusFilter] = useState("all")
 
   useEffect(() => {
     setCustomers(loadCustomersFromLocalStorage())
@@ -238,158 +299,78 @@ export default function UsersPage() {
   }, [customers, searchTerm, statusFilter])
 
   return (
-    <div className="mx-auto w-full max-w-[1180px] px-3 py-4 sm:px-5 lg:px-6">
-      <div className="mb-5 border-b border-slate-200 pb-5">
-        <p className="text-[11px] font-black uppercase tracking-[0.22em] text-orange-600">
-          Admin Users Information
-        </p>
-        <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
-          User Information
-        </h1>
-        <p className="mt-1 text-xs leading-5 text-slate-500 sm:text-sm">
-          Read-only view of registered customer accounts and contact details.
-        </p>
-      </div>
+    <div className="w-full min-w-0 max-w-full overflow-x-hidden">
+      <div className="mx-auto w-full max-w-[1180px] px-3 py-4 sm:px-5 lg:px-6">
+        <section className="border-b border-slate-200 pb-5">
+          <p className="text-[11px] font-black uppercase tracking-[0.22em] text-orange-600">
+            Admin Users Information
+          </p>
+          <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
+            User Information
+          </h1>
+          <p className="mt-1 text-xs leading-5 text-slate-500 sm:text-sm">
+            Read-only view of registered customer accounts and contact details.
+          </p>
+        </section>
 
-      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-        <div className="relative w-full sm:w-auto">
-          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-          <Input
-            placeholder="Search user..."
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-            className="h-11 w-full rounded-xl border-slate-200 bg-white pl-9 text-sm font-medium text-slate-700 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100 sm:w-[300px]"
-          />
+        <div className="mt-5 mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+          <div className="relative w-full sm:w-auto">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+            <Input
+              placeholder="Search user..."
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              className="h-10 w-full rounded-xl border-slate-200 bg-white pl-9 text-xs font-bold text-slate-700 focus-visible:ring-orange-600 sm:w-[300px]"
+            />
+          </div>
+
+          <div className="w-full sm:w-auto">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="h-10 w-full rounded-xl border-slate-200 bg-white text-xs font-bold text-slate-700 focus:ring-orange-600 sm:w-[150px]">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                <SelectItem value="all" className="font-bold">All Status</SelectItem>
+                <SelectItem value="Active">Active</SelectItem>
+                <SelectItem value="Inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {(searchTerm || statusFilter !== "all") && (
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSearchTerm("")
+                setStatusFilter("all")
+              }}
+              className="h-10 rounded-xl border-slate-200 px-3 text-xs font-bold text-slate-700 hover:bg-slate-50"
+            >
+              Clear
+            </Button>
+          )}
         </div>
 
-        <div className="relative w-full sm:w-auto">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as "all" | CustomerStatus)}
-            className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 pr-10 text-sm font-medium text-slate-700 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100 sm:w-[170px]"
-          >
-            <option value="all">All Status</option>
-            <option value="Active">Active</option>
-            <option value="Inactive">Inactive</option>
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-        </div>
-
-        {(searchTerm || statusFilter !== "all") && (
-          <Button
-            variant="outline"
-            onClick={() => {
-              setSearchTerm("")
-              setStatusFilter("all")
-            }}
-            className="inline-flex h-11 items-center justify-center rounded-xl px-4 text-sm font-semibold border-slate-200 text-slate-700"
-          >
-            Clear
-          </Button>
+        {filteredCustomers.length > 0 ? (
+          <section className="space-y-3">
+            {filteredCustomers.map((customer, idx) => (
+              <UserCard key={idx} customer={customer} />
+            ))}
+          </section>
+        ) : (
+          <div className="flex min-h-[230px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
+            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-white text-slate-400 shadow-sm">
+              <Users className="h-6 w-6" />
+            </div>
+            <h3 className="text-sm font-black text-slate-700">No users found</h3>
+            <p className="mt-1 max-w-sm text-xs leading-5 text-slate-500">
+              {searchTerm || statusFilter !== "all"
+                ? "Try clearing your filters or search keyword."
+                : "Registered customers will appear here once available."}
+            </p>
+          </div>
         )}
       </div>
-
-      {filteredCustomers.length > 0 ? (
-        <>
-          {/* Desktop table */}
-          <div className="hidden sm:block w-full overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-slate-100 text-left text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">
-                  <th className="px-4 py-3 w-[200px]">User</th>
-                  <th className="px-4 py-3">Email</th>
-                  <th className="px-4 py-3 w-[100px]">Role</th>
-                  <th className="px-4 py-3 w-[90px]">Status</th>
-                  <th className="px-4 py-3 w-[130px]">Registered</th>
-                  <th className="px-4 py-3 w-[100px]">Last Activity</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredCustomers.map((customer) => (
-                  <tr key={customer.id} className="border-b border-slate-50 text-sm transition hover:bg-slate-50/50">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 text-slate-600 ring-2 ring-white shadow-sm">
-                          {customer.profilePicture ? (
-                            <img src={customer.profilePicture} alt={customer.name} className="h-full w-full object-cover" />
-                          ) : (
-                            <span className="text-[10px] font-black uppercase">{getInitials(customer.name)}</span>
-                          )}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="break-words whitespace-normal text-sm font-black text-slate-900">{customer.name}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <p className="break-words whitespace-normal text-xs font-semibold text-slate-600">{customer.email}</p>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest whitespace-nowrap ${getRoleBadgeClass(customer.role)}`}>
-                        {customer.role === "customer" || customer.role === "client" || customer.role === "user" ? "Customer" : customer.role}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest whitespace-nowrap ${getStatusBadgeClass(customer.status)}`}>
-                        {customer.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <p className="whitespace-nowrap text-xs font-semibold text-slate-600">{formatDate(customer.createdAt)}</p>
-                    </td>
-                    <td className="px-4 py-3">
-                      <p className="text-xs font-semibold text-slate-400">N/A</p>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Mobile stacked cards */}
-          <div className="space-y-3 sm:hidden">
-            {filteredCustomers.map((customer) => (
-              <div key={customer.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 text-slate-600 ring-2 ring-white shadow-sm">
-                    {customer.profilePicture ? (
-                      <img src={customer.profilePicture} alt={customer.name} className="h-full w-full object-cover" />
-                    ) : (
-                      <span className="text-[10px] font-black uppercase">{getInitials(customer.name)}</span>
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="break-words whitespace-normal text-sm font-black text-slate-900">{customer.name}</p>
-                    <p className="whitespace-normal break-words text-[11px] font-semibold text-slate-500">{customer.email}</p>
-                  </div>
-                  <span className={`inline-flex shrink-0 rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest whitespace-nowrap ${getStatusBadgeClass(customer.status)}`}>
-                    {customer.status}
-                  </span>
-                </div>
-                <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold text-slate-500">
-                  <span className={`inline-flex rounded-md border px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest ${getRoleBadgeClass(customer.role)}`}>
-                    {customer.role === "customer" || customer.role === "client" || customer.role === "user" ? "Customer" : customer.role}
-                  </span>
-                  <span>Registered: {formatDate(customer.createdAt)}</span>
-                  <span>· Last Activity: N/A</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </>
-      ) : (
-        <div className="flex min-h-[230px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
-          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-white text-slate-400 shadow-sm">
-            <Users className="h-6 w-6" />
-          </div>
-          <h3 className="text-sm font-black text-slate-700">No users found</h3>
-          <p className="mt-1 max-w-sm text-xs leading-5 text-slate-500">
-            {searchTerm || statusFilter !== "all"
-              ? "Try clearing your filters or search keyword."
-              : "Registered customers will appear here once available."}
-          </p>
-        </div>
-      )}
     </div>
   )
 }
