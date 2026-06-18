@@ -900,6 +900,13 @@ function PaymentReviewModal({
   const acceptedDPPaid = getSafePrice(payment.downpaymentPaid)
   const thisSubmission = getSafePrice(payment.pendingPaymentAmount || payment.paymentAmount)
   const isActionable = isForReviewPayment(payment)
+  const isIncompletePayment =
+    String(payment.paymentStatus || "").toLowerCase() === "incomplete" ||
+    String(payment.verificationStatus || "").toLowerCase() === "incomplete"
+  const displayAmount = isIncompletePayment
+    ? getSafePrice(payment.paymentVerifiedAmount || payment.lastPaymentAmount || 0)
+    : transactionAmount
+  const displayLabel = isIncompletePayment ? "Amount Received" : "Amount Submitted"
 
   const paymentRecordProof = useMemo(() => {
     if (payment.paymentProof || payment.proofOfPayment) return null
@@ -1009,11 +1016,11 @@ function PaymentReviewModal({
             <ModalSection title="Amount Summary">
               <div className="rounded-2xl border border-orange-100 bg-orange-50 p-5">
                 <p className="text-[10px] font-black uppercase tracking-widest text-orange-600">
-                  Amount Submitted
+                  {displayLabel}
                 </p>
 
                 <p className="mt-1 text-3xl font-black tracking-tight text-orange-600">
-                  {formatCurrency(transactionAmount)}
+                  {formatCurrency(displayAmount)}
                 </p>
 
                 <p className="mt-2 text-xs font-semibold text-orange-700/70">
@@ -1022,7 +1029,7 @@ function PaymentReviewModal({
               </div>
             </ModalSection>
 
-            {payment.paymentType === "downpayment" && acceptedDPPaid > 0 && thisSubmission > 0 ? (
+            {payment.paymentType === "downpayment" && (acceptedDPPaid > 0 || thisSubmission > 0) ? (
               <div className="rounded-2xl bg-slate-950 p-4 text-white">
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">
                   Downpayment Summary
@@ -1037,12 +1044,12 @@ function PaymentReviewModal({
                     <span className="font-bold text-white">₱{acceptedDPPaid.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="font-semibold text-slate-400">This Submission</span>
-                    <span className="font-bold text-amber-300">₱{thisSubmission.toLocaleString()}</span>
+                    <span className="font-semibold text-slate-400">{isIncompletePayment ? "This Payment Received" : "This Submission"}</span>
+                    <span className="font-bold text-amber-300">₱{(isIncompletePayment ? displayAmount : thisSubmission).toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between border-t border-white/10 pt-1.5">
-                    <span className="font-semibold text-slate-400">Remaining DP After Verification</span>
-                    <span className="font-bold text-emerald-400">₱{Math.max(dpTarget - (acceptedDPPaid + thisSubmission), 0).toLocaleString()}</span>
+                    <span className="font-semibold text-slate-400">{isIncompletePayment ? "Remaining DP" : "Remaining DP After Verification"}</span>
+                    <span className="font-bold text-emerald-400">₱{(isIncompletePayment ? getSafePrice(payment.downpaymentRemaining || Math.max(dpTarget - acceptedDPPaid, 0)) : Math.max(dpTarget - (acceptedDPPaid + thisSubmission), 0)).toLocaleString()}</span>
                   </div>
                 </div>
               </div>
@@ -1056,10 +1063,10 @@ function PaymentReviewModal({
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                       {payment.downpaymentRemaining && Number(payment.downpaymentRemaining) > 0
                         ? "Downpayment Remaining"
-                        : "Remaining Balance"}
+                        : acceptedDPPaid === 0 ? "Downpayment Target" : "Remaining Balance"}
                     </p>
                     <p className="mt-1 text-xl font-black">
-                      {formatCurrency(remainingBalance)}
+                      {formatCurrency(acceptedDPPaid === 0 ? dpTarget : remainingBalance)}
                     </p>
                   </div>
                 </div>
@@ -1696,9 +1703,10 @@ function IncompletePaymentModal({
   const totalAmount = getAmountValue(
     (booking as any).totalAmount || booking.totalPrice || (booking as any).amount || (booking as any).price
   )
+  const selectedDP = getAmountValue(booking.selectedDownpaymentAmount) || (isDownpayment ? totalAmount * 0.5 : 0)
   const expectedAmount = office
     ? getAmountValue((booking as any).expectedAmount || (booking as any).paymentAmount || (booking as any).amount || (booking as any).amountPaid || totalAmount)
-    : totalAmount
+    : isDownpayment ? selectedDP : totalAmount
   const currentAmountPaid = getAmountValue(
     (booking as any).amountPaid || (booking as any).paymentAmount || (booking as any).paidAmount
   )
@@ -1709,7 +1717,6 @@ function IncompletePaymentModal({
   const newRemainingBalance = Math.max(totalAmount - newAmountPaid, 0)
   const expectedRemaining = Math.max(totalAmount - currentAmountPaid, 0)
   const remainingAfterInput = Math.max(expectedAmount - enteredAmount, 0)
-  const selectedDP = getAmountValue(booking.selectedDownpaymentAmount) || (isDownpayment ? totalAmount * 0.5 : 0)
   const isEmpty = verifiedAmount.trim() === ""
   const isZeroOrNegative = enteredAmount <= 0
   const isEqualOrOver = enteredAmount >= expectedAmount
@@ -1796,7 +1803,7 @@ function IncompletePaymentModal({
                   </p>
                   <p className="flex justify-between text-xs">
                     <span className="font-semibold text-slate-400">Expected Amount</span>
-                    <span className="font-bold text-slate-900">₱{totalAmount.toLocaleString()}</span>
+                    <span className="font-bold text-slate-900">₱{expectedAmount.toLocaleString()}</span>
                   </p>
                 </div>
 
