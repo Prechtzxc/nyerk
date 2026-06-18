@@ -61,26 +61,6 @@ export function CMSHomepageTab({ onNavigate }: { onNavigate: (tab: string) => vo
           </div>
         </section>
 
-        {/* ── CTA Buttons ── */}
-        <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-100 px-6 py-4">
-            <h2 className="text-sm font-black text-slate-900">Call-to-Action Buttons</h2>
-            <p className="text-xs font-medium text-slate-500">Button labels used in hero and bottom CTA sections</p>
-          </div>
-          <div className="grid gap-5 p-6 sm:grid-cols-2">
-            <div>
-              <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">Primary CTA Label</label>
-              <Input value={form.heroPrimaryCta || ""} onChange={(e) => setForm({ ...form, heroPrimaryCta: e.target.value })}
-                className="mt-1.5 h-10 rounded-lg border-slate-200 text-sm font-semibold" placeholder="Book Your Event" />
-            </div>
-            <div>
-              <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">Secondary CTA Label</label>
-              <Input value={form.heroSecondaryCta || ""} onChange={(e) => setForm({ ...form, heroSecondaryCta: e.target.value })}
-                className="mt-1.5 h-10 rounded-lg border-slate-200 text-sm font-semibold" placeholder="Take a Tour" />
-            </div>
-          </div>
-        </section>
-
         {/* ── About Section ── */}
         <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-100 px-6 py-4">

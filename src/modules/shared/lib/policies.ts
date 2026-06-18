@@ -48,11 +48,20 @@ export const PAYMENT_POLICY =
   "We accept bank transfer, credit card, and payment at the office. " +
   "For office rentals, payment shall be settled through post-dated checks based on the agreed contract duration, with one month advance payment and two months deposit required upon contract signing."
 
-export const CONTRACT_SIGNING_REMINDER =
-  "Once the initial payment is confirmed, the customer is required to visit the One Estela Place office for the physical signing of the contract. " +
-  "The booking status will reflect 'Approved but awaiting physical signing' until this is completed. " +
-  "This system-generated contract preview is for review purposes only and does not replace the official onsite contract signing. " +
-  "Both parties must sign the official contract at the One Estela Place office before the booking is fully confirmed."
+export const CONTRACT_INFORMATION =
+  "EVENT VENUE CONTRACT INFORMATION\n\n" +
+  "Customers are required to visit One Estela Place after payment verification to sign the event venue contract.\n" +
+  "The contract must be signed before the scheduled event date.\n" +
+  "The signed contract confirms the customer's agreement with the venue schedule, payment policy, cancellation policy, refund policy, and venue rules.\n" +
+  "Failure to complete contract signing may affect the reservation approval or event preparation process.\n" +
+  "Customers must bring valid identification and any required payment/reference documents when signing the contract onsite.\n\n" +
+  "OFFICE SPACE RENTAL CONTRACT INFORMATION\n\n" +
+  "Office space rentals require a separate rental contract.\n" +
+  "Customers must visit One Estela Place after reservation verification to complete contract signing.\n" +
+  "Office rental terms may be 6 months, 1 year, or 2 years depending on the selected rental duration.\n" +
+  "Required onsite payment terms may include 1 month advance and 2 months deposit.\n" +
+  "Future monthly payments may be handled through post-dated checks or onsite arrangements based on the agreement with management.\n" +
+  "The rental contract confirms the selected office space, rental term, payment obligations, deposit terms, and house rules."
 
 export const BOOKING_TERMS_SECTIONS = [
   {
@@ -125,7 +134,7 @@ export const POLICY_LABELS: Record<string, string> = {
   cancellation: "Cancellation Policy",
   refund: "Refund Policy",
   payment: "Payment Policy",
-  contractSigning: "Contract Signing Reminder",
+  contractSigning: "Contract Information",
 }
 
 export const ALL_POLICY_KEYS = ["venueTerms", "officeTerms", "cancellation", "refund", "payment", "contractSigning"] as const
@@ -137,7 +146,7 @@ export const DEFAULT_POLICY_CONTENT: Record<string, string> = {
   cancellation: CANCELLATION_POLICY,
   refund: REFUND_POLICY,
   payment: PAYMENT_POLICY,
-  contractSigning: CONTRACT_SIGNING_REMINDER,
+  contractSigning: CONTRACT_INFORMATION,
 }
 
 function parseCMSContent(content: string): string[] {

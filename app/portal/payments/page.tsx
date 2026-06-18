@@ -171,6 +171,27 @@ function getPaymentTermLabel(
   return type === "full" ? "Full Payment" : "Down Payment";
 }
 
+function getTransactionDisplayAmount(booking: Booking): number {
+  const b = booking as any;
+  const totalPrice = Number(b.totalPrice || 0);
+  const isDownPayment =
+    b.paymentType === "downpayment" ||
+    String(b.paymentType || "").toLowerCase().includes("down");
+
+  if (isDownPayment) {
+    const dpRemaining = Number(b.downpaymentRemaining || 0);
+    const dpPaid = Number(b.downpaymentPaid || 0);
+
+    if (dpRemaining > 0 && dpPaid > 0) {
+      return dpRemaining;
+    }
+
+    return Number(b.selectedDownpaymentAmount || totalPrice * 0.5 || 0);
+  }
+
+  return totalPrice;
+}
+
 function SummaryLine({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start justify-between gap-4">
@@ -351,7 +372,7 @@ function CurrentTransactionCard({
             {booking.eventName || "Untitled"}
           </p>
           <p className="truncate text-[11px] font-bold text-orange-600">
-            {formatMoney(total)}
+            {formatMoney(getTransactionDisplayAmount(booking))}
           </p>
         </div>
       </div>

@@ -77,7 +77,7 @@ export function CMSPoliciesTab({ onNavigate }: { onNavigate: (tab: string) => vo
 
   return (
     <div>
-      <CMSSectionHeader title="Terms &amp; Policies" description="Manage event venue terms, office space terms, cancellation, refund, payment policies, and contract signing reminders."
+      <CMSSectionHeader title="Terms &amp; Policies" description="Manage event venue terms, office space terms, cancellation, refund, payment policies, and contract information."
         currentSection="policies" onNavigate={onNavigate} />
 
       <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -103,7 +103,7 @@ export function CMSPoliciesTab({ onNavigate }: { onNavigate: (tab: string) => vo
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <BookOpen className="h-4 w-4 shrink-0 text-amber-500" />
-                      <span className="text-sm font-bold text-slate-900">{policy.title}</span>
+                      <span className="text-sm font-bold text-slate-900">{POLICY_LABELS[policy.type] || policy.title}</span>
                       <CMSStatusBadge status={policy.isPublished ? "published" : "hidden"} />
                     </div>
                     <div className="flex shrink-0 items-center gap-1.5">
