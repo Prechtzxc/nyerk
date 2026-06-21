@@ -48,20 +48,48 @@ export const PAYMENT_POLICY =
   "We accept bank transfer, credit card, and payment at the office. " +
   "For office rentals, payment shall be settled through post-dated checks based on the agreed contract duration, with one month advance payment and two months deposit required upon contract signing."
 
-export const CONTRACT_INFORMATION =
-  "EVENT VENUE CONTRACT INFORMATION\n\n" +
+export const CONTRACT_INFORMATION_EVENT_VENUE =
+  "CONTRACT DETAILS\n" +
   "Customers are required to visit One Estela Place after payment verification to sign the event venue contract.\n" +
   "The contract must be signed before the scheduled event date.\n" +
-  "The signed contract confirms the customer's agreement with the venue schedule, payment policy, cancellation policy, refund policy, and venue rules.\n" +
-  "Failure to complete contract signing may affect the reservation approval or event preparation process.\n" +
-  "Customers must bring valid identification and any required payment/reference documents when signing the contract onsite.\n\n" +
-  "OFFICE SPACE RENTAL CONTRACT INFORMATION\n\n" +
+  "The signed contract confirms the customer's agreement with the venue schedule, payment policy, cancellation policy, refund policy, and venue rules.\n\n" +
+  "REQUIREMENTS\n" +
+  "• Valid government-issued ID\n" +
+  "• Booking reference number\n" +
+  "• Payment reference or proof of payment\n" +
+  "• Contact information (email and phone number)\n\n" +
+  "REMINDERS\n" +
+  "• Contract must be signed at least 7 days before the event date to ensure proper preparation.\n" +
+  "• The contract signing process takes approximately 15–30 minutes.\n" +
+  "• Both parties (customer and venue representative) must be present for signing.\n" +
+  "• Failure to complete contract signing may affect the reservation approval or event preparation process.\n\n" +
+  "DOWNLOAD INSTRUCTIONS\n" +
+  "A preview of the contract is available in your booking details. The official contract must be signed onsite at the One Estela Place office."
+
+export const CONTRACT_INFORMATION_OFFICE_RENTAL =
+  "CONTRACT DETAILS\n" +
   "Office space rentals require a separate rental contract.\n" +
   "Customers must visit One Estela Place after reservation verification to complete contract signing.\n" +
-  "Office rental terms may be 6 months, 1 year, or 2 years depending on the selected rental duration.\n" +
-  "Required onsite payment terms may include 1 month advance and 2 months deposit.\n" +
-  "Future monthly payments may be handled through post-dated checks or onsite arrangements based on the agreement with management.\n" +
-  "The rental contract confirms the selected office space, rental term, payment obligations, deposit terms, and house rules."
+  "Office rental terms may be 6 months, 1 year, or 2 years depending on the selected rental duration.\n\n" +
+  "REQUIREMENTS\n" +
+  "• Valid government-issued ID\n" +
+  "• Proof of business registration (if applicable)\n" +
+  "• Booking reference number\n" +
+  "• Payment reference or proof of reservation payment\n" +
+  "• Contact information (email and phone number)\n\n" +
+  "RENTAL TERMS\n" +
+  "• Minimum rental period: 6 months\n" +
+  "• One month advance and two months deposit required upon contract signing\n" +
+  "• Monthly rental payments are settled through post-dated checks\n" +
+  "• Cheques submitted must cover the full rental term\n" +
+  "• Required onsite payment: 1 month advance + 2 months deposit = 3 months initial payment\n\n" +
+  "REMINDERS\n" +
+  "• Contract must be signed and initial payment completed before occupancy.\n" +
+  "• The contract signing process takes approximately 30–45 minutes.\n" +
+  "• All post-dated checks must be submitted face-to-face at the office.\n" +
+  "• Future monthly payments are handled through post-dated checks based on the agreed contract duration.\n\n" +
+  "DOWNLOAD INSTRUCTIONS\n" +
+  "A preview of the contract is available in your booking details. The official contract must be signed onsite at the One Estela Place office."
 
 export const BOOKING_TERMS_SECTIONS = [
   {
@@ -135,9 +163,11 @@ export const POLICY_LABELS: Record<string, string> = {
   refund: "Refund Policy",
   payment: "Payment Policy",
   contractSigning: "Contract Information",
+  contractSigningEV: "Event Venue Contract",
+  contractSigningOR: "Office Rental Contract",
 }
 
-export const ALL_POLICY_KEYS = ["venueTerms", "officeTerms", "cancellation", "refund", "payment", "contractSigning"] as const
+export const ALL_POLICY_KEYS = ["venueTerms", "officeTerms", "cancellation", "refund", "payment", "contractSigning", "contractSigningEV", "contractSigningOR"] as const
 export type PolicyKey = (typeof ALL_POLICY_KEYS)[number]
 
 export const DEFAULT_POLICY_CONTENT: Record<string, string> = {
@@ -146,7 +176,9 @@ export const DEFAULT_POLICY_CONTENT: Record<string, string> = {
   cancellation: CANCELLATION_POLICY,
   refund: REFUND_POLICY,
   payment: PAYMENT_POLICY,
-  contractSigning: CONTRACT_INFORMATION,
+  contractSigning: CONTRACT_INFORMATION_EVENT_VENUE + "\n\n---\n\n" + CONTRACT_INFORMATION_OFFICE_RENTAL,
+  contractSigningEV: CONTRACT_INFORMATION_EVENT_VENUE,
+  contractSigningOR: CONTRACT_INFORMATION_OFFICE_RENTAL,
 }
 
 function parseCMSContent(content: string): string[] {

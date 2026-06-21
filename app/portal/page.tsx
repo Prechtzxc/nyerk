@@ -1,17 +1,92 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useAuth } from "@/src/modules/shared/auth/auth-context"
 import { Card, CardContent } from "@/src/modules/shared/components/ui/card"
 import { Badge } from "@/src/modules/shared/components/ui/badge"
 import { Button } from "@/src/modules/shared/components/ui/button"
-import { Calendar, Check, MapPin, ArrowRight, Clock, Plus } from "lucide-react"
+import { Building2, Check, MapPin, ArrowRight, Clock, Plus, FileText, Calendar } from "lucide-react"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/src/modules/shared/components/ui/tooltip"
 import Link from "next/link"
 import { getProfilePicture, subscribeProfilePictureUpdates } from "@/src/modules/shared/lib/profile-picture"
 import { UserAvatar } from "@/src/modules/shared/components/user-avatar"
+import { useBookings, type Booking } from "@/src/modules/client/contexts/booking-context"
+import { cn } from "@/src/modules/shared/lib/utils"
+
+function isOfficeBooking(booking: Booking) {
+  const text = [(booking as any)?.bookingType, (booking as any)?.rentalType, booking?.venue, booking?.eventType]
+    .join(" ")
+    .toLowerCase()
+  return text.includes("office")
+}
+
+function getRemainingDuration(endDate?: string) {
+  if (!endDate) return null
+  const end = new Date(endDate + "T23:59:59")
+  const now = new Date()
+  if (isNaN(end.getTime())) return null
+  if (now > end) return "Expired"
+  const totalMs = end.getTime() - now.getTime()
+  const totalDays = Math.ceil(totalMs / (1000 * 60 * 60 * 24))
+  const totalMonths = Math.floor(totalDays / 30)
+  const remainingDays = totalDays % 30
+  if (totalDays <= 30) return `${totalDays} Days Remaining`
+  if (remainingDays === 0) return `${totalMonths} Months Remaining`
+  return `${totalMonths} Months, ${remainingDays} Days Remaining`
+}
+
+function formatDate(date?: string) {
+  if (!date) return "No date"
+  const parsed = new Date(date)
+  if (Number.isNaN(parsed.getTime())) return date
+  return new Intl.DateTimeFormat("en-PH", {
+    month: "long",
+    day: "2-digit",
+    year: "numeric",
+  }).format(parsed)
+}
+
+function getOfficeStatusDisplay(booking: Booking) {
+  const status = booking.status
+  if (status === "active_rental") {
+    const remaining = getRemainingDuration((booking as any).endDate)
+    return {
+      badge: "ACTIVE RENTAL",
+      badgeClass: "border-emerald-100 bg-emerald-50 text-emerald-700",
+      icon: "🟢",
+      remaining,
+      endDate: (booking as any).endDate ? formatDate((booking as any).endDate) : null,
+    }
+  }
+  if (status === "contract_signing_required") {
+    return {
+      badge: "CONTRACT SIGNING REQUIRED",
+      badgeClass: "border-yellow-100 bg-yellow-50 text-yellow-700",
+      icon: "🟡",
+      remaining: null,
+      endDate: null,
+    }
+  }
+  if (status === "rental_expired") {
+    return {
+      badge: "RENTAL EXPIRED",
+      badgeClass: "border-red-100 bg-red-50 text-red-700",
+      icon: "🔴",
+      remaining: null,
+      endDate: null,
+    }
+  }
+  return null
+}
 
 export default function ClientDashboardPage() {
   const { user } = useAuth()
+  const { getUserBookings, bookings } = useBookings()
   const [profilePicture, setProfilePicture] = useState<string | null>(user?.profilePicture ?? null)
 
   useEffect(() => {
@@ -29,30 +104,30 @@ export default function ClientDashboardPage() {
     })
   }, [user?.id, user?.profilePicture])
 
-  const nextEvent = {
-    name: "Wedding Reception",
-    date: "June 17, 2026",
-    time: "10:00 AM - 10:00 PM",
-    venue: "Grand Ballroom",
-    status: "APPROVED",
-    step: 3
-  }
+  const myBookings = useMemo(() => {
+    if (user) return getUserBookings(user.id)
+    return bookings
+  }, [user, getUserBookings, bookings])
 
-  const otherBookings = [
-    { id: 2, name: "Birthdayy", date: "June 19, 2026", time: "09:00 AM - 02:00 PM", venue: "Conference Hall", status: "PENDING" },
-    { id: 3, name: "Bachelors party", date: "June 25, 2026", time: "04:00 PM - 11:00 PM", venue: "Rooftop Terrace", status: "VERIFYING" },
-    { id: 4, name: "Company Seminar", date: "May 10, 2026", time: "08:00 AM - 05:00 PM", venue: "Grand Ballroom", status: "COMPLETED" },
-  ]
+  const officeBookings = useMemo(() => myBookings.filter(isOfficeBooking), [myBookings])
+  const activeRental = useMemo(() => officeBookings.find(b => b.status === "active_rental"), [officeBookings])
+  const contractSigning = useMemo(() => officeBookings.find(b => b.status === "contract_signing_required"), [officeBookings])
+  const expiredRental = useMemo(() => officeBookings.find(b => b.status === "rental_expired"), [officeBookings])
+  const otherActive = useMemo(() => myBookings.filter(b => {
+    if (isOfficeBooking(b)) return false
+    return !["completed", "cancelled", "declined"].includes(b.status)
+  }), [myBookings])
+  const topOther = otherActive[0] || null
 
-  const recentPayments = [
-    { id: 101, event: "Wedding Reception", amount: "₱25,000", date: "June 01, 2026", status: "PAID" },
-    { id: 102, event: "Birthdayy", amount: "₱10,000", date: "June 10, 2026", status: "PENDING" },
-  ]
+  const recentPayments = useMemo(() => myBookings.filter(b => {
+    const ps = String(b.paymentStatus || "").toLowerCase()
+    return ["verified", "paid", "slot_verified", "partial"].includes(ps)
+  }).slice(0, 3), [myBookings])
 
   return (
+    <TooltipProvider delayDuration={400}>
     <div className="w-full min-w-0 max-w-full overflow-x-hidden">
       <div className="mx-auto w-full max-w-[1180px] px-3 py-4 sm:px-5 lg:px-6 animate-in fade-in duration-500">
-      
         <section className="border-b border-slate-200 pb-5 mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
@@ -64,7 +139,6 @@ export default function ClientDashboardPage() {
                 fallbackClassName="bg-gradient-to-br from-orange-100 to-orange-200 text-orange-700"
                 textClassName="text-lg font-black uppercase"
               />
-
               <div className="min-w-0">
                 <p className="text-[11px] font-black uppercase tracking-[0.24em] text-orange-600">
                   Client Dashboard
@@ -77,51 +151,151 @@ export default function ClientDashboardPage() {
                 </p>
               </div>
             </div>
-
-            <Button className="h-11 rounded-xl bg-orange-600 px-5 text-sm font-black text-white shadow-sm hover:bg-orange-700 shrink-0" asChild>
+            <Button className="h-11 rounded-xl bg-orange-600 px-5 text-sm font-black text-white shadow-sm hover:bg-orange-700 shrink-0 active:scale-[0.97] transition-transform" asChild>
               <Link href="/portal/bookings"><Plus className="w-4 h-4 mr-1.5" /> New Booking</Link>
             </Button>
           </div>
         </section>
 
         <div className="space-y-6">
-          <div>
-            <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Your Next Event</h2>
-            <Card className="rounded-2xl border-slate-200 shadow-sm overflow-hidden bg-white">
-              <CardContent className="p-5 flex flex-col md:flex-row justify-between gap-6">
-                <div className="flex-1">
-                  <Badge variant="outline" className="uppercase text-[10px] font-black tracking-widest px-2.5 py-1 rounded-full mb-3 border-emerald-100 bg-emerald-50 text-emerald-600 shadow-none">
-                    {nextEvent.status}
-                  </Badge>
-                  <h3 className="text-xl font-black text-slate-950 tracking-tight leading-tight mb-3">
-                    {nextEvent.name}
-                  </h3>
-                  <div className="flex flex-col gap-2 text-xs text-slate-600 font-semibold bg-slate-50 p-3.5 rounded-xl border border-slate-100 w-fit">
-                    <div className="flex items-center gap-2.5"><Calendar className="w-4 h-4 text-orange-500" /> {nextEvent.date}</div>
-                    <div className="flex items-center gap-2.5"><Clock className="w-4 h-4 text-orange-500" /> {nextEvent.time}</div>
-                    <div className="flex items-center gap-2.5"><MapPin className="w-4 h-4 text-orange-500" /> {nextEvent.venue}</div>
-                  </div>
-                </div>
-                
-                <div className="w-full md:w-[200px] shrink-0 pt-4 md:pt-0 border-t md:border-t-0 md:border-l border-slate-100 md:pl-5">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4 text-center md:text-left">Progress</p>
-                  <div className="flex justify-between items-start w-full">
-                    {[
-                      { step: 1, label: 'Placed' }, { step: 2, label: 'Verified' },
-                      { step: 3, label: 'Approved' }, { step: 4, label: 'Done' }
-                    ].map((s) => (
-                      <div key={s.step} className="flex flex-col items-center gap-1.5">
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${nextEvent.step >= s.step ? 'bg-orange-500 text-white' : 'bg-slate-100'}`}>
-                          {nextEvent.step >= s.step && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                        </div>
-                        <span className={`text-[9px] font-black uppercase ${nextEvent.step >= s.step ? 'text-slate-800' : 'text-slate-400'}`}>{s.label}</span>
+          {activeRental && (
+            <div>
+              <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">
+                Active Office Rental
+              </h2>
+              <Card className="rounded-2xl border-emerald-200 bg-white shadow-sm overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-md">
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <Badge variant="outline" className="uppercase text-[10px] font-black tracking-widest px-2.5 py-1 rounded-full mb-3 border-emerald-100 bg-emerald-50 text-emerald-700 shadow-none">
+                        ACTIVE RENTAL
+                      </Badge>
+                      <h3 className="text-xl font-black text-slate-950 tracking-tight leading-tight mb-1">
+                        {activeRental.eventName || "Office Rental"}
+                      </h3>
+                      <p className="text-sm font-bold text-slate-500 mb-3">{activeRental.venue || "Office Space"}</p>
+                      <div className="flex flex-wrap gap-3 text-xs font-semibold text-slate-600 bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                        {(() => {
+                          const remaining = getRemainingDuration((activeRental as any).endDate)
+                          return remaining ? <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-emerald-500" /> {remaining}</span> : null
+                        })()}
+                        {(activeRental as any).endDate && (
+                          <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-orange-500" /> Ends: {formatDate((activeRental as any).endDate)}</span>
+                        )}
                       </div>
-                    ))}
+                    </div>
+                    <Button variant="outline" className="shrink-0 rounded-lg border-slate-200 px-3 text-[10px] font-bold" asChild>
+                      <Link href="/portal/bookings">View Details</Link>
+                    </Button>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {contractSigning && (
+            <div>
+              <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">
+                Action Required
+              </h2>
+              <Card className="rounded-2xl border-yellow-200 bg-white shadow-sm overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-md">
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <Badge variant="outline" className="uppercase text-[10px] font-black tracking-widest px-2.5 py-1 rounded-full mb-3 border-yellow-100 bg-yellow-50 text-yellow-700 shadow-none">
+                        CONTRACT SIGNING REQUIRED
+                      </Badge>
+                      <h3 className="text-xl font-black text-slate-950 tracking-tight leading-tight mb-1">
+                        {contractSigning.eventName || "Office Rental"}
+                      </h3>
+                      <p className="text-sm font-bold text-slate-500">{contractSigning.venue || "Office Space"}</p>
+                    </div>
+                    <Button variant="outline" className="shrink-0 rounded-lg border-slate-200 px-3 text-[10px] font-bold" asChild>
+                      <Link href="/portal/bookings">View Details</Link>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {expiredRental && (
+            <div>
+              <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">
+                Past Rental
+              </h2>
+              <Card className="rounded-2xl border-red-200 bg-white shadow-sm overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-md">
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <Badge variant="outline" className="uppercase text-[10px] font-black tracking-widest px-2.5 py-1 rounded-full mb-3 border-red-100 bg-red-50 text-red-700 shadow-none">
+                        RENTAL EXPIRED
+                      </Badge>
+                      <h3 className="text-xl font-black text-slate-950 tracking-tight leading-tight mb-1">
+                        {expiredRental.eventName || "Office Rental"}
+                      </h3>
+                      <p className="text-sm font-bold text-slate-500">{expiredRental.venue || "Office Space"}</p>
+                    </div>
+                    <Button variant="outline" className="shrink-0 rounded-lg border-slate-200 px-3 text-[10px] font-bold" asChild>
+                      <Link href="/portal/bookings">View Details</Link>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {topOther && !activeRental && !contractSigning && (
+            <div>
+              <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Your Next Event</h2>
+              <Card className="rounded-2xl border-slate-200 shadow-sm overflow-hidden bg-white">
+                <CardContent className="p-5 flex flex-col md:flex-row justify-between gap-6">
+                  <div className="flex-1">
+                    <Badge variant="outline" className="uppercase text-[10px] font-black tracking-widest px-2.5 py-1 rounded-full mb-3 border-emerald-100 bg-emerald-50 text-emerald-600 shadow-none">
+                      {topOther.status}
+                    </Badge>
+                    <h3 className="text-xl font-black text-slate-950 tracking-tight leading-tight mb-3">
+                      {topOther.eventName || "Event"}
+                    </h3>
+                    <div className="flex flex-col gap-2 text-xs text-slate-600 font-semibold bg-slate-50 p-3.5 rounded-xl border border-slate-100 w-fit">
+                      {topOther.date && <div className="flex items-center gap-2.5"><Calendar className="w-4 h-4 text-orange-500" /> {formatDate(topOther.date)}</div>}
+                      {topOther.time && <div className="flex items-center gap-2.5"><Clock className="w-4 h-4 text-orange-500" /> {topOther.time}</div>}
+                      {topOther.venue && <div className="flex items-center gap-2.5"><MapPin className="w-4 h-4 text-orange-500" /> {topOther.venue}</div>}
+                    </div>
+                  </div>
+                  <div className="w-full md:w-[200px] shrink-0 pt-4 md:pt-0 border-t md:border-t-0 md:border-l border-slate-100 md:pl-5">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4 text-center md:text-left">Status</p>
+                    <p className="text-sm font-bold text-slate-800 text-center md:text-left">{String(topOther.status || "").replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {!activeRental && !contractSigning && !expiredRental && !topOther && (
+            <div>
+              <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Your Next Event</h2>
+              <Card className="rounded-2xl border-slate-200 shadow-sm overflow-hidden bg-white">
+                <CardContent className="p-5 flex flex-col items-center text-center py-8">
+                  <Calendar className="mb-3 h-10 w-10 text-slate-300" />
+                  <h3 className="text-base font-black text-slate-900">No active bookings</h3>
+                  <p className="mt-1 max-w-sm text-xs text-slate-500">
+                    You don&apos;t have any upcoming reservations or rentals.
+                  </p>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button className="mt-4 h-9 rounded-xl bg-orange-600 px-4 text-xs font-bold text-white shadow-sm hover:bg-orange-700 active:scale-[0.97] transition-transform" asChild>
+                        <Link href="/portal/bookings"><Plus className="mr-1.5 h-3.5 w-3.5" /> Book Now</Link>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="text-[10px] font-semibold">
+                      Browse available spaces
+                    </TooltipContent>
+                  </Tooltip>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
           <div>
             <div className="flex items-center justify-between mb-3">
@@ -132,20 +306,43 @@ export default function ClientDashboardPage() {
             </div>
             <Card className="rounded-2xl border-slate-200 shadow-sm bg-white overflow-hidden">
               <div className="divide-y divide-slate-100">
-                {otherBookings.map((booking) => (
-                  <Link href="/portal/bookings" key={booking.id} className="p-4 flex items-center justify-between gap-3 hover:bg-slate-50 transition-colors group">
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-bold text-sm text-slate-900 truncate group-hover:text-orange-600">{booking.name}</h4>
-                      <div className="flex gap-3 text-xs text-slate-500 mt-1.5">
-                        <span className="flex items-center"><Calendar className="w-3.5 h-3.5 mr-1" />{booking.date}</span>
-                        <span className="hidden sm:flex items-center"><MapPin className="w-3.5 h-3.5 mr-1" />{booking.venue}</span>
-                      </div>
-                    </div>
-                    <Badge variant="outline" className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-full shadow-none ${booking.status === 'COMPLETED' ? 'text-emerald-600 border-emerald-100 bg-emerald-50' : booking.status === 'PENDING' ? 'text-orange-600 border-orange-100 bg-orange-50' : 'text-blue-600 border-blue-100 bg-blue-50'}`}>
-                      {booking.status}
-                    </Badge>
-                  </Link>
-                ))}
+                {myBookings.length === 0 ? (
+                  <div className="p-6 text-center">
+                    <p className="text-xs text-slate-500">No bookings found.</p>
+                  </div>
+                ) : (
+                  myBookings.slice(0, 5).map((booking) => {
+                    const isOffice = isOfficeBooking(booking)
+                    const officeStatus = isOffice ? getOfficeStatusDisplay(booking) : null
+                    return (
+                      <Link href="/portal/bookings" key={booking.id} className="p-4 flex items-center justify-between gap-3 hover:bg-slate-50 transition-colors group">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-bold text-sm text-slate-900 truncate group-hover:text-orange-600">
+                            {booking.eventName || "Untitled"}
+                          </h4>
+                          <div className="flex gap-3 text-xs text-slate-500 mt-1.5">
+                            <span className="flex items-center gap-1">{isOffice ? <Building2 className="w-3.5 h-3.5" /> : <Calendar className="w-3.5 h-3.5" />}{booking.venue || "N/A"}</span>
+                          </div>
+                        </div>
+                        {officeStatus ? (
+                          <Badge variant="outline" className={cn("text-[9px] font-black uppercase px-2.5 py-1 rounded-full shadow-none", officeStatus.badgeClass)}>
+                            {officeStatus.badge}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className={cn(
+                            "text-[9px] font-black uppercase px-2.5 py-1 rounded-full shadow-none",
+                            booking.status === "pending" || booking.status === "verifying" ? "text-orange-600 border-orange-100 bg-orange-50" :
+                            booking.status === "confirmed" ? "text-emerald-600 border-emerald-100 bg-emerald-50" :
+                            booking.status === "completed" ? "text-blue-600 border-blue-100 bg-blue-50" :
+                            "text-slate-600 border-slate-200 bg-slate-50"
+                          )}>
+                            {String(booking.status || "").replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}
+                          </Badge>
+                        )}
+                      </Link>
+                    )
+                  })
+                )}
               </div>
             </Card>
           </div>
@@ -159,25 +356,34 @@ export default function ClientDashboardPage() {
             </div>
             <Card className="rounded-2xl border-slate-200 shadow-sm bg-white overflow-hidden">
               <div className="divide-y divide-slate-100">
-                {recentPayments.map((payment) => (
-                  <div key={payment.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-bold text-sm text-slate-900">{payment.amount}</h4>
-                      <p className="text-[11px] text-slate-500 truncate mt-0.5">{payment.event}</p>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <Badge variant="outline" className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-full shadow-none ${payment.status === 'PAID' ? 'text-emerald-600 border-emerald-100 bg-emerald-50' : 'text-orange-600 border-orange-100 bg-orange-50'}`}>
-                        {payment.status}
-                      </Badge>
-                      <p className="text-[10px] text-slate-400 mt-1">{payment.date}</p>
-                    </div>
+                {recentPayments.length === 0 ? (
+                  <div className="p-6 text-center">
+                    <p className="text-xs text-slate-500">No payments yet.</p>
                   </div>
-                ))}
+                ) : (
+                  recentPayments.map((payment) => (
+                    <div key={payment.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-sm text-slate-900">
+                          ₱{Number((payment as any).amountPaid || 0).toLocaleString()}
+                        </h4>
+                        <p className="text-[11px] text-slate-500 truncate mt-0.5">{payment.eventName || "Payment"}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <Badge variant="outline" className="text-[9px] font-black uppercase px-2.5 py-1 rounded-full shadow-none text-emerald-600 border-emerald-100 bg-emerald-50">
+                          Paid
+                        </Badge>
+                        <p className="text-[10px] text-slate-400 mt-1">{formatDate(payment.createdAt)}</p>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </Card>
           </div>
         </div>
       </div>
     </div>
+    </TooltipProvider>
   )
 }

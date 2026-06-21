@@ -8,6 +8,7 @@ import { CMSOfficesTab } from "@admin/components/cms/cms-offices-tab"
 import { CMSGalleryTab } from "@admin/components/cms/cms-gallery-tab"
 import { CMSFaqsTab } from "@admin/components/cms/cms-faqs-tab"
 import { CMSPoliciesTab } from "@admin/components/cms/cms-policies-tab"
+import { CMSPastClientsTab } from "@admin/components/cms/cms-past-clients-tab"
 
 export default function CMSPage() {
   const [activeTab, setActiveTab] = useState("homepage")
@@ -34,6 +35,7 @@ export default function CMSPage() {
         {activeTab === "gallery" && <CMSGalleryTab onNavigate={setActiveTab} />}
         {activeTab === "faqs" && <CMSFaqsTab onNavigate={setActiveTab} />}
         {activeTab === "policies" && <CMSPoliciesTab onNavigate={setActiveTab} />}
+        {activeTab === "pastClients" && <CMSPastClientsTab onNavigate={setActiveTab} />}
       </div>
     </div>
   )

@@ -305,6 +305,24 @@ function getStatusBadge(status: string) {
           Completed
         </span>
       )
+    case "contract_signing_required":
+      return (
+        <span className={cn(baseClass, "bg-yellow-100 text-yellow-700")}>
+          Contract Signing
+        </span>
+      )
+    case "active_rental":
+      return (
+        <span className={cn(baseClass, "bg-sky-100 text-sky-700")}>
+          Active Rental
+        </span>
+      )
+    case "rental_expired":
+      return (
+        <span className={cn(baseClass, "bg-rose-100 text-rose-700")}>
+          Rental Expired
+        </span>
+      )
     default:
       return (
         <span className={cn(baseClass, "bg-slate-100 text-slate-700")}>

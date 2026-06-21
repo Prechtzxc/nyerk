@@ -27,6 +27,12 @@ import {
 import { Button } from "@/src/modules/shared/components/ui/button"
 import { Input } from "@/src/modules/shared/components/ui/input"
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/src/modules/shared/components/ui/tooltip"
+import {
   Dialog,
   DialogContent,
   DialogTitle,
@@ -72,6 +78,9 @@ function getStatusBadgeClass(status?: string) {
   if (["cancellation_requested", "cancellation requested"].includes(v)) return "border-amber-100 bg-amber-50 text-amber-700"
   if (["modification_under_review"].includes(v)) return "border-purple-100 bg-purple-50 text-purple-700"
   if (["cancelled", "declined"].includes(v)) return "border-rose-100 bg-rose-50 text-rose-700"
+  if (v === "contract_signing_required") return "border-yellow-100 bg-yellow-50 text-yellow-700"
+  if (v === "active_rental") return "border-sky-100 bg-sky-50 text-sky-700"
+  if (v === "rental_expired") return "border-rose-100 bg-rose-50 text-rose-700"
   return "border-slate-200 bg-slate-50 text-slate-600"
 }
 
@@ -159,6 +168,9 @@ function getStatusLabel(status?: string) {
   if (v === "cancellation_requested") return "Cancel Req"
   if (v === "modification_under_review") return "Modification Req"
   if (v === "reservation_secured") return "Reservation Secured"
+  if (v === "contract_signing_required") return "Contract Signing"
+  if (v === "active_rental") return "Active Rental"
+  if (v === "rental_expired") return "Rental Expired"
   return String(status || "Unknown").replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
@@ -473,7 +485,7 @@ export default function AdminBookingsPage() {
           }
         : b,
     )
-    persistBookings(updated)
+    setBookings(updated)
     setSelectedBooking(updated.find((b) => b.id === id) || null)
 
     toast({
@@ -495,7 +507,7 @@ export default function AdminBookingsPage() {
 
   return (
     <div className="w-full min-w-0 max-w-full overflow-x-hidden">
-      <div className="mx-auto w-full max-w-[1180px] px-3 py-4 sm:px-5 lg:px-6">
+      <div className="mx-auto w-full max-w-[1180px] px-3 py-4 sm:px-5 lg:px-6 animate-in fade-in duration-500">
         <BookingDetailsModal
           booking={selectedBooking}
           open={!!selectedBooking}
@@ -820,13 +832,22 @@ function AdminBookingCard({
         >
           {getStatusLabel(booking.status)}
         </span>
-        <Button
-          variant="outline"
-          onClick={onView}
-          className="h-8 shrink-0 whitespace-nowrap rounded-lg border-slate-200 px-2.5 text-[10px] font-bold text-slate-700 hover:bg-slate-50"
-        >
-          View Details
-        </Button>
+        <TooltipProvider delayDuration={400}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                onClick={onView}
+                className="h-8 shrink-0 whitespace-nowrap rounded-lg border-slate-200 px-2.5 text-[10px] font-bold text-slate-700 hover:bg-slate-50 active:scale-[0.97] transition-transform"
+              >
+                View Details
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left" className="text-[10px] font-semibold">
+              Open booking details
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     </div>
   )
@@ -1206,61 +1227,155 @@ function BookingDetailsModal({
             </section>
           )}
 
-          {isPaymentVerified && !(booking.contractStatus === "Signed" || booking.contractSigned) && !isCancelled && !isCompleted && (
-            <section className="rounded-2xl border border-slate-200 p-4">
-              <div className="mb-3 flex items-center gap-2">
-                <FileText className="h-4 w-4 text-slate-500" />
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Contract</p>
-              </div>
-              <div className="min-w-0 space-y-3">
-                <div className="space-y-2">
-                  <span
-                    className={cn(
-                      "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
-                      "border-orange-100 bg-orange-50 text-orange-700",
-                    )}
-                  >
-                    Contract Status: Pending Signature
-                  </span>
-                  <p className="text-xs font-semibold text-orange-700">
-                    Contract signing must be completed onsite at the One Estela Place office.
-                  </p>
-                  <p className="text-[11px] font-semibold text-slate-500">
-                    The customer must personally sign the official contract at the One Estela Place office.
-                  </p>
+          {(() => {
+            const normStatus = normalizeStatus(booking.status)
+            const isContractSigningRequired = normStatus === "contract_signing_required"
+            const showContractSigning =
+              isOfficeRental
+                ? isContractSigningRequired
+                : isPaymentVerified
+            const contractAlreadySigned = booking.contractStatus === "Signed" || booking.contractSigned
+            if (contractAlreadySigned) return null
+            if (!showContractSigning || isCancelled || isCompleted) return null
+            return (
+              <section className="rounded-2xl border border-slate-200 p-4">
+                <div className="mb-3 flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-slate-500" />
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Contract</p>
                 </div>
-                <div className="flex sm:justify-end">
-                  <Button
-                    onClick={onMarkContractSigned}
-                    className="h-9 rounded-lg bg-blue-600 px-4 text-[11px] font-bold text-white shadow-sm hover:bg-blue-700 w-full sm:w-auto"
-                  >
-                    <ShieldCheck className="mr-1.5 h-3.5 w-3.5" />
-                    Mark Contract as Signed
-                  </Button>
+                <div className="min-w-0 space-y-3">
+                  <div className="space-y-2">
+                    <span
+                      className={cn(
+                        "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
+                        "border-orange-100 bg-orange-50 text-orange-700",
+                      )}
+                    >
+                      Contract Status: Pending Signature
+                    </span>
+                    <p className="text-xs font-semibold text-orange-700">
+                      Contract signing must be completed onsite at the One Estela Place office.
+                    </p>
+                    <p className="text-[11px] font-semibold text-slate-500">
+                      The customer must personally sign the official contract at the One Estela Place office.
+                    </p>
+                  </div>
+                  <div className="flex sm:justify-end">
+                    <TooltipProvider delayDuration={400}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            onClick={onMarkContractSigned}
+                            className="h-9 rounded-lg bg-blue-600 px-4 text-[11px] font-bold text-white shadow-sm hover:bg-blue-700 w-full sm:w-auto active:scale-[0.97] transition-transform"
+                          >
+                            <ShieldCheck className="mr-1.5 h-3.5 w-3.5" />
+                            Mark Contract as Signed
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="left" className="text-[10px] font-semibold">
+                          Confirm contract signing
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                 </div>
-              </div>
-            </section>
-          )}
+              </section>
+            )
+          })()}
 
-          {!isPaymentVerified && !(booking.contractStatus === "Signed" || booking.contractSigned) && (
-            <section className="rounded-2xl border border-slate-200 p-4">
-              <div className="mb-3 flex items-center gap-2">
-                <FileText className="h-4 w-4 text-slate-500" />
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Contract</p>
-              </div>
-              <span
-                className={cn(
-                  "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
-                  "border-slate-200 bg-slate-50 text-slate-600",
-                )}
-              >
-                Contract Status: Not Available
-              </span>
-              <p className="mt-2 text-xs font-semibold text-slate-500">
-                Contract will be available once payment is verified.
-              </p>
-            </section>
-          )}
+          {(() => {
+            if (booking.contractStatus === "Signed" || booking.contractSigned) return null
+            const normStatus = normalizeStatus(booking.status)
+            if (isOfficeRental && normStatus === "contract_signing_required") return null
+            if (isPaymentVerified && !isOfficeRental) return null
+            if (isCancelled || isCompleted) return null
+            return (
+              <section className="rounded-2xl border border-slate-200 p-4">
+                <div className="mb-3 flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-slate-500" />
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Contract</p>
+                </div>
+                <span
+                  className={cn(
+                    "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
+                    "border-slate-200 bg-slate-50 text-slate-600",
+                  )}
+                >
+                  Contract Status: Not Available
+                </span>
+                <p className="mt-2 text-xs font-semibold text-slate-500">
+                  Contract will be available once payment is verified.
+                </p>
+              </section>
+            )
+          })()}
+
+          {isOfficeRental && (bookingStatus === "active_rental" || bookingStatus === "rental_expired") && (() => {
+            const startDate = booking.date ? formatDate(booking.date) : "—"
+            const endDate = (booking as any).endDate ? formatDate((booking as any).endDate) : "—"
+            const startMs = booking.date ? new Date(booking.date).getTime() : 0
+            const endMs = (booking as any).endDate ? new Date((booking as any).endDate + "T23:59:59").getTime() : 0
+            const now = Date.now()
+            const totalDays = endMs > startMs ? Math.max(1, Math.ceil((endMs - startMs) / 86400000)) : 0
+            const daysUsed = endMs > startMs && startMs > 0 ? Math.max(0, Math.min(totalDays, Math.ceil((now - startMs) / 86400000))) : 0
+            const progressPct = totalDays > 0 ? Math.min(100, Math.round((daysUsed / totalDays) * 100)) : 0
+            const remainingDuration = () => {
+              const remainingMs = endMs - now
+              if (remainingMs <= 0) return "Expired"
+              const days = Math.ceil(remainingMs / 86400000)
+              if (days >= 30) {
+                const months = Math.floor(days / 30)
+                const remainingDays = days % 30
+                return remainingDays > 0 ? `${months}mo ${remainingDays}d` : `${months}mo`
+              }
+              return `${days}d`
+            }
+            return (
+              <section className="rounded-2xl border border-sky-200 p-4">
+                <div className="mb-3 flex items-center gap-2">
+                  <Calendar className={`h-4 w-4 ${bookingStatus === "active_rental" ? "text-sky-500" : "text-rose-500"}`} />
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Rental Information</p>
+                </div>
+                <div className="space-y-2 text-xs font-semibold">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Start Date</span>
+                    <span className="font-bold text-slate-900">{startDate}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">End Date</span>
+                    <span className="font-bold text-slate-900">{endDate}</span>
+                  </div>
+                  {bookingStatus === "active_rental" && (
+                    <>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Days Used</span>
+                        <span className="font-bold text-slate-900">{daysUsed} / {totalDays}d</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Remaining</span>
+                        <span className="font-bold text-sky-600">{remainingDuration()}</span>
+                      </div>
+                      <div className="mt-2">
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                          <div
+                            className="h-full rounded-full bg-sky-500 transition-all"
+                            style={{ width: `${progressPct}%` }}
+                          />
+                        </div>
+                        <p className="mt-1 text-[10px] font-bold text-slate-400 text-right">{progressPct}% complete</p>
+                      </div>
+                    </>
+                  )}
+                  {bookingStatus === "rental_expired" && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Status</span>
+                      <span className="font-bold text-rose-600">Rental Period Ended</span>
+                    </div>
+                  )}
+                </div>
+              </section>
+            )
+          })()}
         </div>
 
         {/* ── Status-Based Action Buttons ── */}
@@ -1382,6 +1497,59 @@ function BookingDetailsModal({
 
           if (isForVerificationStatus) return null
           if (isCompleted || isCancelled) return null
+
+          if (normStatus === "contract_signing_required" || normStatus === "active_rental") {
+            const canRecord = canDoRecordOnsite && onRecordOnsitePayment
+            const canRemind = isApprovedOrConfirmed && remainingBalance > 0 && onSendReminder
+            if (!canRecord && !canRemind) return null
+            return (
+              <div className="border-t border-slate-100 bg-white px-5 py-4">
+                {remainingBalance > 0 && (
+                  <div className="rounded-xl bg-amber-50 p-3 text-center mb-3">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">Remaining Balance</p>
+                    <p className="mt-1 text-xl font-black text-amber-700">₱{remainingBalance.toLocaleString()}</p>
+                  </div>
+                )}
+                <div className="flex flex-wrap gap-3">
+                  {canRemind && (
+                    <Button
+                      onClick={() => onSendReminder(booking.id)}
+                      variant="outline"
+                      className="h-10 rounded-lg border-blue-200 px-4 text-xs font-bold text-blue-700 hover:bg-blue-50"
+                    >
+                      <Bell className="mr-1.5 h-3.5 w-3.5" />
+                      Send Balance Reminder
+                    </Button>
+                  )}
+                  {canRecord && (
+                    <Button
+                      onClick={() => onRecordOnsitePayment(booking.id)}
+                      className="h-10 rounded-lg border-emerald-200 bg-emerald-50 px-4 text-xs font-bold text-emerald-700 hover:bg-emerald-100"
+                    >
+                      <DollarSign className="mr-1.5 h-3.5 w-3.5" />
+                      Record Onsite Payment
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )
+          }
+
+          if (normStatus === "rental_expired") {
+            const canMarkCompleted = isFullyPaid && !isCompleted && onMarkCompleted
+            if (!canMarkCompleted) return null
+            return (
+              <div className="border-t border-slate-100 bg-white px-5 py-4">
+                <Button
+                  onClick={() => onMarkCompleted(booking.id)}
+                  className="h-11 w-full rounded-lg bg-emerald-600 px-4 text-xs font-bold text-white shadow-sm hover:bg-emerald-700"
+                >
+                  <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
+                  Mark as Completed
+                </Button>
+              </div>
+            )
+          }
 
           if (isPencilBooking) {
             if (!canDoRecordOnsite || !onRecordOnsitePayment) return null

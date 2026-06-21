@@ -58,6 +58,13 @@ import {
 import { cn } from "@/src/modules/shared/lib/utils"
 import { useCMS } from "@/src/modules/admin/contexts/cms-context"
 import { getPublicSpacesFromData } from "@/src/modules/client/lib/venue-data"
+import { Progress } from "@/src/modules/shared/components/ui/progress"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/src/modules/shared/components/ui/tooltip"
 
 type ReviewRecord = {
   id: string
@@ -175,6 +182,42 @@ function formatMoney(value?: number | string) {
   return `₱${Number.isFinite(amount) ? amount.toLocaleString("en-PH") : "0"}`
 }
 
+function getRemainingDuration(endDate?: string, startDate?: string) {
+  if (!endDate) return null
+  const end = new Date(endDate + "T23:59:59")
+  const now = new Date()
+  if (isNaN(end.getTime())) return null
+  if (now > end) return "Expired"
+
+  const totalMs = end.getTime() - now.getTime()
+  const totalDays = Math.ceil(totalMs / (1000 * 60 * 60 * 24))
+  const totalMonths = Math.floor(totalDays / 30)
+  const remainingDays = totalDays % 30
+
+  if (totalDays <= 30) return `${totalDays} Days Remaining`
+  if (remainingDays === 0) return `${totalMonths} Months Remaining`
+  return `${totalMonths} Months, ${remainingDays} Days Remaining`
+}
+
+function getRentalProgress(startDate?: string, endDate?: string) {
+  if (!startDate || !endDate) return null
+  const start = new Date(startDate + "T00:00:00")
+  const end = new Date(endDate + "T23:59:59")
+  const now = new Date()
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) return null
+
+  const totalMs = end.getTime() - start.getTime()
+  const elapsedMs = now.getTime() - start.getTime()
+  if (totalMs <= 0) return null
+
+  const progress = Math.min(100, Math.max(0, (elapsedMs / totalMs) * 100))
+  const totalDays = Math.ceil(totalMs / (1000 * 60 * 60 * 24))
+  const daysUsed = Math.ceil(elapsedMs / (1000 * 60 * 60 * 24))
+  const daysRemaining = Math.max(0, totalDays - daysUsed)
+
+  return { progress: Math.round(progress), totalDays, daysUsed: Math.max(0, daysUsed), daysRemaining }
+}
+
 function safeParseReviews(value: string | null): ReviewRecord[] {
   if (!value) return []
   try {
@@ -227,7 +270,7 @@ function formatTextLabel(value?: string) {
 
 function getStatusBadgeClass(status?: string) {
   const normalized = String(status || "").toLowerCase()
-  if (["confirmed", "reservation_secured", "slot_verified", "slot_secured"].includes(normalized)) {
+  if (["confirmed", "reservation_secured", "slot_verified", "slot_secured", "active_rental"].includes(normalized)) {
     return "border-emerald-100 bg-emerald-50 text-emerald-700"
   }
   if (["completed", "complete"].includes(normalized)) {
@@ -236,11 +279,17 @@ function getStatusBadgeClass(status?: string) {
   if (["pending", "verifying"].includes(normalized)) {
     return "border-orange-100 bg-orange-50 text-orange-700"
   }
+  if (["contract_signing_required"].includes(normalized)) {
+    return "border-yellow-100 bg-yellow-50 text-yellow-700"
+  }
   if (["cancellation_requested", "cancellation requested"].includes(normalized)) {
     return "border-amber-100 bg-amber-50 text-amber-700"
   }
   if (["cancelled", "declined"].includes(normalized)) {
     return "border-rose-100 bg-rose-50 text-rose-700"
+  }
+  if (["rental_expired"].includes(normalized)) {
+    return "border-red-100 bg-red-50 text-red-700"
   }
   return "border-slate-200 bg-slate-50 text-slate-600"
 }
@@ -256,6 +305,9 @@ function getStatusLabel(status?: string) {
   if (normalized === "cancellation_requested" || normalized === "cancellation requested")
     return "Cancel Req"
   if (normalized === "reservation_secured") return "Reservation Secured"
+  if (normalized === "contract_signing_required") return "Contract Signing Required"
+  if (normalized === "active_rental") return "Active Rental"
+  if (normalized === "rental_expired") return "Rental Expired"
   return formatTextLabel(status || "Unknown")
 }
 
@@ -388,13 +440,22 @@ function HorizontalBookingCard({
         >
           {getStatusLabel(booking.status)}
         </span>
-        <Button
-          variant="outline"
-          onClick={() => onView(booking)}
-          className="h-8 shrink-0 whitespace-nowrap rounded-lg border-slate-200 px-2.5 text-[10px] font-bold text-slate-700 hover:bg-slate-50"
-        >
-          View Details
-        </Button>
+        <TooltipProvider delayDuration={400}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                onClick={() => onView(booking)}
+                className="h-8 shrink-0 whitespace-nowrap rounded-lg border-slate-200 px-2.5 text-[10px] font-bold text-slate-700 hover:bg-slate-50"
+              >
+                View Details
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left" className="text-[10px] font-semibold">
+              View full booking details
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     </div>
   )
@@ -438,13 +499,22 @@ function HistoryRow({
         >
           {getStatusLabel(booking.status)}
         </span>
-        <Button
-          variant="outline"
-          onClick={() => onView(booking)}
-          className="h-8 shrink-0 whitespace-nowrap rounded-lg border-slate-200 px-2.5 text-[10px] font-bold text-slate-700 hover:bg-slate-50"
-        >
-          View Details
-        </Button>
+        <TooltipProvider delayDuration={400}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                onClick={() => onView(booking)}
+                className="h-8 shrink-0 whitespace-nowrap rounded-lg border-slate-200 px-2.5 text-[10px] font-bold text-slate-700 hover:bg-slate-50"
+              >
+                View Details
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left" className="text-[10px] font-semibold">
+              View full booking details
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     </div>
   )
@@ -830,6 +900,74 @@ function BookingDetailsModal({
                 </div>
               </section>
 
+              {isOfficeRental && (
+                <section className="rounded-2xl border border-slate-200 p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <div className="h-1.5 w-1.5 rounded-full bg-blue-400" />
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      Rental Information
+                    </p>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="min-w-0">
+                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Start Date</p>
+                      <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{startDate || "—"}</p>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">End Date</p>
+                      <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{endDate || "—"}</p>
+                    </div>
+                    {(() => {
+                      const remaining = getRemainingDuration((booking as any).endDate || booking.date, booking.date)
+                      if (!remaining) return null
+                      return (
+                        <div className="min-w-0">
+                          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Remaining Duration</p>
+                          <p className={cn(
+                            "mt-0.5 break-words text-xs font-bold",
+                            remaining === "Expired" ? "text-red-600" : "text-emerald-600"
+                          )}>
+                            {remaining}
+                          </p>
+                        </div>
+                      )
+                    })()}
+                  </div>
+                </section>
+              )}
+
+              {isOfficeRental && booking.status === "active_rental" && (() => {
+                const progress = getRentalProgress(booking.date, (booking as any).endDate)
+                if (!progress) return null
+                return (
+                  <section className="rounded-2xl border border-slate-200 p-4">
+                    <div className="mb-3 flex items-center gap-2">
+                      <div className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        Rental Progress
+                      </p>
+                    </div>
+                    <div className="space-y-3">
+                      <Progress value={progress.progress} className="h-2.5 rounded-full bg-slate-100" />
+                      <div className="grid grid-cols-3 gap-2 text-center">
+                        <div>
+                          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Days Used</p>
+                          <p className="text-xs font-bold text-slate-800">{progress.daysUsed}</p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Days Left</p>
+                          <p className="text-xs font-bold text-slate-800">{progress.daysRemaining}</p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Progress</p>
+                          <p className="text-xs font-bold text-emerald-600">{progress.progress}%</p>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+                )
+              })()}
+
               <section className="rounded-2xl border border-slate-200 p-4">
                 <PaymentSummaryCard booking={booking} bankRef={bankRef} />
               </section>
@@ -967,6 +1105,11 @@ function BookingDetailsModal({
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 mb-3">
+                    {booking.status === "contract_signing_required" && (
+                      <span className="inline-block rounded-md border border-yellow-100 bg-yellow-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-yellow-700">
+                        CONTRACT SIGNING REQUIRED
+                      </span>
+                    )}
                     <span
                       className={cn(
                         "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
@@ -2657,12 +2800,21 @@ export default function MyBookingsPage() {
               </p>
             </div>
             <div className="flex w-full sm:w-auto flex-wrap items-center gap-2">
-              <ReserveDialog>
-                <Button className="flex h-11 items-center justify-center gap-2 rounded-xl bg-orange-600 px-5 font-bold text-white shadow-sm transition-all hover:bg-orange-700">
-                  <Plus className="h-4 w-4" />
-                  New Booking
-                </Button>
-              </ReserveDialog>
+              <TooltipProvider delayDuration={400}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <ReserveDialog>
+                      <Button className="flex h-11 items-center justify-center gap-2 rounded-xl bg-orange-600 px-5 font-bold text-white shadow-sm transition-all hover:bg-orange-700">
+                        <Plus className="h-4 w-4" />
+                        New Booking
+                      </Button>
+                    </ReserveDialog>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="text-[10px] font-semibold">
+                    Create a new reservation
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               <Button
                 variant="outline"
                 onClick={() => setShowHistory((v) => !v)}
@@ -2691,13 +2843,22 @@ export default function MyBookingsPage() {
             />
             {canWriteReview(currentBooking) && (
               <div className="flex justify-end">
-                <Button
-                  onClick={() => handleReview(currentBooking)}
-                  className="h-9 rounded-lg bg-blue-600 px-3 text-[11px] font-bold text-white shadow-sm hover:bg-blue-700"
-                >
-                  <Star className="mr-1.5 h-3.5 w-3.5" />
-                  Write a Review
-                </Button>
+                <TooltipProvider delayDuration={400}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={() => handleReview(currentBooking)}
+                        className="h-9 rounded-lg bg-blue-600 px-3 text-[11px] font-bold text-white shadow-sm hover:bg-blue-700"
+                      >
+                        <Star className="mr-1.5 h-3.5 w-3.5" />
+                        Write a Review
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="left" className="text-[10px] font-semibold">
+                      Share your experience
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
             )}
           </div>
@@ -2844,6 +3005,37 @@ export default function MyBookingsPage() {
         </>
       )}
       </div>
+    </div>
+  )
+}
+
+function BookingSkeleton() {
+  return (
+    <div className="space-y-3">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="flex animate-pulse flex-col gap-3 rounded-2xl border border-slate-100 bg-white p-4 sm:flex-row sm:items-center sm:gap-4">
+          <div className="flex shrink-0 items-center gap-3 sm:w-[200px]">
+            <div className="h-11 w-11 rounded-xl bg-slate-200" />
+            <div className="flex-1 space-y-2">
+              <div className="h-3 w-16 rounded bg-slate-200" />
+              <div className="h-4 w-32 rounded bg-slate-200" />
+              <div className="h-3 w-24 rounded bg-slate-200" />
+            </div>
+          </div>
+          <div className="grid min-w-0 flex-1 grid-cols-2 gap-x-2 gap-y-1.5 sm:grid-cols-4 sm:gap-x-3">
+            {[1, 2, 3, 4].map((j) => (
+              <div key={j} className="space-y-1">
+                <div className="h-3 w-16 rounded bg-slate-200" />
+                <div className="h-4 w-24 rounded bg-slate-200" />
+              </div>
+            ))}
+          </div>
+          <div className="flex shrink-0 items-center justify-between gap-2 sm:flex-col sm:items-end sm:gap-1">
+            <div className="h-5 w-24 rounded-md bg-slate-200" />
+            <div className="h-8 w-20 rounded-lg bg-slate-200" />
+          </div>
+        </div>
+      ))}
     </div>
   )
 }

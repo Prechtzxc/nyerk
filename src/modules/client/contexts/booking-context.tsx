@@ -12,7 +12,10 @@ export type BookingStatus =
   | "declined"
   | "cancellation_requested"
   | "reservation_secured"
-  | "modification_under_review";
+  | "modification_under_review"
+  | "contract_signing_required"
+  | "active_rental"
+  | "rental_expired";
 
 export type ModificationStatus =
   | "None"
@@ -70,7 +73,10 @@ export type BookingStatusLabel =
   | "Cancellation Under Review"
   | "Modification Under Review"
   | "Cancelled"
-  | "Completed";
+  | "Completed"
+  | "Contract Signing Required"
+  | "Active Rental"
+  | "Rental Expired";
 
 export type OfficeRentalTerm = "6_months" | "1_year" | "2_years";
 
@@ -200,6 +206,7 @@ export interface Booking {
 
   contractSigningRequired?: boolean;
   contractSigned?: boolean;
+  contractSignedAt?: string;
   contractSignedDate?: string;
   contractSignedBy?: string;
   contractSigningMethod?: string;
@@ -619,6 +626,9 @@ function getDisplayBookingStatus(booking: Partial<Booking>): BookingStatusLabel 
   if (booking.status === "modification_under_review") return "Modification Under Review"
   if (booking.status === "reservation_secured") return "Slot Secured"
   if (booking.status === "confirmed") return isOfficeBooking(booking as Booking) ? "Slot Secured" : "Confirmed"
+  if (booking.status === "contract_signing_required") return "Contract Signing Required"
+  if (booking.status === "active_rental") return "Active Rental"
+  if (booking.status === "rental_expired") return "Rental Expired"
   return "Pending Verification"
 }
 
@@ -940,6 +950,7 @@ function normalizeBookingForNewFields(booking: Booking): Booking {
     receiptIssuedAt: booking.receiptIssuedAt || savedReceipt?.dateGenerated || savedReceipt?.dateIssued,
     contractSigningRequired: booking.contractSigningRequired ?? true,
     contractSigned: booking.contractSigned ?? false,
+    contractSignedAt: booking.contractSignedAt,
     contractStatus: (() => {
       if (booking.contractStatus === "Signed" || booking.contractSigned) return "Signed" as ContractStatus;
       if (booking.contractStatus === "Pending Signature") return "Pending Signature" as ContractStatus;
@@ -1007,6 +1018,26 @@ function normalizeBookingForNewFields(booking: Booking): Booking {
   ) {
     normalized.status = "pending";
     normalized.bookingStatus = getDisplayBookingStatus(normalized);
+  }
+
+  if (isOfficeBooking(normalized)) {
+    if (
+      normalized.status === "reservation_secured" &&
+      !normalized.contractSigned
+    ) {
+      normalized.status = "contract_signing_required";
+      normalized.contractSigningRequired = true;
+      normalized.bookingStatus = getDisplayBookingStatus(normalized);
+    }
+
+    if (
+      normalized.status === "active_rental" &&
+      normalized.endDate &&
+      new Date() > new Date(normalized.endDate + "T23:59:59")
+    ) {
+      normalized.status = "rental_expired";
+      normalized.bookingStatus = getDisplayBookingStatus(normalized);
+    }
   }
 
   return normalized;
@@ -1214,14 +1245,15 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
 
         return attachAutoReceipt({
           ...booking,
-          status: "reservation_secured" as BookingStatus,
-          bookingStatus: "Slot Secured",
+          status: "contract_signing_required" as BookingStatus,
+          bookingStatus: "Contract Signing Required",
           isSlotSecured: true,
           paymentStatus: "slot_verified" as PaymentStatus,
           paymentType: "slot_reservation" as const,
           amountPaid: reservationFee,
           remainingBalance: 0,
           remainingBalancePaid: true,
+          contractSigningRequired: true,
           officeReservationStatus:
             "reservation_secured" as OfficeReservationStatus,
           officeContractSigningRequired: true,
@@ -1234,7 +1266,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           adminLogs: makeAdminLog(
             booking,
             "OFFICE_SLOT_SECURED",
-            "Admin verified office reservation payment. Slot is now secured. Future payments will be tracked manually via onsite checks.",
+            "Admin verified office reservation payment. Slot is now secured. Contract signing required. Future payments will be tracked manually via onsite checks.",
           ),
         });
       }
@@ -1715,19 +1747,31 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     const updatedBookings = bookings.map((booking) => {
       if (booking.id !== id) return booking;
 
+      const newStatus = isOfficeBooking(booking)
+        ? ("active_rental" as BookingStatus)
+        : booking.status;
+
       return {
         ...booking,
         contractSigningRequired: true,
         contractSigned: true,
+        contractSignedAt: new Date().toISOString(),
         contractSignedDate: new Date().toISOString(),
         contractSignedBy: signedBy || "Administrator",
         contractSigningMethod: "Face-to-face",
         contractStatus: "Signed" as ContractStatus,
+        status: newStatus,
+        bookingStatus: getDisplayBookingStatus({
+          ...booking,
+          status: newStatus,
+        }),
         updatedAt: new Date().toISOString(),
         adminLogs: makeAdminLog(
           booking,
           "MARK_CONTRACT_SIGNED",
-          `Admin marked contract as signed at One Estela Place office. Signed by: ${signedBy || "Administrator"}. Method: Face-to-face.`,
+          isOfficeBooking(booking)
+            ? `Admin marked office rental contract as signed. Rental is now active. Signed by: ${signedBy || "Administrator"}.`
+            : `Admin marked contract as signed at One Estela Place office. Signed by: ${signedBy || "Administrator"}. Method: Face-to-face.`,
         ),
       };
     });
@@ -1777,8 +1821,8 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
 
         return attachAutoReceipt({
           ...booking,
-          status: "reservation_secured" as BookingStatus,
-          bookingStatus: "Slot Secured",
+          status: "contract_signing_required" as BookingStatus,
+          bookingStatus: "Contract Signing Required",
           isSlotSecured: true,
           paymentStatus: "slot_verified" as PaymentStatus,
           paymentType: "slot_reservation" as const,
@@ -1786,6 +1830,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           amountPaid: reservationFee,
           remainingBalance: 0,
           remainingBalancePaid: true,
+          contractSigningRequired: true,
           officeReservationStatus:
             "reservation_secured" as OfficeReservationStatus,
           officeContractSigningRequired: true,
@@ -1796,7 +1841,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           adminLogs: makeAdminLog(
             booking,
             "VERIFY_OFFICE_SLOT_CASH_PAYMENT",
-            "Admin verified office slot reservation payment paid at the office. Future payments are onsite check payments tracked by admin.",
+            "Admin verified office slot reservation payment paid at the office. Contract signing required. Future payments are onsite check payments tracked by admin.",
           ),
         });
       }
@@ -2058,8 +2103,8 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
 
         return attachAutoReceipt({
           ...booking,
-          status: "reservation_secured" as BookingStatus,
-          bookingStatus: "Slot Secured",
+          status: "contract_signing_required" as BookingStatus,
+          bookingStatus: "Contract Signing Required",
           isSlotSecured: true,
           paymentStatus: "slot_verified" as PaymentStatus,
           paymentType: "slot_reservation" as const,
@@ -2071,6 +2116,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           paymentVerifiedAt: new Date().toISOString(),
           paymentVerifiedBy: reviewData?.adminName || "Administrator",
           paymentVerifiedAmount: reviewData?.verifiedAmount || reservationFee,
+          contractSigningRequired: true,
           officeReservationStatus:
             "reservation_secured" as OfficeReservationStatus,
           officeContractSigningRequired: true,
@@ -2080,7 +2126,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           adminLogs: makeAdminLog(
             booking,
             "VERIFY_OFFICE_SLOT_PAYMENT",
-            `Admin verified office slot reservation payment. Reservation is secured.${reviewData?.adminNote ? ` Note: ${reviewData.adminNote}` : ""}`,
+            `Admin verified office slot reservation payment. Reservation is secured. Contract signing required.${reviewData?.adminNote ? ` Note: ${reviewData.adminNote}` : ""}`,
           ),
         });
       }

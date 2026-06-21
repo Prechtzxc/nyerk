@@ -43,6 +43,20 @@ export interface HomepageContent {
   faqSubtitle?: string
 }
 
+export type PastClientBooking = {
+  id: string
+  photo: string
+  name: string
+  eventName: string
+  eventType: string
+  date: string
+  testimonial: string
+  companyName: string
+  display: boolean
+  createdAt: string
+  updatedAt?: string
+}
+
 export type FAQ = {
   id: string
   question: string
@@ -81,6 +95,7 @@ export interface CMSData {
   offices: any[]
   faqs: FAQ[]
   pastEvents: PastEvent[]
+  pastClientBookings: PastClientBooking[]
   policies: Policy[]
 }
 
@@ -118,6 +133,11 @@ type CMSContextType = {
   addPastEvent: (data: Omit<PastEvent, "id" | "createdAt" | "updatedAt">) => void
   updatePastEvent: (id: string, data: Partial<PastEvent>) => void
   deletePastEvent: (id: string) => void
+
+  pastClientBookings: PastClientBooking[]
+  addPastClientBooking: (data: Omit<PastClientBooking, "id" | "createdAt" | "updatedAt">) => void
+  updatePastClientBooking: (id: string, data: Partial<PastClientBooking>) => void
+  deletePastClientBooking: (id: string) => void
 
   saveCMSData: (newData: CMSData) => void
 }
@@ -277,6 +297,7 @@ const defaultCMSData: CMSData = {
   ],
   faqs: DEFAULT_FAQS,
   pastEvents: [],
+  pastClientBookings: [],
   policies: DEFAULT_POLICIES,
 }
 
@@ -317,6 +338,11 @@ const defaultContextValue: CMSContextType = {
   updatePastEvent: () => {},
   deletePastEvent: () => {},
 
+  pastClientBookings: [],
+  addPastClientBooking: () => {},
+  updatePastClientBooking: () => {},
+  deletePastClientBooking: () => {},
+
   saveCMSData: () => {},
 }
 
@@ -341,6 +367,22 @@ function normalizePastEvent(event: any): PastEvent {
     image: event?.image || "/placeholder.jpg",
     isFeatured: event?.isFeatured ?? true,
     hasClientConsent: event?.hasClientConsent === true,
+    createdAt: event?.createdAt || new Date().toISOString(),
+    updatedAt: event?.updatedAt,
+  }
+}
+
+function normalizePastClientBooking(event: any): PastClientBooking {
+  return {
+    id: event?.id || createLocalId("past-client-booking"),
+    photo: event?.photo || "",
+    name: event?.name || "",
+    eventName: event?.eventName || "",
+    eventType: event?.eventType || "Event",
+    date: event?.date || "",
+    testimonial: event?.testimonial || "",
+    companyName: event?.companyName || "",
+    display: event?.display ?? true,
     createdAt: event?.createdAt || new Date().toISOString(),
     updatedAt: event?.updatedAt,
   }
@@ -384,6 +426,9 @@ function normalizeCMSData(parsed: Partial<CMSData> | null): CMSData {
     pastEvents: Array.isArray(parsed.pastEvents)
       ? parsed.pastEvents.map(normalizePastEvent)
       : defaultCMSData.pastEvents,
+    pastClientBookings: Array.isArray(parsed.pastClientBookings)
+      ? parsed.pastClientBookings.map(normalizePastClientBooking)
+      : defaultCMSData.pastClientBookings,
     policies: Array.isArray(parsed.policies) ? parsed.policies : defaultCMSData.policies,
   }
 }
@@ -583,6 +628,46 @@ export const CMSProvider = ({ children }: { children: React.ReactNode }) => {
     })
   }
 
+  const addPastClientBooking = (
+    data: Omit<PastClientBooking, "id" | "createdAt" | "updatedAt">
+  ) => {
+    const newBooking: PastClientBooking = {
+      id: createLocalId("past-client-booking"),
+      photo: data.photo,
+      name: data.name,
+      eventName: data.eventName,
+      eventType: data.eventType,
+      date: data.date,
+      testimonial: data.testimonial,
+      companyName: data.companyName,
+      display: data.display ?? true,
+      createdAt: new Date().toISOString(),
+    }
+    saveCMSData({
+      ...cmsData,
+      pastClientBookings: [newBooking, ...cmsData.pastClientBookings],
+    })
+  }
+
+  const updatePastClientBooking = (id: string, data: Partial<PastClientBooking>) => {
+    const updatedBookings = cmsData.pastClientBookings.map((booking) =>
+      booking.id === id
+        ? { ...booking, ...data, updatedAt: new Date().toISOString() }
+        : booking
+    )
+    saveCMSData({
+      ...cmsData,
+      pastClientBookings: updatedBookings,
+    })
+  }
+
+  const deletePastClientBooking = (id: string) => {
+    saveCMSData({
+      ...cmsData,
+      pastClientBookings: cmsData.pastClientBookings.filter((booking) => booking.id !== id),
+    })
+  }
+
   const addFAQ = (
     data: Omit<FAQ, "id" | "createdAt" | "updatedAt">
   ) => {
@@ -732,6 +817,11 @@ export const CMSProvider = ({ children }: { children: React.ReactNode }) => {
         addPastEvent,
         updatePastEvent,
         deletePastEvent,
+
+        pastClientBookings: cmsData.pastClientBookings,
+        addPastClientBooking,
+        updatePastClientBooking,
+        deletePastClientBooking,
 
         saveCMSData,
       }}
