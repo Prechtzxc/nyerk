@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import {
-  Building2, ChevronDown, HelpCircle, Home,
+  Building2, ChevronDown, FileText, HelpCircle, Home,
   Newspaper, Sparkles, Tent, Users,
 } from "lucide-react"
 import type { ReactNode } from "react"
@@ -15,6 +15,7 @@ const SECTIONS = [
   { key: "faqs", label: "FAQs", icon: <HelpCircle className="h-4 w-4" /> },
   { key: "policies", label: "Terms & Policies", icon: <Newspaper className="h-4 w-4" /> },
   { key: "pastClients", label: "Past Client Bookings", icon: <Users className="h-4 w-4" /> },
+  { key: "contracts", label: "Contracts", icon: <FileText className="h-4 w-4" /> },
 ]
 
 export function CMSSectionHeader({

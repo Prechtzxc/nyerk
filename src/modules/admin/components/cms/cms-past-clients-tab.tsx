@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { Calendar, Eye, EyeOff, Pencil, Plus, Save, Trash2, Upload, X, Users } from "lucide-react"
+import { type ChangeEvent, useState } from "react"
+import { Calendar, Eye, EyeOff, ImageIcon, Pencil, Plus, Save, Star, Trash2, Upload, X, Users } from "lucide-react"
 import { Button } from "@shared/components/ui/button"
 import { Input } from "@shared/components/ui/input"
 import { Textarea } from "@shared/components/ui/textarea"
@@ -9,11 +9,34 @@ import { Switch } from "@shared/components/ui/switch"
 import { useToast } from "@shared/hooks/use-toast"
 import { useCMS } from "@admin/contexts/cms-context"
 import { CMSSectionHeader } from "./cms-section-header"
-import { CMSImageUpload } from "./cms-image-upload"
 import { CMSStatusBadge, EmptyState } from "./cms-status-badge"
+import type { PastClientBooking } from "@admin/contexts/cms-context"
 
-type Form = { photo: string; name: string; eventName: string; eventType: string; date: string; testimonial: string; companyName: string; display: boolean }
-const EMPTY_FORM: Form = { photo: "", name: "", eventName: "", eventType: "Event", date: "", testimonial: "", companyName: "", display: true }
+const MAX_IMAGE_SIZE_BYTES = 2.5 * 1024 * 1024
+
+type Form = {
+  photos: string[]
+  coverPhoto: string
+  name: string
+  eventName: string
+  eventType: string
+  date: string
+  testimonial: string
+  companyName: string
+  display: boolean
+}
+
+const EMPTY_FORM: Form = {
+  photos: [],
+  coverPhoto: "",
+  name: "",
+  eventName: "",
+  eventType: "Event",
+  date: "",
+  testimonial: "",
+  companyName: "",
+  display: true,
+}
 
 export function CMSPastClientsTab({ onNavigate }: { onNavigate: (tab: string) => void }) {
   const { cmsData, addPastClientBooking, updatePastClientBooking, deletePastClientBooking } = useCMS()
@@ -23,34 +46,141 @@ export function CMSPastClientsTab({ onNavigate }: { onNavigate: (tab: string) =>
   const [form, setForm] = useState<Form>(EMPTY_FORM)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
 
-  const sortedBookings = [...(cmsData.pastClientBookings || [])].sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())
+  const sortedBookings = [...(cmsData.pastClientBookings || [])].sort(
+    (a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()
+  )
 
-  const resetForm = () => { setForm(EMPTY_FORM); setEditingId(null); setShowModal(false) }
-  const openNew = () => { resetForm(); setShowModal(true) }
-  const openEdit = (b: any) => {
-    setEditingId(b.id)
-    setForm({ photo: b.photo || "", name: b.name || "", eventName: b.eventName || "", eventType: b.eventType || "Event", date: b.date || "", testimonial: b.testimonial || "", companyName: b.companyName || "", display: b.display ?? true })
+  const resetForm = () => {
+    setForm(EMPTY_FORM)
+    setEditingId(null)
+    setShowModal(false)
+  }
+
+  const openNew = () => {
+    resetForm()
     setShowModal(true)
   }
 
+  const openEdit = (b: PastClientBooking) => {
+    setEditingId(b.id)
+    setForm({
+      photos: b.photos || [],
+      coverPhoto: b.coverPhoto || (b.photos?.[0] || ""),
+      name: b.name || "",
+      eventName: b.eventName || "",
+      eventType: b.eventType || "Event",
+      date: b.date || "",
+      testimonial: b.testimonial || "",
+      companyName: b.companyName || "",
+      display: b.display ?? true,
+    })
+    setShowModal(true)
+  }
+
+  const handlePhotoUpload = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Invalid File", description: "Upload an image.", variant: "destructive" })
+      event.target.value = ""
+      return
+    }
+    if (file.size > MAX_IMAGE_SIZE_BYTES) {
+      toast({ title: "Image Too Large", description: "Max 2.5MB.", variant: "destructive" })
+      event.target.value = ""
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => {
+      const url = String(reader.result || "")
+      const newPhotos = [...form.photos, url]
+      setForm({
+        ...form,
+        photos: newPhotos,
+        coverPhoto: form.coverPhoto || url,
+      })
+      event.target.value = ""
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const removePhoto = (index: number) => {
+    const removed = form.photos[index]
+    const newPhotos = form.photos.filter((_, i) => i !== index)
+    setForm({
+      ...form,
+      photos: newPhotos,
+      coverPhoto: form.coverPhoto === removed ? (newPhotos[0] || "") : form.coverPhoto,
+    })
+  }
+
+  const setAsCover = (url: string) => {
+    setForm({ ...form, coverPhoto: url })
+  }
+
   const handleSave = () => {
-    if (!form.name.trim()) { toast({ title: "Name required", description: "Enter the client name.", variant: "destructive" }); return }
-    if (!form.eventName.trim()) { toast({ title: "Event name required", description: "Enter the event name.", variant: "destructive" }); return }
-    if (!form.date) { toast({ title: "Date required", description: "Select the event date.", variant: "destructive" }); return }
-    if (!form.photo.trim()) { toast({ title: "Photo required", description: "Upload a client photo.", variant: "destructive" }); return }
-    const payload = { photo: form.photo.trim(), name: form.name.trim(), eventName: form.eventName.trim(), eventType: form.eventType || "Event", date: form.date, testimonial: form.testimonial.trim(), companyName: form.companyName.trim(), display: form.display }
-    if (editingId) { updatePastClientBooking(editingId, payload); toast({ title: "Client booking updated", description: "Changes saved.", className: "bg-emerald-500 text-white border-none" }) }
-    else { addPastClientBooking(payload); toast({ title: "Client booking added", description: "New client booking saved.", className: "bg-emerald-500 text-white border-none" }) }
+    if (!form.name.trim()) {
+      toast({ title: "Name required", description: "Enter the client name.", variant: "destructive" })
+      return
+    }
+    if (!form.eventName.trim()) {
+      toast({ title: "Event name required", description: "Enter the event name.", variant: "destructive" })
+      return
+    }
+    if (!form.date) {
+      toast({ title: "Date required", description: "Select the event date.", variant: "destructive" })
+      return
+    }
+    if (form.photos.length === 0) {
+      toast({ title: "Photos required", description: "Upload at least one photo.", variant: "destructive" })
+      return
+    }
+    const payload = {
+      photos: form.photos,
+      coverPhoto: form.coverPhoto || form.photos[0],
+      name: form.name.trim(),
+      eventName: form.eventName.trim(),
+      eventType: form.eventType || "Event",
+      date: form.date,
+      testimonial: form.testimonial.trim(),
+      companyName: form.companyName.trim(),
+      display: form.display,
+    }
+    if (editingId) {
+      updatePastClientBooking(editingId, payload)
+      toast({ title: "Client booking updated", description: "Changes saved.", className: "bg-emerald-500 text-white border-none" })
+    } else {
+      addPastClientBooking(payload)
+      toast({ title: "Client booking added", description: "New client booking saved.", className: "bg-emerald-500 text-white border-none" })
+    }
     resetForm()
   }
 
-  const handleDelete = (id: string) => { deletePastClientBooking(id); setConfirmDelete(null); toast({ title: "Client booking deleted", description: "Entry removed from CMS.", className: "bg-emerald-500 text-white border-none" }) }
+  const handleDelete = (id: string) => {
+    deletePastClientBooking(id)
+    setConfirmDelete(null)
+    toast({ title: "Client booking deleted", description: "Entry removed from CMS.", className: "bg-emerald-500 text-white border-none" })
+  }
+
+  const getCoverImage = (booking: PastClientBooking) => {
+    if (booking.coverPhoto) return booking.coverPhoto
+    if (booking.photos?.length > 0) return booking.photos[0]
+    return "/placeholder.jpg"
+  }
 
   return (
     <div>
-      <CMSSectionHeader title="Past Client Bookings" description="Manage past client booking testimonials shown on the landing page."
-        currentSection="pastClients" onNavigate={onNavigate}
-        action={<Button type="button" onClick={openNew} className="h-9 rounded-lg bg-pink-600 px-3.5 text-xs font-bold text-white hover:bg-pink-700"><Plus className="mr-1 h-3.5 w-3.5" /> Add Client Booking</Button>} />
+      <CMSSectionHeader
+        title="Past Client Bookings"
+        description="Manage past client booking testimonials shown on the landing page."
+        currentSection="pastClients"
+        onNavigate={onNavigate}
+        action={
+          <Button type="button" onClick={openNew} className="h-9 rounded-lg bg-pink-600 px-3.5 text-xs font-bold text-white hover:bg-pink-700">
+            <Plus className="mr-1 h-3.5 w-3.5" /> Add Client Booking
+          </Button>
+        }
+      />
 
       <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-100 px-4 py-2.5">
@@ -61,12 +191,21 @@ export function CMSPastClientsTab({ onNavigate }: { onNavigate: (tab: string) =>
 
         {sortedBookings.length > 0 ? (
           <div className="grid gap-3 p-4 sm:grid-cols-2">
-            {sortedBookings.map((booking: any) => (
+            {sortedBookings.map((booking) => (
               <div key={booking.id} className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
                 <div className="relative h-40 overflow-hidden bg-slate-100">
-                  <img src={booking.photo?.trim() ? booking.photo : "/placeholder.jpg"} alt={booking.name} className="h-full w-full object-cover"
-                    onError={(e) => { e.currentTarget.src = "/placeholder.jpg" }} />
-                  <div className="absolute right-2 top-2">
+                  <img
+                    src={getCoverImage(booking)}
+                    alt={booking.name}
+                    className="h-full w-full object-cover"
+                    onError={(e) => { e.currentTarget.src = "/placeholder.jpg" }}
+                  />
+                  <div className="absolute right-2 top-2 flex items-center gap-1">
+                    {booking.photos && booking.photos.length > 1 && (
+                      <span className="rounded-md bg-black/60 px-1.5 py-0.5 text-[9px] font-bold text-white">
+                        {booking.photos.length} photos
+                      </span>
+                    )}
                     <CMSStatusBadge status={booking.display ? "live" : "hidden"} />
                   </div>
                 </div>
@@ -76,13 +215,19 @@ export function CMSPastClientsTab({ onNavigate }: { onNavigate: (tab: string) =>
                     {booking.companyName && <span className="text-[10px] font-bold text-slate-400">{booking.companyName}</span>}
                   </div>
                   <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-pink-600">{booking.eventName} · {booking.eventType}</p>
-                  <p className="mt-0.5 flex items-center gap-1 text-[11px] font-semibold text-slate-500"><Calendar className="h-3 w-3" />{booking.date || "No date"}</p>
+                  <p className="mt-0.5 flex items-center gap-1 text-[11px] font-semibold text-slate-500">
+                    <Calendar className="h-3 w-3" />{booking.date || "No date"}
+                  </p>
                   {booking.testimonial && (
                     <p className="mt-1.5 text-xs italic text-slate-600 line-clamp-2">&ldquo;{booking.testimonial}&rdquo;</p>
                   )}
                   <div className="mt-3 flex gap-1.5">
-                    <Button type="button" variant="outline" size="sm" onClick={() => openEdit(booking)} className="h-8 flex-1 rounded-md border-slate-200 text-[10px] font-bold"><Pencil className="mr-1 h-3 w-3" /> Edit</Button>
-                    <Button type="button" variant="outline" size="sm" onClick={() => setConfirmDelete(booking.id)} className="h-8 flex-1 rounded-md border-rose-200 text-[10px] font-bold text-rose-600 hover:bg-rose-50"><Trash2 className="mr-1 h-3 w-3" /> Delete</Button>
+                    <Button type="button" variant="outline" size="sm" onClick={() => openEdit(booking)} className="h-8 flex-1 rounded-md border-slate-200 text-[10px] font-bold">
+                      <Pencil className="mr-1 h-3 w-3" /> Edit
+                    </Button>
+                    <Button type="button" variant="outline" size="sm" onClick={() => setConfirmDelete(booking.id)} className="h-8 flex-1 rounded-md border-rose-200 text-[10px] font-bold text-rose-600 hover:bg-rose-50">
+                      <Trash2 className="mr-1 h-3 w-3" /> Delete
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -90,9 +235,16 @@ export function CMSPastClientsTab({ onNavigate }: { onNavigate: (tab: string) =>
           </div>
         ) : (
           <div className="p-5">
-            <EmptyState icon={<Users className="h-8 w-8 text-pink-400" />} title="No past client bookings yet"
+            <EmptyState
+              icon={<Users className="h-8 w-8 text-pink-400" />}
+              title="No past client bookings yet"
               description="Add client booking testimonials to display on the landing page."
-              action={<Button type="button" onClick={openNew} className="h-9 rounded-lg bg-pink-600 text-xs font-bold text-white hover:bg-pink-700"><Plus className="mr-1.5 h-3.5 w-3.5" /> Add Client Booking</Button>} />
+              action={
+                <Button type="button" onClick={openNew} className="h-9 rounded-lg bg-pink-600 text-xs font-bold text-white hover:bg-pink-700">
+                  <Plus className="mr-1.5 h-3.5 w-3.5" /> Add Client Booking
+                </Button>
+              }
+            />
           </div>
         )}
       </section>
@@ -101,8 +253,12 @@ export function CMSPastClientsTab({ onNavigate }: { onNavigate: (tab: string) =>
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 pt-8">
           <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white shadow-xl max-h-[calc(100dvh-32px)] overflow-y-auto">
             <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-white px-5 py-3.5">
-              <h2 className="text-base font-black text-slate-950">{editingId ? "Edit Client Booking" : "Add Past Client Booking"}</h2>
-              <button type="button" onClick={resetForm} className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100"><X className="h-4 w-4" /></button>
+              <h2 className="text-base font-black text-slate-950">
+                {editingId ? "Edit Client Booking" : "Add Past Client Booking"}
+              </h2>
+              <button type="button" onClick={resetForm} className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100">
+                <X className="h-4 w-4" />
+              </button>
             </div>
             <div className="grid gap-4 p-5">
               <div className="grid gap-3 sm:grid-cols-2">
@@ -138,13 +294,60 @@ export function CMSPastClientsTab({ onNavigate }: { onNavigate: (tab: string) =>
                 <Textarea value={form.testimonial} onChange={(e) => setForm({ ...form, testimonial: e.target.value })} placeholder="Client testimonial..."
                   className="mt-1 min-h-[80px] resize-none rounded-lg border-slate-200 text-sm font-semibold" />
               </div>
-              <CMSImageUpload label="Client Photo" value={form.photo} onValueChange={(v) => setForm({ ...form, photo: v })} note="Upload a photo of the client or their event." />
+
+              <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-3.5">
+                <div className="mb-2.5 flex items-center justify-between gap-2">
+                  <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">Photos</label>
+                  <ImageIcon className="h-3.5 w-3.5 text-slate-400" />
+                </div>
+
+                {form.photos.length > 0 && (
+                  <div className="mb-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
+                    {form.photos.map((photo, i) => (
+                      <div key={i} className="group relative aspect-square overflow-hidden rounded-lg border border-slate-200 bg-white">
+                        <img src={photo} alt={`Photo ${i + 1}`} className="h-full w-full object-cover"
+                          onError={(e) => { e.currentTarget.src = "/placeholder.jpg" }} />
+                        <div className="absolute inset-0 flex items-center justify-center gap-1 bg-black/50 opacity-0 transition group-hover:opacity-100">
+                          <button type="button" onClick={() => setAsCover(photo)}
+                            className={`flex h-6 w-6 items-center justify-center rounded-full text-white transition ${form.coverPhoto === photo ? "text-yellow-400" : "text-white/70 hover:text-yellow-400"}`}
+                            title="Set as cover">
+                            <Star className="h-3.5 w-3.5" fill={form.coverPhoto === photo ? "currentColor" : "none"} />
+                          </button>
+                          <button type="button" onClick={() => removePhoto(i)}
+                            className="flex h-6 w-6 items-center justify-center rounded-full text-white/70 transition hover:text-red-400"
+                            title="Remove photo">
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        {form.coverPhoto === photo && (
+                          <div className="absolute left-1 top-1 rounded-md bg-yellow-400 px-1 py-0.5 text-[8px] font-bold text-yellow-900">
+                            Cover
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 bg-white py-4 transition hover:border-pink-300 hover:bg-pink-50/30">
+                  <input type="file" accept="image/*" onChange={handlePhotoUpload} hidden />
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-pink-50 text-pink-600">
+                    <Upload className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-700">Add Photo</p>
+                    <p className="text-[10px] font-semibold text-slate-500">Max 2.5MB each</p>
+                  </div>
+                </label>
+              </div>
             </div>
             <div className="sticky bottom-0 flex gap-2 border-t border-slate-100 bg-white px-5 py-3.5">
               <Button type="button" onClick={handleSave} className="h-9 flex-1 rounded-lg bg-pink-600 text-xs font-bold text-white hover:bg-pink-700">
                 <Save className="mr-1.5 h-3.5 w-3.5" /> {editingId ? "Save Changes" : "Add Client Booking"}
               </Button>
-              <Button type="button" variant="outline" onClick={resetForm} className="h-9 rounded-lg border-slate-200 text-xs font-bold"><X className="mr-1.5 h-3.5 w-3.5" /> Cancel</Button>
+              <Button type="button" variant="outline" onClick={resetForm} className="h-9 rounded-lg border-slate-200 text-xs font-bold">
+                <X className="mr-1.5 h-3.5 w-3.5" /> Cancel
+              </Button>
             </div>
           </div>
         </div>
@@ -157,7 +360,9 @@ export function CMSPastClientsTab({ onNavigate }: { onNavigate: (tab: string) =>
             <p className="mt-1 text-sm font-semibold text-slate-500">This cannot be undone.</p>
             <div className="mt-4 flex gap-2">
               <Button type="button" variant="outline" onClick={() => setConfirmDelete(null)} className="h-9 flex-1 rounded-lg border-slate-200 text-xs font-bold">Cancel</Button>
-              <Button type="button" onClick={() => handleDelete(confirmDelete)} className="h-9 flex-1 rounded-lg bg-rose-600 text-xs font-bold text-white hover:bg-rose-700"><Trash2 className="mr-1.5 h-3.5 w-3.5" /> Delete</Button>
+              <Button type="button" onClick={() => handleDelete(confirmDelete)} className="h-9 flex-1 rounded-lg bg-rose-600 text-xs font-bold text-white hover:bg-rose-700">
+                <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Delete
+              </Button>
             </div>
           </div>
         </div>

@@ -12,15 +12,19 @@ import {
 import {
   Calendar,
   Camera,
+  ChevronLeft,
+  ChevronRight,
   ImageIcon,
   Loader2,
   Sparkles,
+  X,
 } from "lucide-react"
 import { ReserveButton } from "@/src/modules/client/components/reserve-button"
 import { TourButton } from "@/src/modules/client/components/tour-button"
 import { useCMS } from "@/src/modules/admin/contexts/cms-context"
 import { useAuth } from "@/src/modules/shared/auth/auth-context"
 import { getCurrentUser } from "@/src/modules/shared/lib/auth-storage"
+import type { PastClientBooking } from "@/src/modules/admin/contexts/cms-context"
 
 function getImageSource(value?: string) {
   return value && value.trim() ? value : "/placeholder.jpg"
@@ -37,6 +41,120 @@ function formatDate(date?: string) {
     day: "2-digit",
     year: "numeric",
   }).format(parsed)
+}
+
+function GalleryModal({
+  booking,
+  onClose,
+}: {
+  booking: PastClientBooking | null
+  onClose: () => void
+}) {
+  const [currentIndex, setCurrentIndex] = useState(0)
+
+  useEffect(() => {
+    setCurrentIndex(0)
+  }, [booking?.id])
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose()
+      if (e.key === "ArrowLeft") setCurrentIndex((i) => Math.max(0, i - 1))
+      if (e.key === "ArrowRight") setCurrentIndex((i) => Math.min((booking?.photos?.length || 1) - 1, i + 1))
+    }
+    if (booking) {
+      document.addEventListener("keydown", handleKey)
+      document.body.style.overflow = "hidden"
+    }
+    return () => {
+      document.removeEventListener("keydown", handleKey)
+      document.body.style.overflow = ""
+    }
+  }, [booking, onClose])
+
+  if (!booking) return null
+
+  const photos = booking.photos || []
+  const total = photos.length
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-black/95 animate-in fade-in duration-200">
+      <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-white truncate">{booking.eventName}</p>
+          <p className="text-[11px] font-semibold text-white/60">{booking.name}</p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/70 transition hover:bg-white/20 hover:text-white"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+
+      <div className="relative flex flex-1 items-center justify-center overflow-hidden p-4">
+        {total > 0 ? (
+          <>
+            <img
+              src={photos[currentIndex]}
+              alt={`${booking.eventName} photo ${currentIndex + 1}`}
+              className="max-h-full max-w-full rounded-lg object-contain"
+            />
+
+            {total > 1 && (
+              <>
+                <span className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 text-xs font-bold text-white">
+                  {currentIndex + 1} of {total}
+                </span>
+
+                {currentIndex > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setCurrentIndex((i) => i - 1)}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white/70 transition hover:bg-white/20 hover:text-white"
+                  >
+                    <ChevronLeft className="h-6 w-6" />
+                  </button>
+                )}
+                {currentIndex < total - 1 && (
+                  <button
+                    type="button"
+                    onClick={() => setCurrentIndex((i) => i + 1)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white/70 transition hover:bg-white/20 hover:text-white"
+                  >
+                    <ChevronRight className="h-6 w-6" />
+                  </button>
+                )}
+              </>
+            )}
+          </>
+        ) : (
+          <div className="text-center text-white/40">
+            <ImageIcon className="mx-auto mb-3 h-16 w-16" />
+            <p className="text-sm font-semibold">No photos available</p>
+          </div>
+        )}
+      </div>
+
+      {total > 1 && (
+        <div className="flex items-center justify-center gap-2 border-t border-white/10 px-4 py-3 overflow-x-auto">
+          {photos.map((photo, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setCurrentIndex(i)}
+              className={`h-14 w-14 shrink-0 overflow-hidden rounded-lg border-2 transition ${
+                i === currentIndex ? "border-white opacity-100" : "border-transparent opacity-50 hover:opacity-80"
+              }`}
+            >
+              <img src={photo} alt="" className="h-full w-full object-cover" />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function HomePage() {
@@ -84,6 +202,7 @@ export default function HomePage() {
 
 function LandingPageContent() {
   const { cmsData } = useCMS()
+  const [galleryBooking, setGalleryBooking] = useState<PastClientBooking | null>(null)
 
   const homepage = cmsData?.homepage || {
     heroTitle: "Welcome to One Estela Place",
@@ -140,17 +259,24 @@ function LandingPageContent() {
         ]
 
   const pastClientBookings = useMemo(() => {
-    const events = Array.isArray(cmsData?.pastEvents) ? cmsData.pastEvents : []
+    const bookings = Array.isArray(cmsData?.pastClientBookings) ? cmsData.pastClientBookings : []
 
-    return events
-      .sort((a: any, b: any) => {
+    return bookings
+      .filter((b) => b.display !== false)
+      .sort((a, b) => {
         return (
-          new Date(b.eventDate || b.createdAt || 0).getTime() -
-          new Date(a.eventDate || a.createdAt || 0).getTime()
+          new Date(b.date || b.createdAt || 0).getTime() -
+          new Date(a.date || a.createdAt || 0).getTime()
         )
       })
       .slice(0, 6)
-  }, [cmsData?.pastEvents])
+  }, [cmsData?.pastClientBookings])
+
+  const getCoverImage = (booking: PastClientBooking) => {
+    if (booking.coverPhoto) return booking.coverPhoto
+    if (booking.photos?.length > 0) return booking.photos[0]
+    return "/placeholder.jpg"
+  }
 
   return (
     <PublicLayout>
@@ -258,15 +384,16 @@ function LandingPageContent() {
 
           {pastClientBookings.length > 0 ? (
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-              {pastClientBookings.map((event: any) => (
+              {pastClientBookings.map((booking) => (
                 <article
-                  key={event.id}
-                  className="group overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+                  key={booking.id}
+                  onClick={() => setGalleryBooking(booking)}
+                  className="group cursor-pointer overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
                 >
                   <div className="relative h-64 overflow-hidden bg-slate-100">
                     <img
-                      src={getImageSource(event.image)}
-                      alt={event.title}
+                      src={getCoverImage(booking)}
+                      alt={booking.eventName}
                       className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
                       onError={(imageEvent) => {
                         imageEvent.currentTarget.src = "/placeholder.jpg"
@@ -276,30 +403,37 @@ function LandingPageContent() {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-transparent" />
 
                     <div className="absolute bottom-4 left-4 rounded-full bg-white/95 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-orange-700 shadow">
-                      {event.venueName || "One Estela Place"}
+                      {booking.eventType || "Event"}
                     </div>
+
+                    {booking.photos && booking.photos.length > 0 && (
+                      <div className="absolute right-4 top-4 flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-bold text-white backdrop-blur-sm">
+                        <Camera className="h-3 w-3" />
+                        {booking.photos.length} Photo{booking.photos.length !== 1 ? "s" : ""}
+                      </div>
+                    )}
                   </div>
 
                   <div className="p-5">
                     <div className="mb-3 flex items-center gap-2 text-xs font-bold text-slate-500">
                       <Calendar className="h-4 w-4 text-orange-600" />
-                      {formatDate(event.eventDate)}
+                      {formatDate(booking.date)}
                     </div>
 
                     <h3 className="text-xl font-black leading-tight text-slate-950">
-                      {event.title}
+                      {booking.eventName}
                     </h3>
 
-                    {event.clientName && (
-                      <p className="mt-1 text-xs font-black uppercase tracking-[0.12em] text-orange-600">
-                        Client: {event.clientName}
+                    <p className="mt-1 text-xs font-black uppercase tracking-[0.12em] text-orange-600">
+                      {booking.name}
+                      {booking.companyName && <span className="font-semibold text-slate-400"> · {booking.companyName}</span>}
+                    </p>
+
+                    {booking.testimonial && (
+                      <p className="mt-3 line-clamp-3 text-sm font-medium leading-6 text-slate-600 italic">
+                        &ldquo;{booking.testimonial}&rdquo;
                       </p>
                     )}
-
-                    <p className="mt-3 line-clamp-3 text-sm font-medium leading-6 text-slate-600">
-                      {event.description ||
-                        "A completed client event hosted at One Estela Place."}
-                    </p>
                   </div>
                 </article>
               ))}
@@ -384,6 +518,10 @@ function LandingPageContent() {
           </div>
         </div>
       </section>
+
+      {galleryBooking && (
+        <GalleryModal booking={galleryBooking} onClose={() => setGalleryBooking(null)} />
+      )}
     </PublicLayout>
   )
 }

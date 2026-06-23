@@ -43,9 +43,16 @@ export interface HomepageContent {
   faqSubtitle?: string
 }
 
+export type ContractFile = {
+  fileName: string
+  fileType: string
+  fileUrl: string
+}
+
 export type PastClientBooking = {
   id: string
-  photo: string
+  photos: string[]
+  coverPhoto?: string
   name: string
   eventName: string
   eventType: string
@@ -97,6 +104,8 @@ export interface CMSData {
   pastEvents: PastEvent[]
   pastClientBookings: PastClientBooking[]
   policies: Policy[]
+  eventVenueContract: ContractFile
+  officeRentalContract: ContractFile
 }
 
 type CMSContextType = {
@@ -140,6 +149,8 @@ type CMSContextType = {
   deletePastClientBooking: (id: string) => void
 
   saveCMSData: (newData: CMSData) => void
+  updateEventVenueContract: (data: ContractFile) => void
+  updateOfficeRentalContract: (data: ContractFile) => void
 }
 
 const CMS_STORAGE_KEY = "oneestela_cms_data"
@@ -299,6 +310,8 @@ const defaultCMSData: CMSData = {
   pastEvents: [],
   pastClientBookings: [],
   policies: DEFAULT_POLICIES,
+  eventVenueContract: { fileName: "", fileType: "", fileUrl: "" },
+  officeRentalContract: { fileName: "", fileType: "", fileUrl: "" },
 }
 
 const defaultHomepage: CMSData["homepage"] = defaultCMSData.homepage
@@ -344,6 +357,8 @@ const defaultContextValue: CMSContextType = {
   deletePastClientBooking: () => {},
 
   saveCMSData: () => {},
+  updateEventVenueContract: () => {},
+  updateOfficeRentalContract: () => {},
 }
 
 const CMSContext = createContext<CMSContextType>(defaultContextValue)
@@ -373,9 +388,16 @@ function normalizePastEvent(event: any): PastEvent {
 }
 
 function normalizePastClientBooking(event: any): PastClientBooking {
+  const photos = Array.isArray(event?.photos)
+    ? event.photos.filter(Boolean)
+    : event?.photo
+      ? [event.photo]
+      : []
+
   return {
     id: event?.id || createLocalId("past-client-booking"),
-    photo: event?.photo || "",
+    photos: photos,
+    coverPhoto: event?.coverPhoto || photos[0] || "",
     name: event?.name || "",
     eventName: event?.eventName || "",
     eventType: event?.eventType || "Event",
@@ -430,6 +452,8 @@ function normalizeCMSData(parsed: Partial<CMSData> | null): CMSData {
       ? parsed.pastClientBookings.map(normalizePastClientBooking)
       : defaultCMSData.pastClientBookings,
     policies: Array.isArray(parsed.policies) ? parsed.policies : defaultCMSData.policies,
+    eventVenueContract: parsed.eventVenueContract || defaultCMSData.eventVenueContract,
+    officeRentalContract: parsed.officeRentalContract || defaultCMSData.officeRentalContract,
   }
 }
 
@@ -631,9 +655,11 @@ export const CMSProvider = ({ children }: { children: React.ReactNode }) => {
   const addPastClientBooking = (
     data: Omit<PastClientBooking, "id" | "createdAt" | "updatedAt">
   ) => {
+    const photos = Array.isArray(data.photos) ? data.photos : []
     const newBooking: PastClientBooking = {
       id: createLocalId("past-client-booking"),
-      photo: data.photo,
+      photos: photos,
+      coverPhoto: data.coverPhoto || photos[0] || "",
       name: data.name,
       eventName: data.eventName,
       eventType: data.eventType,
@@ -665,6 +691,20 @@ export const CMSProvider = ({ children }: { children: React.ReactNode }) => {
     saveCMSData({
       ...cmsData,
       pastClientBookings: cmsData.pastClientBookings.filter((booking) => booking.id !== id),
+    })
+  }
+
+  const updateEventVenueContract = (data: ContractFile) => {
+    saveCMSData({
+      ...cmsData,
+      eventVenueContract: data,
+    })
+  }
+
+  const updateOfficeRentalContract = (data: ContractFile) => {
+    saveCMSData({
+      ...cmsData,
+      officeRentalContract: data,
     })
   }
 
@@ -824,6 +864,8 @@ export const CMSProvider = ({ children }: { children: React.ReactNode }) => {
         deletePastClientBooking,
 
         saveCMSData,
+        updateEventVenueContract,
+        updateOfficeRentalContract,
       }}
     >
       {children}

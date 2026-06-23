@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   Clock,
   CreditCard,
+  Download,
   FileText,
   PhilippinePeso,
   RefreshCw,
@@ -19,6 +20,7 @@ import {
 
 import { useAuth } from "@/src/modules/shared/auth/auth-context"
 import { useBookings, type Booking } from "@/src/modules/client/contexts/booking-context"
+import { useCMS } from "@/src/modules/admin/contexts/cms-context"
 import { Card, CardContent } from "@/src/modules/shared/components/ui/card"
 import { Button } from "@/src/modules/shared/components/ui/button"
 import { Input } from "@/src/modules/shared/components/ui/input"
@@ -199,7 +201,7 @@ function StatusTimelineRow({
   )
 }
 
-function StatusCard({ booking }: { booking: StatusBooking }) {
+function StatusCard({ booking, cmsData }: { booking: StatusBooking; cmsData?: any }) {
   const isOfficeRental = isOfficeBooking(booking)
   const isCancelled =
     String(booking.status).toLowerCase() === "cancelled" ||
@@ -222,6 +224,13 @@ function StatusCard({ booking }: { booking: StatusBooking }) {
   const contractSigned = Boolean(
     (booking as any).contractSigned || contractStatus === "Signed",
   )
+
+  const isContractSigningRequired =
+    String(booking.status).toLowerCase() === "contract_signing_required"
+  const contractFile = isOfficeRental
+    ? cmsData?.officeRentalContract
+    : cmsData?.eventVenueContract
+  const hasContractFile = contractFile?.fileName && contractFile?.fileUrl
 
   return (
     <Card className="overflow-hidden rounded-2xl border-slate-200 bg-white shadow-sm">
@@ -448,6 +457,52 @@ function StatusCard({ booking }: { booking: StatusBooking }) {
             </div>
           )}
 
+          {isContractSigningRequired && (
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                Contract Document
+              </p>
+              {hasContractFile ? (
+                <div className="mt-2 rounded-xl border border-blue-200 bg-blue-50 p-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 shrink-0 text-blue-600" />
+                    <p className="text-[11px] font-bold text-blue-800 truncate">
+                      {contractFile.fileName}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => window.open(contractFile.fileUrl, "_blank")}
+                      className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-[10px] font-bold text-blue-700 hover:bg-blue-50 transition"
+                    >
+                      <FileText className="h-3 w-3" /> View Contract
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const a = document.createElement("a")
+                        a.href = contractFile.fileUrl
+                        a.download = contractFile.fileName
+                        a.click()
+                      }}
+                      className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-[10px] font-bold text-blue-700 hover:bg-blue-50 transition"
+                    >
+                      <Download className="h-3 w-3" /> Download Contract
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-2 flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <FileText className="h-4 w-4 shrink-0 text-slate-400" />
+                  <p className="text-[11px] font-bold text-slate-500">
+                    No contract document uploaded yet.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           <div>
             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
               Contract Status
@@ -501,6 +556,7 @@ function StatusCard({ booking }: { booking: StatusBooking }) {
 export default function StatusPage() {
   const { user } = useAuth()
   const { getUserBookings } = useBookings()
+  const { cmsData } = useCMS()
   const [bookings, setBookings] = useState<Booking[]>([])
   const [filter, setFilter] = useState<"current" | "all">("current")
 
@@ -598,7 +654,7 @@ export default function StatusPage() {
       ) : (
         <div className="space-y-4">
           {visible.map((b) => (
-            <StatusCard key={b.id} booking={b} />
+            <StatusCard key={b.id} booking={b} cmsData={cmsData} />
           ))}
         </div>
       )}
