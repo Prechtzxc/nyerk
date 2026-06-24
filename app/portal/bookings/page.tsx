@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Clock,
   CreditCard,
+  Download,
   FileText,
   Pencil,
   Plus,
@@ -671,6 +672,7 @@ function BookingDetailsModal({
   onEdit?: (b: Booking) => void
 }) {
   const [showContractPreview, setShowContractPreview] = useState(false)
+  const { cmsData } = useCMS()
   if (!booking) return null
   const isPaymentVerified = (() => {
     const ps = String(booking.paymentStatus || "").toLowerCase()
@@ -1096,63 +1098,103 @@ function BookingDetailsModal({
               </section>
             ) : null}
 
-              {isPaymentVerified && (
-                <section className="rounded-2xl border border-slate-200 bg-white p-4">
-                  <div className="mb-3 flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-slate-500" />
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                      Contract
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2 mb-3">
-                    {booking.status === "contract_signing_required" && (
-                      <span className="inline-block rounded-md border border-yellow-100 bg-yellow-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-yellow-700">
-                        CONTRACT SIGNING REQUIRED
-                      </span>
-                    )}
-                    <span
-                      className={cn(
-                        "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
-                        booking.contractStatus === "Signed"
-                          ? "border-emerald-100 bg-emerald-50 text-emerald-700"
-                          : "border-orange-100 bg-orange-50 text-orange-700",
-                      )}
-                    >
-                      {booking.contractStatus === "Signed" ? "Signed" : "Pending Signature"}
-                    </span>
-                  </div>
-                  {booking.contractStatus === "Signed" ? (
-                    <div className="space-y-1">
-                      <p className="text-sm font-semibold text-emerald-700">
-                        {booking.contractSignedDate
-                          ? `Signed on ${formatDate(booking.contractSignedDate)}`
-                          : "Contract has been signed."}
-                      </p>
-                      <p className="text-xs font-semibold text-slate-500">
-                        Your contract has been marked as signed by the administrator.
+              {isPaymentVerified && (() => {
+                const contract = isOfficeRental
+                  ? cmsData.officeRentalContract
+                  : cmsData.eventVenueContract
+                const hasContract = contract?.fileUrl && contract?.fileName
+                return (
+                  <section className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <div className="mb-3 flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-slate-500" />
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        Contract
                       </p>
                     </div>
-                  ) : (
-                    <div className="flex flex-col gap-3">
-                      <div className="space-y-2">
-                        <p className="text-sm font-semibold text-orange-700">
-                          Contract signing must be completed onsite at the One Estela Place office.
-                        </p>
-                        <p className="text-xs font-semibold text-slate-500">
-                          Please visit the One Estela Place office to personally sign the official contract. This preview is for review purposes only and does not replace onsite contract signing.
+                    <div className="flex flex-wrap items-center gap-2 mb-3">
+                      {booking.status === "contract_signing_required" && (
+                        <span className="inline-block rounded-md border border-yellow-100 bg-yellow-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-yellow-700">
+                          CONTRACT SIGNING REQUIRED
+                        </span>
+                      )}
+                      <span
+                        className={cn(
+                          "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
+                          booking.contractStatus === "Signed"
+                            ? "border-emerald-100 bg-emerald-50 text-emerald-700"
+                            : "border-orange-100 bg-orange-50 text-orange-700",
+                        )}
+                      >
+                        {booking.contractStatus === "Signed" ? "Signed" : "Pending Signature"}
+                      </span>
+                    </div>
+
+                    {hasContract ? (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                          <FileText className="h-5 w-5 shrink-0 text-red-500" />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-bold text-slate-900">{contract.fileName}</p>
+                            <p className="text-[10px] font-semibold text-slate-500">
+                              {contract.fileType.startsWith("image/") ? "Image" : contract.fileType === "application/pdf" ? "PDF" : "DOCX"}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => window.open(contract.fileUrl, "_blank")}
+                            className="h-9 flex-1 rounded-lg border-slate-200 text-[10px] font-bold"
+                          >
+                            <FileText className="mr-1.5 h-3.5 w-3.5" /> View Contract
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                              const a = document.createElement("a")
+                              a.href = contract.fileUrl
+                              a.download = contract.fileName
+                              a.click()
+                            }}
+                            className="h-9 flex-1 rounded-lg border-slate-200 text-[10px] font-bold"
+                          >
+                            <Download className="mr-1.5 h-3.5 w-3.5" /> Download Contract
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm font-semibold text-slate-500">
+                        No contract document uploaded yet.
+                      </p>
+                    )}
+
+                    {booking.contractStatus === "Signed" && (
+                      <div className="mt-3 space-y-1">
+                        <p className="text-sm font-semibold text-emerald-700">
+                          {booking.contractSignedDate
+                            ? `Signed on ${formatDate(booking.contractSignedDate)}`
+                            : "Contract has been signed."}
                         </p>
                       </div>
-                      <Button
-                        onClick={() => setShowContractPreview(true)}
-                        className="w-full h-10 rounded-lg bg-emerald-600 px-4 text-xs font-bold text-white shadow-sm hover:bg-emerald-700"
-                      >
-                        <FileText className="mr-1.5 h-3.5 w-3.5" />
-                        Preview Contract
-                      </Button>
-                    </div>
-                  )}
-                </section>
-              )}
+                    )}
+
+                    {booking.contractStatus !== "Signed" && booking.status === "contract_signing_required" && (
+                      <div className="mt-3 flex flex-col gap-3">
+                        <div className="space-y-2">
+                          <p className="text-sm font-semibold text-orange-700">
+                            Contract signing must be completed onsite at the One Estela Place office.
+                          </p>
+                          <p className="text-xs font-semibold text-slate-500">
+                            Please visit the One Estela Place office to personally sign the official contract.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </section>
+                )
+              })()}
             </div>
           </div>
 

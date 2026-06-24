@@ -78,8 +78,11 @@ function GalleryModal({
   const total = photos.length
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-black/95 animate-in fade-in duration-200">
-      <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+    <div
+      className="fixed inset-0 z-50 flex flex-col bg-black/95 animate-in fade-in duration-200"
+      onClick={onClose}
+    >
+      <header className="shrink-0 flex items-center justify-between border-b border-white/10 px-4 py-3" onClick={(e) => e.stopPropagation()}>
         <div className="min-w-0">
           <p className="text-sm font-bold text-white truncate">{booking.eventName}</p>
           <p className="text-[11px] font-semibold text-white/60">{booking.name}</p>
@@ -87,63 +90,67 @@ function GalleryModal({
         <button
           type="button"
           onClick={onClose}
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/70 transition hover:bg-white/20 hover:text-white"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/25 text-white transition hover:bg-white/40"
+          aria-label="Close gallery"
         >
-          <X className="h-5 w-5" />
+          <X className="h-6 w-6" />
         </button>
-      </div>
+      </header>
 
-      <div className="relative flex flex-1 items-center justify-center overflow-hidden p-4">
-        {total > 0 ? (
-          <>
-            <img
-              src={photos[currentIndex]}
-              alt={`${booking.eventName} photo ${currentIndex + 1}`}
-              className="max-h-full max-w-full rounded-lg object-contain"
-            />
+      <div className="min-h-0 flex-1 overflow-auto p-4">
+        <div className="relative flex min-h-full items-center justify-center">
+          {total > 0 ? (
+            <>
+              <img
+                src={photos[currentIndex]}
+                alt={`${booking.eventName} photo ${currentIndex + 1}`}
+                className="max-h-full max-w-full rounded-lg object-contain"
+                onClick={(e) => e.stopPropagation()}
+              />
 
-            {total > 1 && (
-              <>
-                <span className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 text-xs font-bold text-white">
-                  {currentIndex + 1} of {total}
-                </span>
+              {total > 1 && (
+                <>
+                  <span className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 text-xs font-bold text-white" onClick={(e) => e.stopPropagation()}>
+                    {currentIndex + 1} of {total}
+                  </span>
 
-                {currentIndex > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setCurrentIndex((i) => i - 1)}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white/70 transition hover:bg-white/20 hover:text-white"
-                  >
-                    <ChevronLeft className="h-6 w-6" />
-                  </button>
-                )}
-                {currentIndex < total - 1 && (
-                  <button
-                    type="button"
-                    onClick={() => setCurrentIndex((i) => i + 1)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white/70 transition hover:bg-white/20 hover:text-white"
-                  >
-                    <ChevronRight className="h-6 w-6" />
-                  </button>
-                )}
-              </>
-            )}
-          </>
-        ) : (
-          <div className="text-center text-white/40">
-            <ImageIcon className="mx-auto mb-3 h-16 w-16" />
-            <p className="text-sm font-semibold">No photos available</p>
-          </div>
-        )}
+                  {currentIndex > 0 && (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setCurrentIndex((i) => i - 1) }}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white/70 transition hover:bg-white/20 hover:text-white"
+                    >
+                      <ChevronLeft className="h-6 w-6" />
+                    </button>
+                  )}
+                  {currentIndex < total - 1 && (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setCurrentIndex((i) => i + 1) }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white/70 transition hover:bg-white/20 hover:text-white"
+                    >
+                      <ChevronRight className="h-6 w-6" />
+                    </button>
+                  )}
+                </>
+              )}
+            </>
+          ) : (
+            <div className="text-center text-white/40">
+              <ImageIcon className="mx-auto mb-3 h-16 w-16" />
+              <p className="text-sm font-semibold">No photos available</p>
+            </div>
+          )}
+        </div>
       </div>
 
       {total > 1 && (
-        <div className="flex items-center justify-center gap-2 border-t border-white/10 px-4 py-3 overflow-x-auto">
+        <footer className="shrink-0 flex items-center justify-center gap-2 border-t border-white/10 px-4 py-3 overflow-x-auto" onClick={(e) => e.stopPropagation()}>
           {photos.map((photo, i) => (
             <button
               key={i}
               type="button"
-              onClick={() => setCurrentIndex(i)}
+              onClick={(e) => { e.stopPropagation(); setCurrentIndex(i) }}
               className={`h-14 w-14 shrink-0 overflow-hidden rounded-lg border-2 transition ${
                 i === currentIndex ? "border-white opacity-100" : "border-transparent opacity-50 hover:opacity-80"
               }`}
@@ -151,7 +158,7 @@ function GalleryModal({
               <img src={photo} alt="" className="h-full w-full object-cover" />
             </button>
           ))}
-        </div>
+        </footer>
       )}
     </div>
   )
