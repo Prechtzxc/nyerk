@@ -21,6 +21,7 @@ import {
 import { useAuth } from "@/src/modules/shared/auth/auth-context"
 import { useBookings, type Booking } from "@/src/modules/client/contexts/booking-context"
 import { useCMS } from "@/src/modules/admin/contexts/cms-context"
+import { ContractFileViewer } from "@/src/modules/client/components/contract-file-viewer"
 import { Card, CardContent } from "@/src/modules/shared/components/ui/card"
 import { Button } from "@/src/modules/shared/components/ui/button"
 import { Input } from "@/src/modules/shared/components/ui/input"
@@ -202,6 +203,7 @@ function StatusTimelineRow({
 }
 
 function StatusCard({ booking, cmsData }: { booking: StatusBooking; cmsData?: any }) {
+  const [contractFileViewerOpen, setContractFileViewerOpen] = useState(false)
   const isOfficeRental = isOfficeBooking(booking)
   const isCancelled =
     String(booking.status).toLowerCase() === "cancelled" ||
@@ -457,49 +459,47 @@ function StatusCard({ booking, cmsData }: { booking: StatusBooking; cmsData?: an
             </div>
           )}
 
-          {isContractSigningRequired && (
+          {hasContractFile && (
             <div>
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                 Contract Document
               </p>
-              {hasContractFile ? (
-                <div className="mt-2 rounded-xl border border-blue-200 bg-blue-50 p-3 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 shrink-0 text-blue-600" />
-                    <p className="text-[11px] font-bold text-blue-800 truncate">
-                      {contractFile.fileName}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => window.open(contractFile.fileUrl, "_blank")}
-                      className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-[10px] font-bold text-blue-700 hover:bg-blue-50 transition"
-                    >
-                      <FileText className="h-3 w-3" /> View Contract
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const a = document.createElement("a")
-                        a.href = contractFile.fileUrl
-                        a.download = contractFile.fileName
-                        a.click()
-                      }}
-                      className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-[10px] font-bold text-blue-700 hover:bg-blue-50 transition"
-                    >
-                      <Download className="h-3 w-3" /> Download Contract
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-2 flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
-                  <FileText className="h-4 w-4 shrink-0 text-slate-400" />
-                  <p className="text-[11px] font-bold text-slate-500">
-                    No contract document uploaded yet.
+              <div
+                className="mt-2 cursor-pointer rounded-xl border border-blue-200 bg-blue-50 p-3 space-y-2 transition hover:bg-blue-100"
+                onClick={() => setContractFileViewerOpen(true)}
+              >
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 shrink-0 text-blue-600" />
+                  <p className="text-[11px] font-bold text-blue-800 truncate flex-1">
+                    {contractFile.fileName}
                   </p>
+                  <span className="text-[10px] font-semibold text-blue-500 shrink-0">
+                    Click to View
+                  </span>
                 </div>
-              )}
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setContractFileViewerOpen(true) }}
+                    className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-[10px] font-bold text-blue-700 hover:bg-blue-50 transition"
+                  >
+                    <FileText className="h-3 w-3" /> View Contract
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      const a = document.createElement("a")
+                      a.href = contractFile.fileUrl
+                      a.download = contractFile.fileName
+                      a.click()
+                    }}
+                    className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-[10px] font-bold text-blue-700 hover:bg-blue-50 transition"
+                  >
+                    <Download className="h-3 w-3" /> Download Contract
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
@@ -549,6 +549,12 @@ function StatusCard({ booking, cmsData }: { booking: StatusBooking; cmsData?: an
           </div>
         </div>
       </CardContent>
+
+      <ContractFileViewer
+        open={contractFileViewerOpen}
+        onClose={() => setContractFileViewerOpen(false)}
+        file={contractFile}
+      />
     </Card>
   )
 }

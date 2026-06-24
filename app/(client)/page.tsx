@@ -97,6 +97,15 @@ function GalleryModal({
         </button>
       </header>
 
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onClose() }}
+        className="fixed right-4 top-4 z-[60] flex h-12 w-12 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur transition hover:bg-black/80"
+        aria-label="Close gallery"
+      >
+        <X className="h-6 w-6" />
+      </button>
+
       <div className="min-h-0 flex-1 overflow-auto p-4">
         <div className="relative flex min-h-full items-center justify-center">
           {total > 0 ? (

@@ -41,6 +41,7 @@ import {
 import { Button } from "@/src/modules/shared/components/ui/button"
 import { ReserveDialog } from "@/src/modules/client/components/reserve-dialog"
 import { ContractPreviewModal } from "@/src/modules/client/components/contract-preview-modal"
+import { ContractFileViewer } from "@/src/modules/client/components/contract-file-viewer"
 import { useToast } from "@/src/modules/shared/hooks/use-toast"
 import {
   Dialog,
@@ -672,6 +673,7 @@ function BookingDetailsModal({
   onEdit?: (b: Booking) => void
 }) {
   const [showContractPreview, setShowContractPreview] = useState(false)
+  const [showContractFile, setShowContractFile] = useState(false)
   const { cmsData } = useCMS()
   if (!booking) return null
   const isPaymentVerified = (() => {
@@ -685,6 +687,9 @@ function BookingDetailsModal({
     )
   })()
   const isOfficeRental = isOfficeBooking(booking)
+  const contractFile = isOfficeRental
+    ? cmsData?.officeRentalContract ?? null
+    : cmsData?.eventVenueContract ?? null
   const typeLabel = isOfficeRental
     ? "Office Space Rental"
     : booking.eventType || "Event Venue Rental"
@@ -1130,8 +1135,11 @@ function BookingDetailsModal({
                     </div>
 
                     {hasContract ? (
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                      <div
+                        className="cursor-pointer space-y-3"
+                        onClick={() => setShowContractFile(true)}
+                      >
+                        <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 transition hover:bg-slate-100">
                           <FileText className="h-5 w-5 shrink-0 text-red-500" />
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-bold text-slate-900">{contract.fileName}</p>
@@ -1144,7 +1152,7 @@ function BookingDetailsModal({
                           <Button
                             type="button"
                             variant="outline"
-                            onClick={() => window.open(contract.fileUrl, "_blank")}
+                            onClick={(e) => { e.stopPropagation(); setShowContractFile(true) }}
                             className="h-9 flex-1 rounded-lg border-slate-200 text-[10px] font-bold"
                           >
                             <FileText className="mr-1.5 h-3.5 w-3.5" /> View Contract
@@ -1152,7 +1160,8 @@ function BookingDetailsModal({
                           <Button
                             type="button"
                             variant="outline"
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation()
                               const a = document.createElement("a")
                               a.href = contract.fileUrl
                               a.download = contract.fileName
@@ -1315,6 +1324,11 @@ function BookingDetailsModal({
         booking={booking}
         open={showContractPreview}
         onClose={() => setShowContractPreview(false)}
+      />
+      <ContractFileViewer
+        open={showContractFile}
+        onClose={() => setShowContractFile(false)}
+        file={contractFile}
       />
     </Dialog>
   )
