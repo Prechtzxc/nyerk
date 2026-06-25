@@ -1140,7 +1140,7 @@ function BookingDetailsModal({
                           <Button
                             type="button"
                             variant="outline"
-                            onClick={() => setShowContractFile(true)}
+                            onClick={() => setShowContractPreview(true)}
                             className="h-9 flex-1 rounded-lg border-slate-200 text-[10px] font-bold"
                           >
                             <FileText className="mr-1.5 h-3.5 w-3.5" /> View Contract

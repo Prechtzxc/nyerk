@@ -1,35 +1,23 @@
 "use client"
 
+import { useEffect, useRef, useState } from "react"
 import { Dialog, DialogContent, DialogTitle, DialogClose } from "@/src/modules/shared/components/ui/dialog"
-import { X, FileText, MapPin, Calendar, Clock, CreditCard, CheckCircle } from "lucide-react"
-import { cn } from "@/src/modules/shared/lib/utils"
+import { X, FileText, Download, AlertCircle, Loader2 } from "lucide-react"
 import { type Booking } from "@/src/modules/client/contexts/booking-context"
+import { useCMS } from "@/src/modules/admin/contexts/cms-context"
+import { renderAsync } from "docx-preview"
+import { Button } from "@/src/modules/shared/components/ui/button"
 
-function formatDate(date?: string) {
-  if (!date) return "—"
-  const parsed = new Date(date)
-  if (Number.isNaN(parsed.getTime())) return date
-  return new Intl.DateTimeFormat("en-PH", {
-    month: "long",
-    day: "2-digit",
-    year: "numeric",
-  }).format(parsed)
-}
-
-function formatMoney(value?: number | string) {
-  const amount = Number(value || 0)
-  return `₱${Number.isFinite(amount) ? amount.toLocaleString("en-PH") : "0"}`
-}
-
-function getPaymentStatusLabel(paymentStatus?: string) {
-  const v = String(paymentStatus || "").toLowerCase()
-  if (v === "verified" || v === "paid" || v === "slot_verified") return "Verified"
-  if (v === "for_review" || v === "cash_pending" || v === "slot_pending") return "For Review"
-  if (v === "partial") return "Partial"
-  if (v === "rejected") return "Rejected"
-  if (v === "unpaid") return "Unpaid"
-  if (!v) return "Not Set"
-  return v.replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase())
+function isOfficeBooking(booking: Booking) {
+  const text = [
+    (booking as any)?.bookingType,
+    (booking as any)?.rentalType,
+    booking?.venue,
+    booking?.eventType,
+  ]
+    .join(" ")
+    .toLowerCase()
+  return text.includes("office")
 }
 
 export function ContractPreviewModal({
@@ -41,12 +29,55 @@ export function ContractPreviewModal({
   open: boolean
   onClose: () => void
 }) {
+  const { cmsData } = useCMS()
+
   if (!booking) return null
 
-  const timeValue =
-    booking.time ||
-    `${booking.startTime || ""}${booking.startTime && booking.endTime ? " – " : ""}${booking.endTime || ""}` ||
-    "—"
+  const officeBooking = isOfficeBooking(booking)
+  const contractFile = officeBooking
+    ? cmsData?.officeRentalContract
+    : cmsData?.eventVenueContract
+  const hasContract = contractFile?.fileUrl && contractFile?.fileName
+
+  const isPDF = hasContract && contractFile.fileType === "application/pdf"
+  const isImage = hasContract && contractFile.fileType.startsWith("image/")
+  const isDOCX = hasContract && contractFile.fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+
+  const docxContainerRef = useRef<HTMLDivElement>(null)
+  const [docxLoading, setDocxLoading] = useState(false)
+  const [docxError, setDocxError] = useState(false)
+
+  useEffect(() => {
+    if (!open || !hasContract || !isDOCX || !docxContainerRef.current) return
+
+    setDocxLoading(true)
+    setDocxError(false)
+
+    const loadDocx = async () => {
+      try {
+        const response = await fetch(contractFile.fileUrl)
+        const blob = await response.blob()
+        if (docxContainerRef.current) {
+          docxContainerRef.current.innerHTML = ""
+          await renderAsync(blob, docxContainerRef.current)
+        }
+      } catch {
+        setDocxError(true)
+      } finally {
+        setDocxLoading(false)
+      }
+    }
+
+    loadDocx()
+  }, [open, hasContract, isDOCX, contractFile?.fileUrl])
+
+  const handleDownload = () => {
+    if (!contractFile) return
+    const a = document.createElement("a")
+    a.href = contractFile.fileUrl
+    a.download = contractFile.fileName
+    a.click()
+  }
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -60,7 +91,7 @@ export function ContractPreviewModal({
               Contract Preview
             </p>
             <DialogTitle className="mt-1 text-xl font-black text-slate-900">
-              One Estela Place Contract Agreement
+              {hasContract ? contractFile.fileName : "One Estela Place Contract Agreement"}
             </DialogTitle>
           </div>
           <DialogClose asChild>
@@ -75,159 +106,76 @@ export function ContractPreviewModal({
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 py-4 pb-4 sm:px-6 sm:py-5 sm:pb-6">
-          <div className="mx-auto max-w-[680px] rounded-xl border-2 border-slate-200 bg-white p-5 shadow-sm sm:p-8">
-            <div className="mb-6 text-center">
-              <h2 className="text-lg font-black tracking-tight text-slate-900 sm:text-xl">
-                One Estela Place
-              </h2>
-              <p className="mt-1 text-xs font-bold uppercase tracking-widest text-orange-600">
-                Contract Agreement
-              </p>
-              <div className="mx-auto mt-3 h-0.5 w-16 rounded-full bg-orange-500" />
-            </div>
-
-            <div className="mb-5 rounded-lg bg-slate-50 p-4">
-              <p className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500">
-                <FileText className="h-4 w-4 text-orange-500" />
-                Reservation Details
-              </p>
-              <div className="grid grid-cols-1 gap-x-6 gap-y-2.5 sm:grid-cols-2">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Booking ID</p>
-                  <p className="text-sm font-black text-slate-900">#{booking.id}</p>
+          {hasContract ? (
+            <>
+              {isPDF ? (
+                <iframe
+                  src={contractFile.fileUrl}
+                  className="h-[70vh] w-full rounded-lg border border-slate-200"
+                  title="Contract PDF"
+                />
+              ) : isImage ? (
+                <div className="flex items-center justify-center">
+                  <img
+                    src={contractFile.fileUrl}
+                    alt="Contract"
+                    className="max-h-[70vh] w-auto max-w-full rounded-lg object-contain"
+                  />
                 </div>
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Customer Name</p>
-                  <p className="text-sm font-black text-slate-900">
-                    {(booking as any)?.userInfo?.name || booking.eventName || "—"}
-                  </p>
+              ) : isDOCX ? (
+                <div className="flex items-center justify-center">
+                  {docxLoading && (
+                    <div className="flex flex-col items-center gap-3 py-12">
+                      <Loader2 className="h-8 w-8 animate-spin text-orange-600" />
+                      <p className="text-sm font-semibold text-slate-500">Loading document...</p>
+                    </div>
+                  )}
+                  {docxError && (
+                    <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 p-12 text-center">
+                      <AlertCircle className="mb-3 h-12 w-12 text-amber-500" />
+                      <h3 className="text-lg font-black text-slate-700">
+                        Preview is not available for this file type.
+                      </h3>
+                    </div>
+                  )}
+                  <div
+                    ref={docxContainerRef}
+                    className={docxLoading || docxError ? "hidden" : "w-full"}
+                  />
                 </div>
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Event Name</p>
-                  <p className="text-sm font-black text-slate-900">{booking.eventName || "—"}</p>
+              ) : (
+                <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 p-12 text-center">
+                  <AlertCircle className="mb-3 h-12 w-12 text-amber-500" />
+                  <h3 className="text-lg font-black text-slate-700">
+                    Preview is not available for this file type.
+                  </h3>
                 </div>
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Event Type</p>
-                  <p className="text-sm font-black text-slate-900">{booking.eventType || "Event Venue Rental"}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    <MapPin className="mr-1 inline h-3 w-3 text-slate-400" />
-                    Venue
-                  </p>
-                  <p className="text-sm font-black text-slate-900">{booking.venue || "—"}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    <Calendar className="mr-1 inline h-3 w-3 text-slate-400" />
-                    Event Date
-                  </p>
-                  <p className="text-sm font-black text-slate-900">{formatDate(booking.date)}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    <Clock className="mr-1 inline h-3 w-3 text-slate-400" />
-                    Start Time
-                  </p>
-                  <p className="text-sm font-black text-slate-900">{booking.startTime || "—"}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    <Clock className="mr-1 inline h-3 w-3 text-slate-400" />
-                    End Time
-                  </p>
-                  <p className="text-sm font-black text-slate-900">{booking.endTime || "—"}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    <CreditCard className="mr-1 inline h-3 w-3 text-slate-400" />
-                    Total Amount
-                  </p>
-                  <p className="text-sm font-black text-slate-900">
-                    {booking.totalPrice ? formatMoney(booking.totalPrice) : "—"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    <CheckCircle className="mr-1 inline h-3 w-3 text-slate-400" />
-                    Payment Status
-                  </p>
-                  <p className="text-sm font-black text-emerald-600">
-                    {getPaymentStatusLabel(booking.paymentStatus)}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="mb-5 rounded-lg border border-slate-200 p-4">
-              <p className="mb-2 text-xs font-black uppercase tracking-wider text-slate-500">
-                Terms and Conditions Summary
-              </p>
-              <ul className="space-y-1.5 text-[11px] leading-relaxed text-slate-600">
-                <li className="flex gap-2">
-                  <span className="mt-0.5 h-1 w-1 shrink-0 rounded-full bg-slate-300" />
-                  The client agrees to the scheduled date and time as stated in this agreement.
-                </li>
-                <li className="flex gap-2">
-                  <span className="mt-0.5 h-1 w-1 shrink-0 rounded-full bg-slate-300" />
-                  Full payment must be completed at least 7 days before the event date.
-                </li>
-                <li className="flex gap-2">
-                  <span className="mt-0.5 h-1 w-1 shrink-0 rounded-full bg-slate-300" />
-                  Cancellation requests made 14 days before the event may be eligible for a refund.
-                </li>
-                <li className="flex gap-2">
-                  <span className="mt-0.5 h-1 w-1 shrink-0 rounded-full bg-slate-300" />
-                  The venue shall be used in accordance with One Estela Place&apos;s rules and regulations.
-                </li>
-                <li className="flex gap-2">
-                  <span className="mt-0.5 h-1 w-1 shrink-0 rounded-full bg-slate-300" />
-                  Any damage to the property shall be the responsibility of the client.
-                </li>
-              </ul>
-            </div>
-
-            <div className="mb-5 rounded-lg border-2 border-amber-200 bg-amber-50 p-4">
-              <p className="text-xs font-black uppercase tracking-wider text-amber-800">
-                Important Notice
-              </p>
-              <p className="mt-1.5 text-[11px] font-semibold leading-relaxed text-amber-700">
-                The customer must visit the One Estela Place office to sign the official contract.
-                This system-generated contract preview is not yet the final signed contract.
+              )}
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 p-12 text-center">
+              <FileText className="mb-3 h-12 w-12 text-slate-300" />
+              <h3 className="text-lg font-black text-slate-700">
+                No contract document available
+              </h3>
+              <p className="mt-2 text-sm font-medium text-slate-500">
+                A contract document has not been uploaded for this booking type yet.
               </p>
             </div>
-
-            <div className="mb-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
-              <div className="rounded-lg border border-dashed border-slate-300 p-4">
-                <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                  Customer Signature
-                </p>
-                <div className="mt-4 h-10 border-b border-slate-200" />
-                <p className="mt-1 text-[10px] text-slate-400">
-                  Print Name: {(booking as any)?.userInfo?.name || "________________"}
-                </p>
-                <p className="mt-2 text-[10px] text-slate-400">Date: _______________</p>
-              </div>
-              <div className="rounded-lg border border-dashed border-slate-300 p-4">
-                <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                  Authorized Representative
-                </p>
-                <div className="mt-4 h-10 border-b border-slate-200" />
-                <p className="mt-1 text-[10px] text-slate-400">Print Name: ________________</p>
-                <p className="mt-2 text-[10px] text-slate-400">Date: _______________</p>
-              </div>
-            </div>
-
-            <div className="rounded-lg bg-slate-100 p-4 text-center">
-              <p className="text-xs font-bold text-slate-500">
-                Please proceed to the One Estela Place office to sign the official contract.
-              </p>
-              <p className="mt-0.5 text-[10px] text-slate-400">
-                This preview is for review purposes only and does not replace onsite contract signing.
-              </p>
-            </div>
-          </div>
+          )}
         </div>
+
+        {hasContract && (
+          <div className="flex shrink-0 items-center justify-end gap-3 border-t border-slate-100 bg-slate-50/50 px-6 py-4">
+            <Button
+              type="button"
+              onClick={handleDownload}
+              className="h-10 rounded-xl bg-orange-600 px-5 text-xs font-bold text-white hover:bg-orange-700"
+            >
+              <Download className="mr-1.5 h-4 w-4" /> Download Contract
+            </Button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   )
