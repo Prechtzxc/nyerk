@@ -1,6 +1,8 @@
 "use client"
 
-import { X, Download, AlertCircle } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
+import { X, Download, AlertCircle, Loader2 } from "lucide-react"
+import { renderAsync } from "docx-preview"
 import {
   Dialog,
   DialogContent,
@@ -25,6 +27,35 @@ export function ContractFileViewer({
 
   const isPDF = file.fileType === "application/pdf"
   const isImage = file.fileType.startsWith("image/")
+  const isDOCX = file.fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+
+  const docxContainerRef = useRef<HTMLDivElement>(null)
+  const [docxLoading, setDocxLoading] = useState(false)
+  const [docxError, setDocxError] = useState(false)
+
+  useEffect(() => {
+    if (!open || !file || !isDOCX || !docxContainerRef.current) return
+
+    setDocxLoading(true)
+    setDocxError(false)
+
+    const loadDocx = async () => {
+      try {
+        const response = await fetch(file.fileUrl)
+        const blob = await response.blob()
+        if (docxContainerRef.current) {
+          docxContainerRef.current.innerHTML = ""
+          await renderAsync(blob, docxContainerRef.current)
+        }
+      } catch {
+        setDocxError(true)
+      } finally {
+        setDocxLoading(false)
+      }
+    }
+
+    loadDocx()
+  }, [open, file, isDOCX])
 
   const handleDownload = () => {
     const a = document.createElement("a")
@@ -77,15 +108,33 @@ export function ContractFileViewer({
                 className="max-h-[70vh] w-auto max-w-full rounded-lg object-contain"
               />
             </div>
+          ) : isDOCX ? (
+            <div className="flex items-center justify-center">
+              {docxLoading && (
+                <div className="flex flex-col items-center gap-3 py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-orange-600" />
+                  <p className="text-sm font-semibold text-slate-500">Loading document...</p>
+                </div>
+              )}
+              {docxError && (
+                <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 p-12 text-center">
+                  <AlertCircle className="mb-3 h-12 w-12 text-amber-500" />
+                  <h3 className="text-lg font-black text-slate-700">
+                    Preview is not available for this file type.
+                  </h3>
+                </div>
+              )}
+              <div
+                ref={docxContainerRef}
+                className={docxLoading || docxError ? "hidden" : "w-full"}
+              />
+            </div>
           ) : (
             <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 p-12 text-center">
               <AlertCircle className="mb-3 h-12 w-12 text-amber-500" />
               <h3 className="text-lg font-black text-slate-700">
-                Preview unavailable for DOCX files.
+                Preview is not available for this file type.
               </h3>
-              <p className="mt-2 text-sm font-medium text-slate-500">
-                Please download the file to view it.
-              </p>
             </div>
           )}
         </div>
