@@ -31,6 +31,8 @@ export function ContractPreviewModal({
 }) {
   const { cmsData } = useCMS()
 
+  console.log("[ContractPreviewModal] open:", open, "booking:", booking?.id)
+
   if (!booking) return null
 
   const officeBooking = isOfficeBooking(booking)
@@ -38,6 +40,19 @@ export function ContractPreviewModal({
     ? cmsData?.officeRentalContract
     : cmsData?.eventVenueContract
   const hasContract = contractFile?.fileUrl && contractFile?.fileName
+
+  console.log("[ContractPreviewModal]", {
+    open,
+    bookingId: booking.id,
+    venue: booking.venue,
+    officeBooking,
+    contractFile,
+    hasContract,
+    fileUrl: contractFile?.fileUrl?.slice(0, 100),
+    fileType: contractFile?.fileType,
+    fileName: contractFile?.fileName,
+    cmsDataPresent: !!cmsData,
+  })
 
   const isPDF = hasContract && contractFile.fileType === "application/pdf"
   const isImage = hasContract && contractFile.fileType.startsWith("image/")

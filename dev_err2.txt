@@ -1,0 +1,8 @@
+⨯ Another next dev server is already running.
+
+- Local:        http://localhost:3456
+- PID:          8648
+- Dir:          C:\Users\rafka\Downloads\eng-eng-v2-main
+- Log:          .next\dev\logs\next-development.log
+
+Run taskkill /PID 8648 /F to stop it.

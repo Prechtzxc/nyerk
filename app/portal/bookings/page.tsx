@@ -675,6 +675,11 @@ function BookingDetailsModal({
   const [showContractPreview, setShowContractPreview] = useState(false)
   const [showContractFile, setShowContractFile] = useState(false)
   const { cmsData } = useCMS()
+
+  useEffect(() => {
+    console.log("[BookingDetailsModal] showContractPreview:", showContractPreview)
+  }, [showContractPreview])
+
   if (!booking) return null
   const isPaymentVerified = (() => {
     const ps = String(booking.paymentStatus || "").toLowerCase()
@@ -1140,7 +1145,10 @@ function BookingDetailsModal({
                           <Button
                             type="button"
                             variant="outline"
-                            onClick={() => setShowContractPreview(true)}
+                            onClick={() => {
+                              console.log("[View Contract] clicked")
+                              setShowContractPreview(true)
+                            }}
                             className="h-9 flex-1 rounded-lg border-slate-200 text-[10px] font-bold"
                           >
                             <FileText className="mr-1.5 h-3.5 w-3.5" /> View Contract
