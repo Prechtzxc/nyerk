@@ -12,6 +12,7 @@ import {
   writeBatch,
   query,
   orderBy,
+  onSnapshot,
 } from "firebase/firestore"
 
 export type BookingStatus =
@@ -1099,19 +1100,11 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const loadAll = async () => {
-      const [bookSnap, officeSnap, maintSnap] = await Promise.all([
-        getDocs(query(bookingsRef, orderBy("createdAt", "asc"))),
+    const loadOfficeAndMaint = async () => {
+      const [officeSnap, maintSnap] = await Promise.all([
         getDocs(query(officeRentalsRef, orderBy("createdAt", "asc"))),
         getDocs(query(maintenanceRecordsRef, orderBy("createdAt", "asc"))),
       ])
-
-      const loadedBookings: Booking[] = []
-      bookSnap.forEach((docSnap) => {
-        const d = docSnap.data() as Booking
-        loadedBookings.push(normalizeBookingForNewFields({ ...d, id: docSnap.id }))
-      })
-      setBookings(loadedBookings)
 
       const loadedOffice: OfficeRental[] = []
       officeSnap.forEach((docSnap) => {
@@ -1128,7 +1121,20 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       setMaintenanceRecords(loadedMaint)
     }
 
-    loadAll().catch(console.error)
+    loadOfficeAndMaint().catch(console.error)
+
+    // Real-time subscription for bookings so admin sees new bookings immediately
+    const bookingsQuery = query(bookingsRef, orderBy("createdAt", "asc"))
+    const unsubscribe = onSnapshot(bookingsQuery, (snapshot) => {
+      const loaded: Booking[] = []
+      snapshot.forEach((docSnap) => {
+        const d = docSnap.data() as Booking
+        loaded.push(normalizeBookingForNewFields({ ...d, id: docSnap.id }))
+      })
+      setBookings(loaded)
+    })
+
+    return () => unsubscribe()
   }, []);
 
   const saveBookings = async (newBookings: Booking[]) => {
