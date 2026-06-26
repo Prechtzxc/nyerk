@@ -1131,27 +1131,53 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     loadAll().catch(console.error)
   }, []);
 
-  const saveBookings = (newBookings: Booking[]) => {
+  const saveBookings = async (newBookings: Booking[]) => {
     const normalizedBookings = newBookings.map(normalizeBookingForNewFields);
     const prevMap = new Map(bookings.map(b => [b.id, b]))
     const nextMap = new Map(normalizedBookings.map(b => [b.id, b]))
 
+    console.log("[Booking:saveBookings] ========== START ==========")
+    console.log("[Booking:saveBookings] Current booking count:", bookings.length)
+    console.log("[Booking:saveBookings] New booking count:", normalizedBookings.length)
+
     setBookings(normalizedBookings);
 
     const batch = writeBatch(db)
+    let writeCount = 0
+    let deleteCount = 0
     for (const [id, next] of nextMap) {
       const prev = prevMap.get(id)
       if (!prev || JSON.stringify(prev) !== JSON.stringify(next)) {
         const { id: _id, ...data } = next
-        batch.set(doc(bookingsRef, id), { ...data, updatedAt: new Date().toISOString() }, { merge: true })
+        const docRef = doc(bookingsRef, id)
+        console.log("[Booking:saveBookings] batch.set — path:", docRef.path, "userId:", data.userId)
+        writeCount++
+        batch.set(docRef, { ...data, updatedAt: new Date().toISOString() }, { merge: true })
       }
     }
     for (const id of prevMap.keys()) {
       if (!nextMap.has(id)) {
-        batch.delete(doc(bookingsRef, id))
+        const docRef = doc(bookingsRef, id)
+        console.log("[Booking:saveBookings] batch.delete — path:", docRef.path)
+        deleteCount++
+        batch.delete(docRef)
       }
     }
-    batch.commit().catch(console.error)
+    console.log("[Booking:saveBookings] batch writes:", writeCount, "deletes:", deleteCount)
+    console.log("[Booking:saveBookings] Calling batch.commit() on Firestore collection: bookings")
+
+    try {
+      await batch.commit()
+      console.log("[Booking:saveBookings] batch.commit() SUCCESS")
+    } catch (err: any) {
+      console.error("[Booking:saveBookings] batch.commit() FAILED")
+      console.error("[Booking:saveBookings] File:", "src/modules/client/contexts/booking-context.tsx")
+      console.error("[Booking:saveBookings] Function:", "saveBookings()")
+      console.error("[Booking:saveBookings] Firebase error code:", err?.code || "unknown")
+      console.error("[Booking:saveBookings] Firebase error message:", err?.message || String(err))
+      throw err
+    }
+    console.log("[Booking:saveBookings] ========== END ==========")
   };
 
   const saveOfficeRentals = (newOfficeRentals: OfficeRental[]) => {
@@ -1242,7 +1268,15 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       updatedAt: new Date().toISOString(),
     } as Booking;
 
-    saveBookings([...bookings, newBooking]);
+    console.log("[Booking:addBooking] ========== START ==========")
+    console.log("[Booking:addBooking] Creating new booking ID:", newId)
+    console.log("[Booking:addBooking] User ID from payload:", bookingData.userId)
+    console.log("[Booking:addBooking] Target Firestore path:", doc(bookingsRef, newId).path)
+
+    await saveBookings([...bookings, newBooking])
+    console.log("[Booking:addBooking] saveBookings completed successfully")
+    console.log("[Booking:addBooking] Returning booking ID:", newId)
+    console.log("[Booking:addBooking] ========== END ==========")
     return newId;
   };
 
