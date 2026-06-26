@@ -119,10 +119,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const credential = await signInWithEmailAndPassword(auth, email, password!)
 
       const userDocRef = doc(db, "users", credential.user.uid)
+      console.log("[Auth] Login reading:", userDocRef.path)
       const userDocSnap = await getDoc(userDocRef)
 
       if (!userDocSnap.exists()) {
-        return { success: false, message: "User profile not found. Please contact support." }
+        console.log("[Auth] Login — document missing at", userDocRef.path, "for uid", credential.user.uid)
+
+        const recoveredEmail = (credential.user.email || email).toLowerCase().trim()
+        const now = new Date().toISOString()
+        const recoveredData = {
+          uid: credential.user.uid,
+          email: recoveredEmail,
+          fullName: credential.user.displayName || recoveredEmail.split("@")[0] || "User",
+          role: "client",
+          status: "active",
+          createdAt: now,
+        }
+
+        await setDoc(userDocRef, recoveredData)
+        console.log("[Auth] Login — auto-created document at", userDocRef.path)
+
+        setUser({
+          id: credential.user.uid,
+          fullName: recoveredData.fullName,
+          name: recoveredData.fullName,
+          email: recoveredData.email,
+          role: "client",
+          profilePicture: "",
+          createdAt: now,
+          status: "active",
+          phone: "",
+        })
+
+        return { success: true, role: "client" }
       }
 
       const data = userDocSnap.data()
@@ -158,6 +187,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const credential = await createUserWithEmailAndPassword(auth, input.email, input.password)
       const uid = credential.user.uid
+
+      console.log("[Auth] Signup creating:", doc(db, "users", uid).path, "for uid", uid)
 
       const fullName = [input.firstName, input.middleName, input.lastName]
         .filter(Boolean)
