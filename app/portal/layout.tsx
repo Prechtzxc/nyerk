@@ -79,9 +79,13 @@ export default function ClientLayout({
       return
     }
     const role = user.role?.toLowerCase() ?? ""
-    if (role !== "client") {
-      console.log("[PortalLayout] Non-client role, redirecting to /dashboard")
+    console.log("[PortalLayout] Route guard check — role:", role)
+    if (role === "admin") {
+      console.log("[PortalLayout] Admin role detected, redirecting to /dashboard")
       router.push("/dashboard")
+    } else if (role !== "client") {
+      console.log("[PortalLayout] Invalid/missing role:", role, "redirecting to /")
+      router.push("/")
     } else {
       console.log("[PortalLayout] Auth OK", { userId: user.id, role })
     }

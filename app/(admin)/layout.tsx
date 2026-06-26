@@ -76,8 +76,12 @@ export default function AdminLayout({
       return
     }
     const role = user.role?.toLowerCase() ?? ""
-    if (role !== "admin" && role !== "staff" && role !== "owner") {
+    console.log("[AdminLayout] Route guard check — role:", role)
+    if (role !== "admin") {
+      console.log("[AdminLayout] Non-admin role:", role, "redirecting to /")
       router.replace("/")
+    } else {
+      console.log("[AdminLayout] Auth OK", { userId: user.id, role })
     }
   }, [user, isLoading, router])
 

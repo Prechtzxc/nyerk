@@ -40,7 +40,7 @@ export function MainLayout({ children }: MainLayoutProps) {
     if (!isLoading) {
       if (!user) {
         router.push("/")
-      } else if ((user.role === "client" || user.role === "customer") && pathname.startsWith("/dashboard")) {
+      } else if (user.role === "client" && pathname.startsWith("/dashboard")) {
         router.push("/portal")
       }
     }

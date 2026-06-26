@@ -23,7 +23,7 @@ export interface AppUser {
   fullName: string
   name: string
   email: string
-  role: "customer" | "client" | "admin" | "staff" | "owner"
+  role: "admin" | "client"
   profilePicture: string
   createdAt: string
   status: "active" | "inactive"
@@ -93,18 +93,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.log("[Auth:onAuthStateChanged] exists() =", userDocSnap.exists())
           if (userDocSnap.exists()) {
             const data = userDocSnap.data()
-            console.log("[Auth:onAuthStateChanged] Profile loaded — role:", data.role)
-            setUser({
-              id: firebaseUser.uid,
-              fullName: data.fullName || "",
-              name: data.fullName || "",
-              email: data.email || firebaseUser.email || "",
-              role: data.role || "client",
-              profilePicture: data.profilePicture || "",
-              createdAt: data.createdAt || new Date().toISOString(),
-              status: data.status || "active",
-              phone: data.phone || "",
-            })
+            const rawRole: string = String(data.role || "").toLowerCase().trim()
+            console.log("[Auth:onAuthStateChanged] Profile loaded — raw role from Firestore:", JSON.stringify(data.role))
+
+            if (rawRole !== "admin" && rawRole !== "client") {
+              console.error("[Auth:onAuthStateChanged] INVALID ROLE:", rawRole, "- not setting user")
+              setUser(null)
+            } else {
+              const validRole = rawRole as "admin" | "client"
+              console.log("[Auth:onAuthStateChanged] Valid role resolved:", validRole)
+              setUser({
+                id: firebaseUser.uid,
+                fullName: data.fullName || "",
+                name: data.fullName || "",
+                email: data.email || firebaseUser.email || "",
+                role: validRole,
+                profilePicture: data.profilePicture || "",
+                createdAt: data.createdAt || new Date().toISOString(),
+                status: data.status || "active",
+                phone: data.phone || "",
+              })
+            }
           } else {
             console.warn(
               "[Auth:onAuthStateChanged] Auth user",
@@ -189,14 +198,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const data = userDocSnap.data()
-      const role = data.role || "client"
+      console.log("[Auth] Login — Firestore document data:", JSON.stringify(data, null, 2))
+      console.log("[Auth] Login — raw role from Firestore (unsanitized):", JSON.stringify(data.role))
+      const rawRole: string = String(data.role || "").toLowerCase().trim()
+
+      if (rawRole !== "admin" && rawRole !== "client") {
+        console.error("[Auth] Login FAILED — invalid or missing role:", JSON.stringify(data.role), "at", userDocRef.path)
+        return {
+          success: false,
+          message: "Your account has an invalid or missing role. Please contact support.",
+        }
+      }
+
+      const role = rawRole
 
       console.log("[Auth] Login success", {
         uid: credential.user.uid,
         email: credential.user.email,
         role,
         currentRoute: window.location.pathname,
-        targetRoute: role === "admin" || role === "staff" || role === "owner" ? "/dashboard" : "/portal",
+        targetRoute: role === "admin" ? "/dashboard" : "/portal",
       })
 
       setUser({
@@ -350,12 +371,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userDocSnap = await getDoc(userDocRef)
       if (userDocSnap.exists()) {
         const data = userDocSnap.data()
+        const rawRole: string = String(data.role || "").toLowerCase().trim()
+        if (rawRole !== "admin" && rawRole !== "client") {
+          console.error("[Auth:refreshUser] Invalid role:", rawRole)
+          setUser(null)
+          return
+        }
         setUser({
           id: auth.currentUser.uid,
           fullName: data.fullName || "",
           name: data.fullName || "",
           email: data.email || auth.currentUser.email || "",
-          role: data.role || "client",
+          role: rawRole as AppUser["role"],
           profilePicture: data.profilePicture || "",
           createdAt: data.createdAt || new Date().toISOString(),
           status: data.status || "active",

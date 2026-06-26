@@ -80,16 +80,26 @@ export function LoginDialog({ className, children }: LoginDialogProps) {
       console.log("[LoginDialog] Login succeeded, calling setOpen(false)")
       setOpen(false)
 
-      const role = result.role || "client"
-      console.log("[LoginDialog] role:", role)
-      if (role === "admin" || role === "staff" || role === "owner") {
+      const role = result.role
+      console.log("[LoginDialog] role from login():", role)
+
+      if (!role) {
+        console.error("[LoginDialog] No role returned from login")
+        toast({ title: "Login Error", description: "No role assigned to your account.", variant: "destructive" })
+        return
+      }
+
+      if (role === "admin") {
         console.log("[LoginDialog] Redirecting to /dashboard")
         toast({ title: "Login Successful", description: "Redirecting to dashboard..." })
         window.location.replace("/dashboard")
-      } else {
+      } else if (role === "client") {
         console.log("[LoginDialog] Redirecting to /portal")
         toast({ title: "Welcome back!", description: "Taking you to your portal..." })
         window.location.replace("/portal")
+      } else {
+        console.error("[LoginDialog] Unknown role:", role)
+        toast({ title: "Login Error", description: "Invalid account role.", variant: "destructive" })
       }
     } catch (error) {
       console.log("[LoginDialog] Unexpected error", error)
