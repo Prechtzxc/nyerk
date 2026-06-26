@@ -128,6 +128,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = userDocSnap.data()
       const role = data.role || "client"
 
+      console.log("[Auth] Login success", {
+        uid: credential.user.uid,
+        email: credential.user.email,
+        role,
+        currentRoute: window.location.pathname,
+        targetRoute: role === "admin" || role === "staff" || role === "owner" ? "/dashboard" : "/portal",
+      })
+
       setUser({
         id: credential.user.uid,
         fullName: data.fullName || "",
@@ -156,7 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .join(" ")
         .trim()
 
-      const role = input.email.toLowerCase().trim() === "admin@oneestela.com" ? "admin" : "client"
+      const role = "client"
 
       const userData = {
         uid,

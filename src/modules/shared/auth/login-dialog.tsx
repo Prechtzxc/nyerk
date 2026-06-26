@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import { Button } from "@/src/modules/shared/components/ui/button"
 import {
   Dialog,
@@ -26,7 +25,6 @@ interface LoginDialogProps {
 }
 
 export function LoginDialog({ className, children }: LoginDialogProps) {
-  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -71,6 +69,7 @@ export function LoginDialog({ className, children }: LoginDialogProps) {
     try {
       const result = await login(email, password)
       if (!result.success) {
+        console.log("[LoginDialog] Login failed", result)
         toast({
           title: "Login failed",
           description: result.message || "Invalid credentials",
@@ -78,17 +77,22 @@ export function LoginDialog({ className, children }: LoginDialogProps) {
         })
         return
       }
+      console.log("[LoginDialog] Login succeeded, calling setOpen(false)")
       setOpen(false)
 
       const role = result.role || "client"
+      console.log("[LoginDialog] role:", role)
       if (role === "admin" || role === "staff" || role === "owner") {
+        console.log("[LoginDialog] Redirecting to /dashboard")
         toast({ title: "Login Successful", description: "Redirecting to dashboard..." })
-        router.replace("/dashboard")
+        window.location.replace("/dashboard")
       } else {
+        console.log("[LoginDialog] Redirecting to /portal")
         toast({ title: "Welcome back!", description: "Taking you to your portal..." })
-        router.replace("/portal")
+        window.location.replace("/portal")
       }
     } catch (error) {
+      console.log("[LoginDialog] Unexpected error", error)
       toast({ title: "Error", description: "Something went wrong", variant: "destructive" })
     }
   }

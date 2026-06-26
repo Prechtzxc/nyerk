@@ -72,8 +72,18 @@ export default function ClientLayout({
   }, [messages, user?.id, chatUnread])
 
   useEffect(() => {
-    if (!isLoading && !user) {
+    if (isLoading) return
+    if (!user) {
+      console.log("[PortalLayout] No user, redirecting to /")
       router.push("/")
+      return
+    }
+    const role = user.role?.toLowerCase() ?? ""
+    if (role !== "client") {
+      console.log("[PortalLayout] Non-client role, redirecting to /dashboard")
+      router.push("/dashboard")
+    } else {
+      console.log("[PortalLayout] Auth OK", { userId: user.id, role })
     }
   }, [user, isLoading, router])
 
