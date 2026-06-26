@@ -121,22 +121,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userDocRef = doc(db, "users", credential.user.uid)
       const userDocSnap = await getDoc(userDocRef)
 
-      let role = "client"
-      if (userDocSnap.exists()) {
-        const data = userDocSnap.data()
-        role = data.role || "client"
-        setUser({
-          id: credential.user.uid,
-          fullName: data.fullName || "",
-          name: data.fullName || "",
-          email: data.email || credential.user.email || email,
-          role: role as AppUser["role"],
-          profilePicture: data.profilePicture || "",
-          createdAt: data.createdAt || new Date().toISOString(),
-          status: data.status || "active",
-          phone: data.phone || "",
-        })
+      if (!userDocSnap.exists()) {
+        return { success: false, message: "User profile not found. Please contact support." }
       }
+
+      const data = userDocSnap.data()
+      const role = data.role || "client"
+
+      setUser({
+        id: credential.user.uid,
+        fullName: data.fullName || "",
+        name: data.fullName || "",
+        email: data.email || credential.user.email || email,
+        role: role as AppUser["role"],
+        profilePicture: data.profilePicture || "",
+        createdAt: data.createdAt || new Date().toISOString(),
+        status: data.status || "active",
+        phone: data.phone || "",
+      })
 
       return { success: true, role }
     } catch (error: any) {
@@ -154,14 +156,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .join(" ")
         .trim()
 
+      const role = input.email.toLowerCase().trim() === "admin@oneestela.com" ? "admin" : "client"
+
       const userData = {
+        uid,
         email: input.email.toLowerCase().trim(),
         fullName,
         firstName: input.firstName,
         middleName: input.middleName || "",
         lastName: input.lastName,
         phone: input.phone || "",
-        role: "client" as const,
+        role,
         profilePicture: "",
         status: "active",
         createdAt: new Date().toISOString(),
@@ -174,14 +179,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         fullName,
         name: fullName,
         email: input.email.toLowerCase().trim(),
-        role: "client",
+        role: role as AppUser["role"],
         profilePicture: "",
         createdAt: userData.createdAt,
         status: "active",
         phone: input.phone || "",
       })
 
-      return { success: true }
+      return { success: true, role }
     } catch (error: any) {
       return { success: false, message: getFirebaseErrorMessage(error) }
     }
