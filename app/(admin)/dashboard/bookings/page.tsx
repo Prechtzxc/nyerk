@@ -47,7 +47,7 @@ import {
 } from "@/src/modules/shared/components/ui/select"
 import { useToast } from "@/src/modules/shared/hooks/use-toast"
 import { cn } from "@/src/modules/shared/lib/utils"
-import { useBookings, type Booking, type BookingStatusLabel, getRestoredStatus } from "@/src/modules/client/contexts/booking-context"
+import { useBookings, type Booking } from "@/src/modules/client/contexts/booking-context"
 import { getPaymentMethodLabel } from "@/src/modules/shared/lib/labels"
 import { Textarea } from "@/src/modules/shared/components/ui/textarea"
 import { Label } from "@/src/modules/shared/components/ui/label"
@@ -201,10 +201,14 @@ function isOfficeBooking(booking: Booking) {
 export default function AdminBookingsPage() {
   const { toast } = useToast()
   const bookingCtx = useBookings()
-  const contextBookings = bookingCtx?.bookings || []
-  const markContractSigned = bookingCtx?.markContractSigned
-
-  const [bookings, setBookings] = useState<Booking[]>([])
+  const bookings = bookingCtx?.bookings || []
+  const {
+    markContractSigned,
+    modifyBooking,
+    approveCancellation,
+    declineCancellation,
+    updateBookingStatus,
+  } = bookingCtx || {}
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [venueFilter, setVenueFilter] = useState("all")
@@ -239,16 +243,6 @@ export default function AdminBookingsPage() {
   useEffect(() => {
     if (urlStatusRef) setStatusFilter(urlStatusRef)
   }, [urlStatusRef])
-
-  useEffect(() => {
-    if (contextBookings.length > 0) {
-      setBookings(contextBookings)
-    }
-  }, [contextBookings])
-
-  const persistBookings = (next: Booking[]) => {
-    setBookings(next)
-  }
 
   const venueOptions = useMemo(() => {
     const venues = new Set(bookings.map((b) => b.venue).filter(Boolean) as string[])
@@ -297,29 +291,9 @@ export default function AdminBookingsPage() {
   const confirmApproveCancellation = () => {
     const id = showApproveCancellationTarget
     if (!id) return
-    const now = new Date().toISOString()
     setShowApproveCancellationConfirm(false)
     setShowApproveCancellationTarget(null)
-    const next = bookings.map((b) =>
-      b.id === id
-        ? {
-            ...b,
-            status: "cancelled" as const,
-            bookingStatus: "Cancelled" as const,
-            cancellationRequested: false,
-            cancellationStatus: "Approved" as const,
-            cancellationStatusLabel: "Approved",
-            cancellationReviewedAt: now,
-            cancelRequestStatus: null,
-            cancellationUnderReview: false,
-            adminCancelDecision: "approved",
-            adminCancelReason: "",
-            refundStatus: "Refund Eligible" as const,
-            updatedAt: now,
-          }
-        : b,
-    )
-    persistBookings(next)
+    approveCancellation?.(id)
     toast({
       title: "Cancellation Approved",
       description: `Booking ${id} has been cancelled.`,
@@ -331,36 +305,7 @@ export default function AdminBookingsPage() {
     if (!declineCancellationTarget || !declineCancellationReason.trim()) return
     const target = declineCancellationTarget
     const reason = declineCancellationReason.trim()
-    const restored = getRestoredStatus(target)
-    const now = new Date().toISOString()
-    const next = bookings.map((b) =>
-      b.id === target.id
-        ? {
-            ...b,
-            status: restored.status,
-            bookingStatus: restored.bookingStatus,
-            cancellationRequested: false,
-            cancellationStatus: "Declined" as const,
-            cancelStatus: null,
-            cancelReason: "",
-            cancelRequestedAt: null,
-            adminCancelDecision: "continued",
-            adminCancelReason: reason,
-            cancellationUnderReview: false,
-            cancellationStatusLabel: "Declined",
-            cancellationReviewedAt: now,
-            cancellationDeclinedAt: now,
-            cancellationDeclineReason: reason,
-            cancelRequestStatus: null,
-            refundStatus: "Not Applicable" as const,
-            previousStatus: undefined,
-            previousBookingStatus: undefined,
-            previousPaymentStatus: undefined,
-            updatedAt: now,
-          }
-        : b,
-    )
-    persistBookings(next)
+    declineCancellation?.(target.id, reason)
     setShowDeclineCancellationModal(false)
     setDeclineCancellationTarget(null)
     setDeclineCancellationReason("")
@@ -378,7 +323,7 @@ export default function AdminBookingsPage() {
     setShowApproveModificationConfirm(false)
     setShowApproveModificationTarget(null)
     if (selectedBooking && selectedBooking.id === id) {
-      const updated = contextBookings.find((b: Booking) => b.id === id)
+      const updated = bookings.find((b: Booking) => b.id === id)
       if (updated) setSelectedBooking(updated)
     }
     toast({
@@ -396,7 +341,7 @@ export default function AdminBookingsPage() {
     setShowDeclineModificationModal(false)
     setDeclineModificationTarget(null)
     setDeclineModificationReason("")
-    const updated = contextBookings.find((b: Booking) => b.id === target.id)
+    const updated = bookings.find((b: Booking) => b.id === target.id)
     if (updated) setSelectedBooking(updated)
     toast({
       title: "Modification Declined",
@@ -413,15 +358,9 @@ export default function AdminBookingsPage() {
   const confirmMarkCompleted = () => {
     const id = showMarkCompletedTarget
     if (!id) return
-    const next = bookings.map((b) =>
-      b.id === id
-        ? { ...b, status: "completed" as const, bookingStatus: "Completed" as const, completedAt: new Date().toISOString(), completedBy: "Administrator", updatedAt: new Date().toISOString() }
-        : b,
-    )
-    persistBookings(next)
+    updateBookingStatus?.(id, "completed")
     setShowMarkCompletedConfirm(false)
     setShowMarkCompletedTarget(null)
-    setSelectedBooking(next.find((b) => b.id === id) || null)
     toast({
       title: "Booking Completed",
       description: `Booking ${id} has been marked as completed.`,
@@ -434,22 +373,6 @@ export default function AdminBookingsPage() {
     const id = selectedBooking.id
     markContractSigned(id, "Administrator")
     setShowContractConfirm(false)
-
-    const updated = bookings.map((b) =>
-      b.id === id
-        ? {
-            ...b,
-            contractStatus: "Signed" as const,
-            contractSigned: true,
-            contractSignedDate: new Date().toISOString(),
-            contractSignedBy: "Administrator",
-            contractSigningMethod: "Face-to-face",
-            updatedAt: new Date().toISOString(),
-          }
-        : b,
-    )
-    setBookings(updated)
-    setSelectedBooking(updated.find((b) => b.id === id) || null)
 
     toast({
       title: "Contract Signed",
@@ -557,7 +480,6 @@ export default function AdminBookingsPage() {
           onRecorded={(updated) => {
             setSelectedBooking(updated)
             setOnsitePaymentTarget(null)
-            setBookings(contextBookings)
             toast({
               title: "Onsite Payment Recorded",
               description: `Onsite payment has been recorded for booking ${updated.id}.`,
@@ -576,18 +498,11 @@ export default function AdminBookingsPage() {
           onConfirm={() => {
             if (!sendReminderTarget) return
             const id = sendReminderTarget.id
-            const next = bookings.map((b) =>
-              b.id === id
-                ? {
-                    ...b,
-                    balanceReminderSent: true,
-                    balanceReminderSentAt: new Date().toISOString(),
-                    balanceReminderSentBy: "Administrator",
-                    updatedAt: new Date().toISOString(),
-                  }
-                : b,
-            )
-            persistBookings(next)
+            modifyBooking?.(id, {
+              balanceReminderSent: true,
+              balanceReminderSentAt: new Date().toISOString(),
+              balanceReminderSentBy: "Administrator",
+            })
             setSendReminderTarget(null)
             toast({
               title: "Balance Reminder Sent",

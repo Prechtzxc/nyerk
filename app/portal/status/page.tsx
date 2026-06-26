@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import {
   AlertCircle,
   Building2,
@@ -563,16 +563,11 @@ export default function StatusPage() {
   const { user } = useAuth()
   const { getUserBookings } = useBookings()
   const { cmsData } = useCMS()
-  const [bookings, setBookings] = useState<Booking[]>([])
+  const bookings = useMemo(
+    () => (user ? getUserBookings(user.id) : []),
+    [user, getUserBookings],
+  )
   const [filter, setFilter] = useState<"current" | "all">("current")
-
-  useEffect(() => {
-    if (user) {
-      setBookings(getUserBookings(user.id))
-    } else {
-      setBookings([])
-    }
-  }, [user, getUserBookings])
 
   const sorted = useMemo(
     () =>

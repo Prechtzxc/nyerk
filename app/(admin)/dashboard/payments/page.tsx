@@ -60,7 +60,6 @@ type PendingPaymentAction = {
 export default function AdminPaymentsPage() {
   const { toast } = useToast()
   const bookingCtx = useBookings()
-  const [bookings, setBookings] = useState<BookingRecord[]>([])
   const [paymentRecords, setPaymentRecords] = useState<any[]>([])
   const [statusFilter, setStatusFilter] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
@@ -88,10 +87,6 @@ export default function AdminPaymentsPage() {
   }, [])
 
   useEffect(() => {
-    const loadBookings = () => {
-      setBookings(bookingCtx.bookings || [])
-    }
-
     const loadPaymentRecords = async () => {
       try {
         const q = query(collection(db, "paymentProofs"), orderBy("submittedAt", "desc"))
@@ -107,20 +102,11 @@ export default function AdminPaymentsPage() {
       }
     }
 
-    loadBookings()
     loadPaymentRecords()
-
-    window.addEventListener("bookingsUpdated", loadBookings)
-    window.addEventListener("oneestela_bookings_updated", loadBookings)
-
-    return () => {
-      window.removeEventListener("bookingsUpdated", loadBookings)
-      window.removeEventListener("oneestela_bookings_updated", loadBookings)
-    }
-  }, [bookingCtx.bookings])
+  }, [])
 
   const paymentBookings = useMemo(() => {
-    const bookingRecords = bookings.filter((booking) => isPaymentRecord(booking))
+    const bookingRecords = (bookingCtx.bookings || []).filter((booking) => isPaymentRecord(booking))
 
     const paymentRecordsAsBookings = paymentRecords.map((pr: any) => ({
       id: pr.bookingId || pr.id,
@@ -191,7 +177,7 @@ export default function AdminPaymentsPage() {
       }
       return getSortTime(b) - getSortTime(a)
     })
-  }, [bookings, paymentRecords])
+  }, [bookingCtx.bookings, paymentRecords])
 
   const filteredPayments = useMemo(() => {
     return paymentBookings.filter((booking) => {
@@ -238,17 +224,6 @@ export default function AdminPaymentsPage() {
     (safePaymentPage - 1) * PAYMENTS_PER_PAGE,
     safePaymentPage * PAYMENTS_PER_PAGE,
   )
-
-  const refreshBookingsFromStorage = (fallback?: BookingRecord[]) => {
-    const nextBookings = (bookingCtx.bookings && bookingCtx.bookings.length > 0) ? bookingCtx.bookings : fallback || []
-    setBookings(nextBookings)
-    return nextBookings
-  }
-
-  const persistBookings = (nextBookings: BookingRecord[]) => {
-    setBookings(nextBookings)
-    window.dispatchEvent(new Event("oneestela_bookings_updated"))
-  }
 
   const openActionModal = (payment: BookingRecord, type: PaymentAction) => {
     if (type === "incomplete") {
@@ -297,10 +272,7 @@ export default function AdminPaymentsPage() {
         bookingCtx.markIncompletePayment(bookingId, { verifiedAmount: 0, adminNote: note, adminName: "Administrator" })
       }
 
-      // Refresh from context after context update
-      const refreshed = bookingCtx.bookings || []
-      setBookings(refreshed)
-      let updatedBooking = refreshed.find((b: BookingRecord) => b.id === bookingId)
+      let updatedBooking = (bookingCtx.bookings || []).find((b: BookingRecord) => b.id === bookingId)
       if (updatedBooking && !updatedBooking.paymentProof && !updatedBooking.proofOfPayment) {
         const matchingPayment = paymentRecords.find(
           (pr: any) => updatedBooking && (pr.bookingId === updatedBooking.id || pr.id === updatedBooking.id) && pr.proofUrl
@@ -358,9 +330,7 @@ export default function AdminPaymentsPage() {
               adminNote: updatedBooking.adminLogs?.[updatedBooking.adminLogs.length - 1]?.message || undefined,
               adminName: "Administrator",
             })
-            const refreshed = bookingCtx.bookings || []
-            setBookings(refreshed)
-            let updated = refreshed.find((b: BookingRecord) => b.id === updatedBooking.id)
+            let updated = (bookingCtx.bookings || []).find((b: BookingRecord) => b.id === updatedBooking.id)
             if (updated) {
               if (!updated.paymentProof && !updated.proofOfPayment) {
                 const matchingPayment = paymentRecords.find(
@@ -391,9 +361,7 @@ export default function AdminPaymentsPage() {
               adminNote: updatedBooking.incompletePaymentNote || updatedBooking.incompletePaymentReason || "",
               adminName: "Administrator",
             })
-            const refreshed = bookingCtx.bookings || []
-            setBookings(refreshed)
-            let updated = refreshed.find((b: BookingRecord) => b.id === updatedBooking.id)
+            let updated = (bookingCtx.bookings || []).find((b: BookingRecord) => b.id === updatedBooking.id)
             if (updated) {
               if (!updated.paymentProof && !updated.proofOfPayment) {
                 const matchingPayment = paymentRecords.find(
