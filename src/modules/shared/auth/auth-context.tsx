@@ -10,18 +10,13 @@ import {
   type ReactNode,
 } from "react"
 import {
-  AUTH_STORAGE,
-  clearAuthSession,
-  findRegisteredUserByEmail,
-  getCurrentUser,
-  readProfilePictureIndex,
-  readRegisteredUsers,
-  seedDefaultAccounts,
-  setCurrentUser,
-  setProfilePictureIndex,
-  upsertRegisteredUser,
-  type StoredUser,
-} from "@/src/modules/shared/lib/auth-storage"
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+} from "firebase/auth"
+import { doc, getDoc, setDoc } from "firebase/firestore"
+import { auth, db } from "@/lib/firebase"
 
 export interface AppUser {
   id: string
@@ -51,7 +46,7 @@ export interface SignupInput {
 export interface AuthContextValue {
   user: AppUser | null
   isLoading: boolean
-  login: (email: string, password?: string) => Promise<{ success: boolean; message?: string }>
+  login: (email: string, password?: string) => Promise<{ success: boolean; message?: string; role?: string }>
   signup: (input: SignupInput) => Promise<{ success: boolean; message?: string }>
   logout: () => void
   updateProfilePicture: (dataUrl: string) => void
@@ -61,83 +56,26 @@ export interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
-function makeId(email: string): string {
-  return email.toLowerCase().trim()
-}
-
-function buildName(firstName: string, middleName?: string, lastName?: string): string {
-  const parts = [firstName.trim(), middleName?.trim(), lastName?.trim()].filter(Boolean)
-  return parts.join(" ")
-}
-
-function toAppUser(stored: StoredUser): AppUser {
-  return {
-    id: stored.id,
-    fullName: stored.fullName || stored.name,
-    name: stored.name,
-    email: stored.email,
-    role: stored.role,
-    profilePicture: stored.profilePicture || "",
-    createdAt: stored.createdAt,
-    status: stored.status,
-    phone: stored.phone,
+function getFirebaseErrorMessage(error: any): string {
+  const code = error?.code || ""
+  switch (code) {
+    case "auth/user-not-found":
+    case "auth/wrong-password":
+    case "auth/invalid-credential":
+      return "Invalid email or password."
+    case "auth/email-already-in-use":
+      return "An account with this email already exists."
+    case "auth/weak-password":
+      return "Password should be at least 6 characters."
+    case "auth/invalid-email":
+      return "Invalid email address."
+    case "auth/too-many-requests":
+      return "Too many attempts. Please try again later."
+    case "auth/network-request-failed":
+      return "Network error. Please check your connection."
+    default:
+      return error?.message || "An unexpected error occurred."
   }
-}
-
-function persistUser(user: AppUser, password?: string) {
-  const stored: StoredUser = {
-    id: user.id,
-    fullName: user.fullName,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-    profilePicture: user.profilePicture,
-    createdAt: user.createdAt,
-    status: user.status,
-    phone: user.phone,
-    password,
-  }
-  upsertRegisteredUser(stored)
-  setCurrentUser(stored)
-}
-
-function applyProfilePicture(user: AppUser, dataUrl: string | null): AppUser {
-  if (!user.id) return user
-  const map = readProfilePictureIndex()
-  if (dataUrl) {
-    map[user.id] = dataUrl
-  } else {
-    delete map[user.id]
-  }
-  setProfilePictureIndex(map)
-  const updated: AppUser = { ...user, profilePicture: dataUrl || "" }
-  const existing = readRegisteredUsers().find((u) => u.id === user.id)
-  const stored: StoredUser = {
-    id: updated.id,
-    fullName: updated.fullName,
-    name: updated.name,
-    email: updated.email,
-    role: updated.role,
-    profilePicture: updated.profilePicture,
-    createdAt: updated.createdAt,
-    status: updated.status,
-    phone: updated.phone,
-    password: existing?.password,
-  }
-  upsertRegisteredUser(stored)
-  setCurrentUser(stored)
-  return updated
-}
-
-function resolveInitialUser(): AppUser | null {
-  if (typeof window === "undefined") return null
-  const stored = getCurrentUser()
-  if (stored) {
-    const map = readProfilePictureIndex()
-    const picture = stored.profilePicture || map[stored.id] || ""
-    return { ...toAppUser(stored), profilePicture: picture }
-  }
-  return null
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -145,124 +83,148 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    seedDefaultAccounts()
-    const initialUser = resolveInitialUser()
-    setUser(initialUser)
-    setIsLoading(false)
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          const userDocRef = doc(db, "users", firebaseUser.uid)
+          const userDocSnap = await getDoc(userDocRef)
+          if (userDocSnap.exists()) {
+            const data = userDocSnap.data()
+            setUser({
+              id: firebaseUser.uid,
+              fullName: data.fullName || "",
+              name: data.fullName || "",
+              email: data.email || firebaseUser.email || "",
+              role: data.role || "client",
+              profilePicture: data.profilePicture || "",
+              createdAt: data.createdAt || new Date().toISOString(),
+              status: data.status || "active",
+              phone: data.phone || "",
+            })
+          }
+        } catch {
+          // Firestore read error — user authenticated but profile unavailable
+        }
+      } else {
+        setUser(null)
+      }
+      setIsLoading(false)
+    })
 
-    const handleUpdate = () => {
-      setUser(resolveInitialUser())
-    }
-    const handleProfileUpdate = () => {
-      setUser((current) => (current ? applyProfilePicture(current, null) : current))
-    }
-    window.addEventListener(AUTH_STORAGE.authEvent, handleUpdate)
-    window.addEventListener("storage", handleUpdate)
-    window.addEventListener(AUTH_STORAGE.profileEvent, handleProfileUpdate)
-    return () => {
-      window.removeEventListener(AUTH_STORAGE.authEvent, handleUpdate)
-      window.removeEventListener("storage", handleUpdate)
-      window.removeEventListener(AUTH_STORAGE.profileEvent, handleProfileUpdate)
+    return unsubscribe
+  }, [])
+
+  const login = useCallback(async (email: string, password?: string) => {
+    try {
+      const credential = await signInWithEmailAndPassword(auth, email, password!)
+
+      const userDocRef = doc(db, "users", credential.user.uid)
+      const userDocSnap = await getDoc(userDocRef)
+
+      let role = "client"
+      if (userDocSnap.exists()) {
+        const data = userDocSnap.data()
+        role = data.role || "client"
+        setUser({
+          id: credential.user.uid,
+          fullName: data.fullName || "",
+          name: data.fullName || "",
+          email: data.email || credential.user.email || email,
+          role: role as AppUser["role"],
+          profilePicture: data.profilePicture || "",
+          createdAt: data.createdAt || new Date().toISOString(),
+          status: data.status || "active",
+          phone: data.phone || "",
+        })
+      }
+
+      return { success: true, role }
+    } catch (error: any) {
+      return { success: false, message: getFirebaseErrorMessage(error) }
     }
   }, [])
 
-  const login = useCallback(
-    async (email: string, password?: string) => {
-      const cleanEmail = email.toLowerCase().trim()
-      if (!cleanEmail) {
-        return { success: false, message: "Please enter your email." }
+  const signup = useCallback(async (input: SignupInput) => {
+    try {
+      const credential = await createUserWithEmailAndPassword(auth, input.email, input.password)
+      const uid = credential.user.uid
+
+      const fullName = [input.firstName, input.middleName, input.lastName]
+        .filter(Boolean)
+        .join(" ")
+        .trim()
+
+      const userData = {
+        email: input.email.toLowerCase().trim(),
+        fullName,
+        firstName: input.firstName,
+        middleName: input.middleName || "",
+        lastName: input.lastName,
+        phone: input.phone || "",
+        role: "client" as const,
+        profilePicture: "",
+        status: "active",
+        createdAt: new Date().toISOString(),
       }
 
-      seedDefaultAccounts()
+      await setDoc(doc(db, "users", uid), userData)
 
-      const registered = findRegisteredUserByEmail(cleanEmail)
-      if (!registered) {
-        return { success: false, message: "Invalid email or password." }
-      }
-
-      if (!password || registered.password !== password) {
-        return { success: false, message: "Invalid email or password." }
-      }
-
-      if (registered.status && registered.status.toLowerCase() === "inactive") {
-        return { success: false, message: "This account is inactive. Please contact the administrator." }
-      }
-
-      let nextUser = toAppUser(registered)
-      const map = readProfilePictureIndex()
-      if (!nextUser.profilePicture && map[registered.id]) {
-        nextUser = { ...nextUser, profilePicture: map[registered.id] }
-      }
-
-      const { password: _pw, ...sessionUser } = registered
-      setUser(nextUser)
-      setCurrentUser(sessionUser as StoredUser)
-      return { success: true }
-    },
-    []
-  )
-
-  const signup = useCallback(
-    async (input: SignupInput) => {
-      const cleanEmail = input.email.toLowerCase().trim()
-      if (!input.firstName || !input.lastName || !cleanEmail || !input.password) {
-        return { success: false, message: "Please fill in all required fields." }
-      }
-      if (findRegisteredUserByEmail(cleanEmail)) {
-        return { success: false, message: "Email is already taken. Please use a different one." }
-      }
-
-      const role: AppRole = input.role
-        ? input.role
-        : cleanEmail.includes("admin")
-          ? "admin"
-          : "client"
-
-      const fullName = buildName(input.firstName, input.middleName, input.lastName)
-      const nextUser: AppUser = {
-        id: makeId(cleanEmail),
+      setUser({
+        id: uid,
         fullName,
         name: fullName,
-        email: cleanEmail,
-        role,
-        profilePicture: input.profilePicture || "",
-        createdAt: new Date().toISOString(),
+        email: input.email.toLowerCase().trim(),
+        role: "client",
+        profilePicture: "",
+        createdAt: userData.createdAt,
         status: "active",
-        phone: input.phone,
-      }
+        phone: input.phone || "",
+      })
 
-      persistUser(nextUser, input.password)
-      if (input.profilePicture) {
-        const map = readProfilePictureIndex()
-        map[nextUser.id] = input.profilePicture
-        setProfilePictureIndex(map)
-      }
-      setUser(nextUser)
       return { success: true }
-    },
-    []
-  )
-
-  const logout = useCallback(() => {
-    clearAuthSession()
-    if (typeof window !== "undefined") {
-      window.location.replace("/")
+    } catch (error: any) {
+      return { success: false, message: getFirebaseErrorMessage(error) }
     }
   }, [])
 
-  const updateProfilePicture = useCallback(
-    (dataUrl: string) => {
-      setUser((current) => (current ? applyProfilePicture(current, dataUrl) : current))
-    },
-    []
-  )
-
-  const removeProfilePicture = useCallback(() => {
-    setUser((current) => (current ? applyProfilePicture(current, null) : current))
+  const logout = useCallback(async () => {
+    await signOut(auth)
+    window.location.replace("/")
   }, [])
 
-  const refreshUser = useCallback(() => {
-    setUser(resolveInitialUser())
+  const updateProfilePicture = useCallback((_dataUrl: string) => {
+    // Will be implemented with Firebase Storage in a future phase
+  }, [])
+
+  const removeProfilePicture = useCallback(() => {
+    // Will be implemented with Firebase Storage in a future phase
+  }, [])
+
+  const refreshUser = useCallback(async () => {
+    if (!auth.currentUser) {
+      setUser(null)
+      return
+    }
+    try {
+      const userDocRef = doc(db, "users", auth.currentUser.uid)
+      const userDocSnap = await getDoc(userDocRef)
+      if (userDocSnap.exists()) {
+        const data = userDocSnap.data()
+        setUser({
+          id: auth.currentUser.uid,
+          fullName: data.fullName || "",
+          name: data.fullName || "",
+          email: data.email || auth.currentUser.email || "",
+          role: data.role || "client",
+          profilePicture: data.profilePicture || "",
+          createdAt: data.createdAt || new Date().toISOString(),
+          status: data.status || "active",
+          phone: data.phone || "",
+        })
+      }
+    } catch {
+      // ignore
+    }
   }, [])
 
   const value = useMemo<AuthContextValue>(

@@ -67,6 +67,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/src/modules/shared/components/ui/tooltip"
+import { db } from "@/lib/firebase"
+import { collection, addDoc, getDocs, query, orderBy, doc, getDoc } from "firebase/firestore"
 
 type ReviewRecord = {
   id: string
@@ -230,15 +232,44 @@ function safeParseReviews(value: string | null): ReviewRecord[] {
   }
 }
 
-function loadReviews() {
-  if (typeof window === "undefined") return []
-  return safeParseReviews(window.localStorage.getItem(REVIEW_STORAGE_KEY))
+const reviewsRef = collection(db, "reviews")
+const reviewsQuery = query(reviewsRef, orderBy("createdAt", "desc"))
+
+async function loadReviews(): Promise<ReviewRecord[]> {
+  try {
+    const snapshot = await getDocs(reviewsQuery)
+    const result: ReviewRecord[] = []
+    snapshot.forEach((docSnap) => {
+      const data = docSnap.data()
+      result.push({
+        id: docSnap.id,
+        bookingId: data.bookingId || "",
+        eventId: data.eventId || "",
+        eventName: data.eventName || "",
+        venue: data.venue || "",
+        customerName: data.customerName || "",
+        rating: data.rating || 5,
+        comment: data.comment || "",
+        createdAt: data.createdAt || new Date().toISOString(),
+      })
+    })
+    return result
+  } catch {
+    return []
+  }
 }
 
-function saveReviews(reviews: ReviewRecord[]) {
-  if (typeof window === "undefined") return
-  window.localStorage.setItem(REVIEW_STORAGE_KEY, JSON.stringify(reviews))
-  window.dispatchEvent(new Event(REVIEW_EVENT_NAME))
+async function saveReview(review: ReviewRecord) {
+  await addDoc(reviewsRef, {
+    bookingId: review.bookingId,
+    eventId: review.eventId || "",
+    eventName: review.eventName,
+    venue: review.venue || "",
+    customerName: review.customerName || "",
+    rating: review.rating,
+    comment: review.comment,
+    createdAt: review.createdAt || new Date().toISOString(),
+  })
 }
 
 function hasReviewForBooking(reviews: ReviewRecord[], bookingId: string | number) {
@@ -357,24 +388,42 @@ function getPaymentBadgeClass(paymentStatus?: string, paymentStage?: string, rem
   return "border-slate-200 bg-slate-50 text-slate-700"
 }
 
-const RECEIPTS_STORAGE_KEY = "oneestela_e_receipts_v1"
-
-function readStoredReceipts(): BookingReceipt[] {
-  if (typeof window === "undefined") return []
-  try {
-    const raw = localStorage.getItem(RECEIPTS_STORAGE_KEY)
-    if (!raw) return []
-    const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? parsed : []
-  } catch {
-    return []
-  }
+function readStoredReceipts(): Promise<BookingReceipt[]> {
+  return getDocs(query(collection(db, "receipts"), orderBy("dateGenerated", "desc"))).then(
+    (snapshot) => {
+      const result: BookingReceipt[] = []
+      snapshot.forEach((docSnap) => {
+        const d = docSnap.data()
+        result.push({
+          receiptNumber: d.receiptNumber || "",
+          bookingId: d.bookingId || "",
+          fullName: d.fullName || "",
+          bookingDate: d.bookingDate || "",
+          startDate: d.startDate || "",
+          endDate: d.endDate || "",
+          rentalType: d.rentalType || "",
+          bookingType: d.bookingType || "",
+          contractTerm: d.contractTerm,
+          paymentPurpose: d.paymentPurpose || "",
+          paymentMethod: d.paymentMethod || "",
+          amountPaid: d.amountPaid || 0,
+          paymentAmount: d.paymentAmount || 0,
+          paymentStatus: d.paymentStatus || "",
+          dateGenerated: d.dateGenerated || "",
+          dateIssued: d.dateIssued || "",
+        })
+      })
+      return result
+    },
+    () => [] as BookingReceipt[]
+  )
 }
 
-function getStoredReceiptByBookingId(
+async function getStoredReceiptByBookingId(
   bookingId: string,
-): BookingReceipt | undefined {
-  return readStoredReceipts().find((r) => r.bookingId === bookingId)
+): Promise<BookingReceipt | undefined> {
+  const receipts = await readStoredReceipts()
+  return receipts.find((r) => r.bookingId === bookingId)
 }
 
 function HorizontalBookingCard({
@@ -767,9 +816,7 @@ function BookingDetailsModal({
     !hasActiveCancellationRequest &&
     !hasCancellationHistory
 
-  const hasReceipt = !!(
-    booking.receipt || getStoredReceiptByBookingId(booking.id)
-  )
+  const hasReceipt = !!(booking.receipt)
   const showReceipt =
     onViewReceipt &&
     (payStatus === "verified" ||
@@ -1495,22 +1542,19 @@ const WriteReviewModal = ({
       })
       return
     }
-    const nextReviews: ReviewRecord[] = [
-      {
-        id: createLocalId("review"),
-        bookingId: String(booking.id),
-        eventId: String((booking as any)?.eventId || (booking as any)?.venueId || ""),
-        eventName,
-        venue: booking.venue,
-        customerName: getBookingCustomerName(booking),
-        rating: Math.min(5, Math.max(1, rating)),
-        comment: comment.trim(),
-        createdAt: new Date().toISOString(),
-      },
-      ...reviews,
-    ]
-    saveReviews(nextReviews)
-    onSaved(nextReviews)
+    const nextReview: ReviewRecord = {
+      id: createLocalId("review"),
+      bookingId: String(booking.id),
+      eventId: String((booking as any)?.eventId || (booking as any)?.venueId || ""),
+      eventName,
+      venue: booking.venue,
+      customerName: getBookingCustomerName(booking),
+      rating: Math.min(5, Math.max(1, rating)),
+      comment: comment.trim(),
+      createdAt: new Date().toISOString(),
+    }
+    saveReview(nextReview)
+    onSaved([nextReview, ...reviews])
     toast({
       title: "Review submitted",
       description: "Your review has been added.",
@@ -2544,20 +2588,12 @@ export default function MyBookingsPage() {
     if (user) {
       setMyBookings(getUserBookings(user.id))
     } else {
-      const stored = localStorage.getItem("oneestela_global_bookings_v2")
-      if (stored) setMyBookings(JSON.parse(stored))
+      setMyBookings([])
     }
   }, [user, getUserBookings])
 
   useEffect(() => {
-    setReviews(loadReviews())
-    const handleReviewsUpdated = () => setReviews(loadReviews())
-    window.addEventListener(REVIEW_EVENT_NAME, handleReviewsUpdated)
-    window.addEventListener("storage", handleReviewsUpdated)
-    return () => {
-      window.removeEventListener(REVIEW_EVENT_NAME, handleReviewsUpdated)
-      window.removeEventListener("storage", handleReviewsUpdated)
-    }
+    loadReviews().then(setReviews)
   }, [])
 
   const sortedBookings = useMemo(
@@ -2685,9 +2721,9 @@ export default function MyBookingsPage() {
     setModifyTarget(booking)
   }
 
-  const handleViewReceipt = (booking: Booking) => {
+  const handleViewReceipt = async (booking: Booking) => {
     const existing =
-      booking.receipt || getStoredReceiptByBookingId(booking.id)
+      booking.receipt || await getStoredReceiptByBookingId(booking.id)
     if (existing) {
       setReceiptToView(existing)
       setReceiptBooking(booking)
@@ -2701,8 +2737,8 @@ export default function MyBookingsPage() {
       payStatus === "partial"
     ) {
       issueReceipt(booking.id)
-      setTimeout(() => {
-        const updated = getStoredReceiptByBookingId(booking.id)
+      setTimeout(async () => {
+        const updated = await getStoredReceiptByBookingId(booking.id)
         if (updated) {
           setReceiptToView(updated)
           setReceiptBooking(booking)
@@ -2745,13 +2781,9 @@ export default function MyBookingsPage() {
     }
     requestCancellation(bookingToCancel.id, cancelReason.trim())
     // Update booking details modal immediately
-    const stored = localStorage.getItem("oneestela_global_bookings_v2")
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored)
-        const updated = parsed.find((b: any) => b.id === bookingToCancel.id)
-        if (updated) setViewingBooking(updated)
-      } catch {}
+    if (user) {
+      const updated = getUserBookings(user.id).find((b: any) => b.id === bookingToCancel.id)
+      if (updated) setViewingBooking(updated)
     }
     toast({
       title: "Cancellation Requested",
@@ -2797,13 +2829,9 @@ export default function MyBookingsPage() {
           onSubmitChanges={(changes, reason) => {
             if (modifyTarget) {
               requestModification(modifyTarget.id, changes, reason)
-              const stored = localStorage.getItem("oneestela_global_bookings_v2")
-              if (stored) {
-                try {
-                  const parsed = JSON.parse(stored)
-                  const updated = parsed.find((b: any) => b.id === modifyTarget.id)
-                  if (updated) setViewingBooking(updated)
-                } catch {}
+              if (user) {
+                const updated = getUserBookings(user.id).find((b: any) => b.id === modifyTarget.id)
+                if (updated) setViewingBooking(updated)
               }
               toast({
                 title: "Modification Requested",

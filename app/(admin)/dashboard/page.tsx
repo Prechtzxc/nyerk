@@ -31,24 +31,7 @@ const ROUTES = {
 
 export default function AdminDashboardPage() {
   const bookingCtx = useBookings()
-  const contextBookings = bookingCtx?.bookings || []
-
-  const [bookings, setBookings] = useState<any[]>([])
-
-  useEffect(() => {
-    if (contextBookings && contextBookings.length > 0) {
-      setBookings(contextBookings)
-      return
-    }
-    const stored = localStorage.getItem("oneestela_global_bookings_v2")
-    if (stored) {
-      try {
-        setBookings(JSON.parse(stored))
-      } catch {
-        setBookings([])
-      }
-    }
-  }, [contextBookings])
+  const bookings = bookingCtx?.bookings || []
 
   const stats = useMemo(() => {
     const totalRevenue = bookings

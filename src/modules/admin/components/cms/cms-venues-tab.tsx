@@ -148,8 +148,8 @@ export function CMSVenuesTab({ onNavigate }: { onNavigate: (tab: string) => void
                 <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Venue description..."
                   className="mt-1 min-h-[80px] resize-none rounded-lg border-slate-200 text-sm font-semibold" />
               </div>
-              <CMSImageUpload label="Venue Photo" value={form.image} onValueChange={(v) => setForm({ ...form, image: v })} note="Used in booking, landing page, and tour preview." />
-              <CMSPanoramaUpload value={form.panoImage} onValueChange={(v) => setForm({ ...form, panoImage: v })} />
+              <CMSImageUpload label="Venue Photo" value={form.image} storagePath="venues" onValueChange={(v) => setForm({ ...form, image: v })} note="Used in booking, landing page, and tour preview." />
+              <CMSPanoramaUpload value={form.panoImage} storagePath="panoramas" onValueChange={(v) => setForm({ ...form, panoImage: v })} />
             </div>
             <div className="sticky bottom-0 flex gap-2 border-t border-slate-100 bg-white px-5 py-3.5">
               <Button type="button" onClick={handleSave} className="h-9 flex-1 rounded-lg bg-emerald-600 text-xs font-bold text-white hover:bg-emerald-700">

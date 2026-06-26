@@ -2,6 +2,17 @@
 
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useToast } from "@/src/modules/shared/hooks/use-toast";
+import { db } from "@/lib/firebase"
+import {
+  collection,
+  doc,
+  getDocs,
+  setDoc,
+  deleteDoc,
+  writeBatch,
+  query,
+  orderBy,
+} from "firebase/firestore"
 
 export type BookingStatus =
   | "pending"
@@ -433,36 +444,15 @@ interface BookingContextType {
 
 const BookingContext = createContext<BookingContextType | undefined>(undefined);
 
-const BOOKINGS_STORAGE_KEY = "oneestela_global_bookings_v2";
-const MAINTENANCE_STORAGE_KEY = "oneestela_global_maintenance_v2";
-const OFFICE_RENTALS_STORAGE_KEY = "oneestela_office_rentals_v1";
-const RECEIPTS_STORAGE_KEY = "oneestela_e_receipts_v1";
-const PAYMENTS_STORAGE_KEY = "oneestela_global_payments_v2";
 const DEFAULT_TOTAL_PRICE = 15000;
 const REFUND_ELIGIBLE_DAYS = 14;
 const CANCELLATION_CLOSED_DAYS = 7;
 
-function safelyParseArray<T>(value: string | null): T[] {
-  if (!value) return [];
-
-  try {
-    const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function readArray<T>(key: string): T[] {
-  if (typeof window === "undefined") return []
-  try {
-    const raw = localStorage.getItem(key)
-    const parsed = raw ? JSON.parse(raw) : []
-    return Array.isArray(parsed) ? parsed : []
-  } catch {
-    return []
-  }
-}
+const bookingsRef = collection(db, "bookings")
+const officeRentalsRef = collection(db, "officeRentals")
+const maintenanceRecordsRef = collection(db, "maintenanceRecords")
+const paymentsRef = collection(db, "payments")
+const receiptsRef = collection(db, "receipts")
 
 function stripHeavyBookingFields(booking: any) {
   const {
@@ -481,25 +471,6 @@ function stripHeavyBookingFields(booking: any) {
     ...safeBooking
   } = booking
   return safeBooking as any
-}
-
-function writeArray<T>(key: string, value: T[]) {
-  if (typeof window === "undefined") return
-  try {
-    localStorage.setItem(key, JSON.stringify(value))
-  } catch (error) {
-    console.error(`Failed to write to localStorage key "${key}":`, error)
-  }
-}
-
-function upsertById<T extends { id: string }>(items: T[], nextItem: T): T[] {
-  const index = items.findIndex((item) => item.id === nextItem.id)
-  if (index === -1) {
-    return [nextItem, ...items]
-  }
-  return items.map((item, itemIndex) =>
-    itemIndex === index ? { ...item, ...nextItem } : item
-  )
 }
 
 function createLocalId(prefix: string) {
@@ -785,30 +756,89 @@ function getRentalTermLabel(term: OfficeRentalTerm) {
   return "2 years";
 }
 
-
-function readStoredReceipts() {
-  if (typeof window === "undefined") return [] as BookingReceipt[];
-
-  return safelyParseArray<BookingReceipt>(
-    localStorage.getItem(RECEIPTS_STORAGE_KEY),
-  );
+async function loadReceipts(): Promise<BookingReceipt[]> {
+  try {
+    const snapshot = await getDocs(query(receiptsRef, orderBy("dateGenerated", "desc")))
+    const result: BookingReceipt[] = []
+    snapshot.forEach((docSnap) => {
+      const d = docSnap.data()
+      result.push({
+        receiptNumber: d.receiptNumber || "",
+        bookingId: d.bookingId || "",
+        fullName: d.fullName || "",
+        bookingDate: d.bookingDate || "",
+        startDate: d.startDate || "",
+        endDate: d.endDate || "",
+        rentalType: d.rentalType || "",
+        bookingType: d.bookingType || "",
+        contractTerm: d.contractTerm,
+        paymentPurpose: d.paymentPurpose || "",
+        paymentMethod: d.paymentMethod || "",
+        amountPaid: d.amountPaid || 0,
+        paymentAmount: d.paymentAmount || 0,
+        paymentStatus: d.paymentStatus || "",
+        dateGenerated: d.dateGenerated || "",
+        dateIssued: d.dateIssued || "",
+      })
+    })
+    return result
+  } catch {
+    return []
+  }
 }
 
-function saveStoredReceipt(receipt: BookingReceipt) {
-  if (typeof window === "undefined") return;
-
-  const currentReceipts = readStoredReceipts();
-  const nextReceipts = [
-    receipt,
-    ...currentReceipts.filter((item) => item.bookingId !== receipt.bookingId),
-  ];
-
-  localStorage.setItem(RECEIPTS_STORAGE_KEY, JSON.stringify(nextReceipts));
-  window.dispatchEvent(new Event("oneestela_receipts_updated"));
+async function saveStoredReceipt(receipt: BookingReceipt) {
+  await setDoc(doc(receiptsRef, receipt.receiptNumber), {
+    receiptNumber: receipt.receiptNumber,
+    bookingId: receipt.bookingId,
+    fullName: receipt.fullName,
+    bookingDate: receipt.bookingDate,
+    startDate: receipt.startDate,
+    endDate: receipt.endDate,
+    rentalType: receipt.rentalType,
+    bookingType: receipt.bookingType,
+    contractTerm: receipt.contractTerm || "",
+    paymentPurpose: receipt.paymentPurpose,
+    paymentMethod: receipt.paymentMethod,
+    amountPaid: receipt.amountPaid,
+    paymentAmount: receipt.paymentAmount,
+    paymentStatus: receipt.paymentStatus,
+    dateGenerated: receipt.dateGenerated,
+    dateIssued: receipt.dateIssued,
+  })
 }
 
-function getStoredReceiptByBookingId(bookingId: string) {
-  return readStoredReceipts().find((receipt) => receipt.bookingId === bookingId);
+async function getStoredReceiptByBookingId(bookingId: string): Promise<BookingReceipt | undefined> {
+  try {
+    const snapshot = await getDocs(query(receiptsRef, orderBy("dateGenerated", "desc")))
+    let found: BookingReceipt | undefined
+    snapshot.forEach((docSnap) => {
+      const d = docSnap.data()
+      if (d.bookingId === bookingId) {
+        found = {
+          receiptNumber: d.receiptNumber || "",
+          bookingId: d.bookingId || "",
+          fullName: d.fullName || "",
+          bookingDate: d.bookingDate || "",
+          startDate: d.startDate || "",
+          endDate: d.endDate || "",
+          rentalType: d.rentalType || "",
+          bookingType: d.bookingType || "",
+          contractTerm: d.contractTerm,
+          paymentPurpose: d.paymentPurpose || "",
+          paymentMethod: d.paymentMethod || "",
+          amountPaid: d.amountPaid || 0,
+          paymentAmount: d.paymentAmount || 0,
+          paymentStatus: d.paymentStatus || "",
+          dateGenerated: d.dateGenerated || "",
+          dateIssued: d.dateIssued || "",
+        }
+      }
+    })
+    return found
+  } catch {
+    return undefined
+  }
 }
 
 function formatOfficeContractTerm(term?: OfficeRentalTerm) {
@@ -876,7 +906,7 @@ function getReceiptAmount(booking: Booking) {
 }
 
 function buildAutoReceipt(booking: Booking, generatedAt = new Date().toISOString()) {
-  const existingReceipt = booking.receipt || getStoredReceiptByBookingId(booking.id);
+  const existingReceipt = booking.receipt;
   const officeBooking = isOfficeBooking(booking);
   const officeTerm = officeBooking ? booking.officeRentalTerm || "6_months" : undefined;
   const contractTerm = officeBooking ? formatOfficeContractTerm(officeTerm) : undefined;
@@ -912,7 +942,7 @@ function attachAutoReceipt(booking: Booking) {
   const generatedAt = new Date().toISOString();
   const receipt = buildAutoReceipt(booking, generatedAt);
 
-  saveStoredReceipt(receipt);
+  saveStoredReceipt(receipt).catch(() => {});
 
   return {
     ...booking,
@@ -932,7 +962,7 @@ function attachAutoReceipt(booking: Booking) {
 
 function normalizeBookingForNewFields(booking: Booking): Booking {
   const officeBooking = isOfficeBooking(booking);
-  const savedReceipt = booking.id ? getStoredReceiptByBookingId(booking.id) : undefined;
+  const savedReceipt = booking.receipt;
   const computedEndDate = officeBooking
     ? calculateOfficeEndDate(booking.date, booking.officeRentalTerm)
     : undefined;
@@ -1069,108 +1099,103 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const loadData = () => {
-      const loadedBookings = safelyParseArray<Booking>(
-        localStorage.getItem(BOOKINGS_STORAGE_KEY),
-      ).map(normalizeBookingForNewFields);
+    const loadAll = async () => {
+      const [bookSnap, officeSnap, maintSnap] = await Promise.all([
+        getDocs(query(bookingsRef, orderBy("createdAt", "asc"))),
+        getDocs(query(officeRentalsRef, orderBy("createdAt", "asc"))),
+        getDocs(query(maintenanceRecordsRef, orderBy("createdAt", "asc"))),
+      ])
 
-      setBookings(loadedBookings);
+      const loadedBookings: Booking[] = []
+      bookSnap.forEach((docSnap) => {
+        const d = docSnap.data() as Booking
+        loadedBookings.push(normalizeBookingForNewFields({ ...d, id: docSnap.id }))
+      })
+      setBookings(loadedBookings)
 
-      setOfficeRentals(
-        safelyParseArray<OfficeRental>(
-          localStorage.getItem(OFFICE_RENTALS_STORAGE_KEY),
-        ),
-      );
+      const loadedOffice: OfficeRental[] = []
+      officeSnap.forEach((docSnap) => {
+        const d = docSnap.data() as OfficeRental
+        loadedOffice.push({ ...d, id: docSnap.id })
+      })
+      setOfficeRentals(loadedOffice)
 
-      const rawMaint = localStorage.getItem(MAINTENANCE_STORAGE_KEY);
-      let parsedRecords: MaintenanceRecord[] = [];
-      if (rawMaint) {
-        try {
-          const parsed = JSON.parse(rawMaint);
-          if (Array.isArray(parsed)) {
-            if (parsed.length > 0 && typeof parsed[0] === "string") {
-              parsedRecords = (parsed as string[]).map((entry, idx) => {
-                const [spaceId, date] = entry.split("|");
-                return {
-                  id: `maint_${Date.now()}_${idx}`,
-                  type: (spaceId || "").startsWith("o") ? "office" as const : "venue" as const,
-                  spaceId: spaceId || "",
-                  spaceName: spaceId || "",
-                  date: date || "",
-                  status: "Active" as const,
-                  createdAt: new Date().toISOString(),
-                  updatedAt: new Date().toISOString(),
-                };
-              });
-              localStorage.setItem(MAINTENANCE_STORAGE_KEY, JSON.stringify(parsedRecords));
-            } else {
-              parsedRecords = parsed.filter(
-                (item: unknown): item is MaintenanceRecord =>
-                  !!item && typeof item === "object" && "spaceId" in (item as any) && "date" in (item as any)
-              );
-            }
-          }
-        } catch {
-          parsedRecords = [];
-        }
-      }
-      setMaintenanceRecords(parsedRecords);
-    };
+      const loadedMaint: MaintenanceRecord[] = []
+      maintSnap.forEach((docSnap) => {
+        const d = docSnap.data() as MaintenanceRecord
+        loadedMaint.push({ ...d, id: docSnap.id })
+      })
+      setMaintenanceRecords(loadedMaint)
+    }
 
-    loadData();
-
-    window.addEventListener("storage", loadData);
-    window.addEventListener("bookingsUpdated", loadData);
-    window.addEventListener("oneestela_bookings_updated", loadData);
-    window.addEventListener("oneestela_office_rentals_updated", loadData);
-
-    return () => {
-      window.removeEventListener("storage", loadData);
-      window.removeEventListener("bookingsUpdated", loadData);
-      window.removeEventListener("oneestela_bookings_updated", loadData);
-      window.removeEventListener("oneestela_office_rentals_updated", loadData);
-    };
+    loadAll().catch(console.error)
   }, []);
 
   const saveBookings = (newBookings: Booking[]) => {
     const normalizedBookings = newBookings.map(normalizeBookingForNewFields);
+    const prevMap = new Map(bookings.map(b => [b.id, b]))
+    const nextMap = new Map(normalizedBookings.map(b => [b.id, b]))
+
     setBookings(normalizedBookings);
 
-    if (typeof window !== "undefined") {
-      const safeBookings = normalizedBookings.map(stripHeavyBookingFields)
-      try {
-        localStorage.setItem(
-          BOOKINGS_STORAGE_KEY,
-          JSON.stringify(safeBookings),
-        );
-        window.dispatchEvent(new Event("bookingsUpdated"));
-        window.dispatchEvent(new Event("oneestela_bookings_updated"));
-      } catch (error) {
-        console.error("Failed to save bookings to localStorage:", error)
+    const batch = writeBatch(db)
+    for (const [id, next] of nextMap) {
+      const prev = prevMap.get(id)
+      if (!prev || JSON.stringify(prev) !== JSON.stringify(next)) {
+        const { id: _id, ...data } = next
+        batch.set(doc(bookingsRef, id), { ...data, updatedAt: new Date().toISOString() }, { merge: true })
       }
     }
+    for (const id of prevMap.keys()) {
+      if (!nextMap.has(id)) {
+        batch.delete(doc(bookingsRef, id))
+      }
+    }
+    batch.commit().catch(console.error)
   };
 
   const saveOfficeRentals = (newOfficeRentals: OfficeRental[]) => {
+    const prevMap = new Map(officeRentals.map(r => [r.id, r]))
+    const nextMap = new Map(newOfficeRentals.map(r => [r.id, r]))
+
     setOfficeRentals(newOfficeRentals);
 
-    if (typeof window !== "undefined") {
-      localStorage.setItem(
-        OFFICE_RENTALS_STORAGE_KEY,
-        JSON.stringify(newOfficeRentals),
-      );
-      window.dispatchEvent(new Event("oneestela_office_rentals_updated"));
+    const batch = writeBatch(db)
+    for (const [id, next] of nextMap) {
+      const prev = prevMap.get(id)
+      if (!prev || JSON.stringify(prev) !== JSON.stringify(next)) {
+        const { id: _id, ...data } = next
+        batch.set(doc(officeRentalsRef, id), { ...data, updatedAt: new Date().toISOString() }, { merge: true })
+      }
     }
+    for (const id of prevMap.keys()) {
+      if (!nextMap.has(id)) {
+        batch.delete(doc(officeRentalsRef, id))
+      }
+    }
+    batch.commit().catch(console.error)
   };
 
   const saveMaintenanceRecords = (newRecords: MaintenanceRecord[]) => {
+    const prevMap = new Map(maintenanceRecords.map(r => [r.id, r]))
+    const nextMap = new Map(newRecords.map(r => [r.id, r]))
+
     setMaintenanceRecords(newRecords);
 
-    if (typeof window !== "undefined") {
-      localStorage.setItem(MAINTENANCE_STORAGE_KEY, JSON.stringify(newRecords));
-      window.dispatchEvent(new Event("bookingsUpdated"));
-      window.dispatchEvent(new Event("oneestela_bookings_updated"));
+    const batch = writeBatch(db)
+    for (const [id, next] of nextMap) {
+      const prev = prevMap.get(id)
+      if (!prev || JSON.stringify(prev) !== JSON.stringify(next)) {
+        const { id: _id, ...data } = next
+        batch.set(doc(maintenanceRecordsRef, id), { ...data, updatedAt: new Date().toISOString() }, { merge: true })
+      }
     }
+    for (const id of prevMap.keys()) {
+      if (!nextMap.has(id)) {
+        batch.delete(doc(maintenanceRecordsRef, id))
+      }
+    }
+    batch.commit().catch(console.error)
   };
 
   const addBooking = async (bookingData: Omit<Booking, "id" | "createdAt">) => {
@@ -2640,11 +2665,11 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     const updatedBooking = updatedBookings.find(b => b.id === id) as any
     if (updatedBooking) {
       try {
-        const existingPayments = readArray<any>(PAYMENTS_STORAGE_KEY)
         const methodLabel = paymentData.method === "cash" ? "Pay at the Office" : "Bank Transfer"
         const isRemainingDP = paymentData.type === "downpayment" && (typeof updatedBooking.downpaymentPaid === "number" ? updatedBooking.downpaymentPaid : 0) > 0
+        const paymentId = `PAY-${Date.now()}`
         const paymentRecord = {
-          id: `PAY-${Date.now()}`,
+          id: paymentId,
           bookingId: id,
           bookingCode: updatedBooking.bookingCode ?? id,
           customerId: updatedBooking.userId ?? "",
@@ -2665,11 +2690,9 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           submittedAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         }
-        const nextPayments = upsertById(existingPayments, paymentRecord)
-        writeArray(PAYMENTS_STORAGE_KEY, nextPayments)
+        setDoc(doc(paymentsRef, paymentId), paymentRecord).catch(console.error)
       } catch (error) {
-        console.error("Failed to save payment record to localStorage:", error)
-        throw new Error("Storage is full. Please upload a smaller proof image.")
+        console.error("Failed to save payment record:", error)
       }
     }
 

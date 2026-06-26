@@ -1,61 +1,44 @@
-"use client"
+import { db } from "@/lib/firebase"
+import { doc, getDoc, setDoc, onSnapshot, updateDoc, increment as fireIncrement } from "firebase/firestore"
 
-const UNREAD_STORAGE_KEY = "oneestela_chat_unread_counts"
-
-type UnreadMap = Record<string, number>
-
-function readUnreadMap(): UnreadMap {
-  if (typeof window === "undefined") return {}
-  try {
-    const raw = localStorage.getItem(UNREAD_STORAGE_KEY)
-    const parsed = raw ? JSON.parse(raw) : {}
-    return parsed && typeof parsed === "object" ? parsed : {}
-  } catch {
-    return {}
-  }
+function docRef(scope: "client" | "admin") {
+  return doc(db, "unreadCounts", scope)
 }
 
-function writeUnreadMap(map: UnreadMap) {
-  if (typeof window === "undefined") return
-  localStorage.setItem(UNREAD_STORAGE_KEY, JSON.stringify(map))
-  window.dispatchEvent(new Event("oneestela_chat_unread_updated"))
+export async function getUnreadCount(scope: "client" | "admin"): Promise<number> {
+  const snap = await getDoc(docRef(scope))
+  return snap.data()?.count ?? 0
 }
 
-export function getUnreadCount(scope: "client" | "admin"): number {
-  const map = readUnreadMap()
-  return Number(map[scope] || 0)
-}
-
-export function setUnreadCount(scope: "client" | "admin", value: number) {
-  const map = readUnreadMap()
+export async function setUnreadCount(scope: "client" | "admin", value: number) {
   const next = Math.max(0, Math.floor(value))
-  if (next === 0) {
-    delete map[scope]
-  } else {
-    map[scope] = next
-  }
-  writeUnreadMap(map)
+  await setDoc(docRef(scope), { count: next }, { merge: true })
 }
 
-export function incrementUnread(scope: "client" | "admin", by = 1) {
-  const map = readUnreadMap()
-  map[scope] = Math.max(0, Number(map[scope] || 0) + by)
-  writeUnreadMap(map)
+export async function incrementUnread(scope: "client" | "admin", by = 1) {
+  await updateDoc(docRef(scope), { count: fireIncrement(by) })
 }
 
-export function clearUnread(scope: "client" | "admin") {
-  const map = readUnreadMap()
-  delete map[scope]
-  writeUnreadMap(map)
+export async function clearUnread(scope: "client" | "admin") {
+  await setDoc(docRef(scope), { count: 0 })
 }
 
-export function subscribeUnreadUpdates(callback: () => void) {
-  if (typeof window === "undefined") return () => {}
-  const handler = () => callback()
-  window.addEventListener("oneestela_chat_unread_updated", handler)
-  window.addEventListener("storage", handler)
+export function subscribeUnreadUpdates(callback: (count: number) => void) {
+  const unsubClient = onSnapshot(docRef("client"), (snap) => {
+    callback(snap.data()?.count ?? 0)
+  })
+  const unsubAdmin = onSnapshot(docRef("admin"), (snap) => {
+    callback(snap.data()?.count ?? 0)
+  })
   return () => {
-    window.removeEventListener("oneestela_chat_unread_updated", handler)
-    window.removeEventListener("storage", handler)
+    unsubClient()
+    unsubAdmin()
   }
+}
+
+export function subscribeScopeUnread(scope: "client" | "admin", callback: (count: number) => void) {
+  const unsub = onSnapshot(docRef(scope), (snap) => {
+    callback(snap.data()?.count ?? 0)
+  })
+  return unsub
 }

@@ -1,4 +1,10 @@
-const CMS_STORAGE_KEY = "oneestela_cms_data"
+let cachedVenues: any[] | null = null
+let cachedOffices: any[] | null = null
+
+export function setCachedVenuesAndOffices(venues: any[], offices: any[]) {
+  cachedVenues = venues
+  cachedOffices = offices
+}
 
 export type PublicSpace = {
   id: string
@@ -94,29 +100,12 @@ export function getPublicSpacesFromData(cmsData: any): PublicSpacesResult {
 }
 
 export function getPublicSpaces(): PublicSpacesResult {
-  if (typeof window === "undefined") {
-    return {
-      eventVenues: DEFAULT_VENUES.filter((v) => !NON_BOOKABLE_VENUE_NAMES.includes(v.name)),
-      officeSpaces: DEFAULT_OFFICES,
-    }
+  if (cachedVenues || cachedOffices) {
+    return getPublicSpacesFromData({ venues: cachedVenues || [], offices: cachedOffices || [] })
   }
-
-  try {
-    const stored = localStorage.getItem(CMS_STORAGE_KEY)
-    if (!stored) {
-      return {
-        eventVenues: DEFAULT_VENUES.filter((v) => !NON_BOOKABLE_VENUE_NAMES.includes(v.name)),
-        officeSpaces: DEFAULT_OFFICES,
-      }
-    }
-
-    const parsed = JSON.parse(stored)
-    return getPublicSpacesFromData(parsed)
-  } catch {
-    return {
-      eventVenues: DEFAULT_VENUES.filter((v) => !NON_BOOKABLE_VENUE_NAMES.includes(v.name)),
-      officeSpaces: DEFAULT_OFFICES,
-    }
+  return {
+    eventVenues: DEFAULT_VENUES.filter((v) => !NON_BOOKABLE_VENUE_NAMES.includes(v.name)),
+    officeSpaces: DEFAULT_OFFICES,
   }
 }
 

@@ -121,7 +121,7 @@ export function CMSGalleryTab({ onNavigate }: { onNavigate: (tab: string) => voi
                 <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Short description..."
                   className="mt-1 min-h-[80px] resize-none rounded-lg border-slate-200 text-sm font-semibold" />
               </div>
-              <CMSImageUpload label="Event Photo" value={form.image} onValueChange={(v) => setForm({ ...form, image: v })} note="Upload an actual event photo from a past client booking." />
+              <CMSImageUpload label="Event Photo" value={form.image} storagePath="gallery" onValueChange={(v) => setForm({ ...form, image: v })} note="Upload an actual event photo from a past client booking." />
             </div>
             <div className="sticky bottom-0 flex gap-2 border-t border-slate-100 bg-white px-5 py-3.5">
               <Button type="button" onClick={handleSave} className="h-9 flex-1 rounded-lg bg-pink-600 text-xs font-bold text-white hover:bg-pink-700">

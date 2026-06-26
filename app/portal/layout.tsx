@@ -22,7 +22,7 @@ import { useToast } from "@/src/modules/shared/hooks/use-toast"
 import { useAuth } from "@/src/modules/shared/auth/auth-context"
 import { useChat } from "@/src/modules/shared/contexts/chat-context"
 import { ClientChatWidget } from "@/src/modules/shared/components/chat-widget"
-import { getUnreadCount, subscribeUnreadUpdates } from "@/src/modules/shared/lib/chat-unread"
+import { getUnreadCount, subscribeScopeUnread } from "@/src/modules/shared/lib/chat-unread"
 import { CHAT_LABELS } from "@/src/modules/shared/lib/labels"
 import { cn } from "@/src/modules/shared/lib/utils"
 import { LogoutConfirmDialog } from "@/src/modules/shared/components/logout-confirm-dialog"
@@ -55,10 +55,8 @@ export default function ClientLayout({
   const [chatUnread, setChatUnread] = useState(0)
 
   useEffect(() => {
-    setChatUnread(getUnreadCount("client"))
-    return subscribeUnreadUpdates(() => {
-      setChatUnread(getUnreadCount("client"))
-    })
+    getUnreadCount("client").then(setChatUnread)
+    return subscribeScopeUnread("client", setChatUnread)
   }, [])
 
   useEffect(() => {

@@ -35,11 +35,8 @@ import {
 } from "@/src/modules/shared/components/ui/select"
 import { useToast } from "@/src/modules/shared/hooks/use-toast"
 import { useBookings } from "@/src/modules/client/contexts/booking-context"
-
-const BOOKING_STORAGE_KEY = "oneestela_global_bookings_v2"
-const PAYMENTS_STORAGE_KEY = "oneestela_global_payments_v2"
-const PAYMENT_PROOF_STORAGE_KEY = "oneestela_payment_proofs_v1"
-const E_RECEIPT_STORAGE_KEY = "oneestela_e_receipts_v1"
+import { db } from "@/lib/firebase"
+import { collection, query, orderBy, getDocs, addDoc, where } from "firebase/firestore"
 
 const VENUE_OPTIONS = [
   "The Milestone Event",
@@ -59,32 +56,6 @@ type PendingPaymentAction = {
   amount?: number
   note?: string
 } | null
-
-function readArray<T>(key: string): T[] {
-  if (typeof window === "undefined") return []
-  try {
-    const raw = localStorage.getItem(key)
-    const parsed = raw ? JSON.parse(raw) : []
-    return Array.isArray(parsed) ? parsed : []
-  } catch {
-    return []
-  }
-}
-
-function writeArray<T>(key: string, value: T[]) {
-  if (typeof window === "undefined") return
-  localStorage.setItem(key, JSON.stringify(value))
-}
-
-function upsertById<T extends { id: string }>(items: T[], nextItem: T): T[] {
-  const index = items.findIndex((item) => item.id === nextItem.id)
-  if (index === -1) {
-    return [nextItem, ...items]
-  }
-  return items.map((item, itemIndex) =>
-    itemIndex === index ? { ...item, ...nextItem } : item
-  )
-}
 
 export default function AdminPaymentsPage() {
   const { toast } = useToast()
@@ -118,71 +89,35 @@ export default function AdminPaymentsPage() {
 
   useEffect(() => {
     const loadBookings = () => {
-      const storedBookings = readStoredBookings()
-
-      // Reconciliation: check payment_proofs_v1 for proofs that don't have matching booking updates
-      try {
-        const proofsRaw = localStorage.getItem(PAYMENT_PROOF_STORAGE_KEY)
-        if (proofsRaw) {
-          const proofs = JSON.parse(proofsRaw)
-          if (Array.isArray(proofs) && proofs.length > 0) {
-            let needsUpdate = false
-            const reconciledBookings = storedBookings.map((booking: BookingRecord) => {
-              const matchingProof = proofs.find((p: any) => p.bookingId === booking.id && p.status === "pending")
-              if (!matchingProof) return booking
-
-              const ps = String(booking.paymentStatus || "").toLowerCase()
-              if (ps === "for_review" || ps === "pending_verification" || booking.hasActivePaymentSubmission) return booking
-
-              needsUpdate = true
-              return {
-                ...booking,
-                paymentStatus: "for_review",
-                hasActivePaymentSubmission: true,
-                paymentSubmittedAt: booking.paymentSubmittedAt || matchingProof.submittedAt,
-                paymentProof: booking.paymentProof || matchingProof.proofImageUrl,
-                proofOfPayment: booking.proofOfPayment || matchingProof.proofImageUrl,
-                paymentReference: booking.paymentReference || matchingProof.paymentReference || matchingProof.referenceNumber,
-                paymentMethod: booking.paymentMethod || matchingProof.paymentMethod,
-                paymentAmount: booking.paymentAmount || matchingProof.amount,
-                pendingPaymentAmount: booking.pendingPaymentAmount || matchingProof.amount,
-                paymentSubmissionType: "bank_transfer",
-              }
-            })
-
-            if (needsUpdate) {
-              localStorage.setItem(BOOKING_STORAGE_KEY, JSON.stringify(reconciledBookings))
-              setBookings(reconciledBookings)
-              return
-            }
-          }
-        }
-      } catch {
-        // ignore reconciliation errors
-      }
-
-      setBookings(storedBookings)
+      setBookings(bookingCtx.bookings || [])
     }
 
-    const loadPaymentRecords = () => {
-      setPaymentRecords(readArray(PAYMENTS_STORAGE_KEY))
+    const loadPaymentRecords = async () => {
+      try {
+        const q = query(collection(db, "paymentProofs"), orderBy("submittedAt", "desc"))
+        const snapshot = await getDocs(q)
+        const records: any[] = []
+        snapshot.forEach((docSnap) => {
+          const d = docSnap.data()
+          records.push({ id: docSnap.id, ...d })
+        })
+        setPaymentRecords(records)
+      } catch {
+        // ignore
+      }
     }
 
     loadBookings()
     loadPaymentRecords()
 
-    window.addEventListener("storage", loadBookings)
     window.addEventListener("bookingsUpdated", loadBookings)
     window.addEventListener("oneestela_bookings_updated", loadBookings)
-    window.addEventListener("oneestela_payments_updated", loadPaymentRecords)
 
     return () => {
-      window.removeEventListener("storage", loadBookings)
       window.removeEventListener("bookingsUpdated", loadBookings)
       window.removeEventListener("oneestela_bookings_updated", loadBookings)
-      window.removeEventListener("oneestela_payments_updated", loadPaymentRecords)
     }
-  }, [])
+  }, [bookingCtx.bookings])
 
   const paymentBookings = useMemo(() => {
     const bookingRecords = bookings.filter((booking) => isPaymentRecord(booking))
@@ -305,15 +240,13 @@ export default function AdminPaymentsPage() {
   )
 
   const refreshBookingsFromStorage = (fallback?: BookingRecord[]) => {
-    const stored = readStoredBookings()
-    const nextBookings = stored.length > 0 ? stored : fallback || []
+    const nextBookings = (bookingCtx.bookings && bookingCtx.bookings.length > 0) ? bookingCtx.bookings : fallback || []
     setBookings(nextBookings)
     return nextBookings
   }
 
   const persistBookings = (nextBookings: BookingRecord[]) => {
     setBookings(nextBookings)
-    localStorage.setItem(BOOKING_STORAGE_KEY, JSON.stringify(nextBookings))
     window.dispatchEvent(new Event("oneestela_bookings_updated"))
   }
 
@@ -364,21 +297,21 @@ export default function AdminPaymentsPage() {
         bookingCtx.markIncompletePayment(bookingId, { verifiedAmount: 0, adminNote: note, adminName: "Administrator" })
       }
 
-      // Refresh from storage after context update
-      const refreshed = readStoredBookings()
+      // Refresh from context after context update
+      const refreshed = bookingCtx.bookings || []
       setBookings(refreshed)
       let updatedBooking = refreshed.find((b: BookingRecord) => b.id === bookingId)
       if (updatedBooking && !updatedBooking.paymentProof && !updatedBooking.proofOfPayment) {
-        const allPayments = readArray<any>(PAYMENTS_STORAGE_KEY)
-        const matchingPayment = allPayments.find(
-          (pr: any) => (pr.bookingId === bookingId || pr.id === bookingId) && pr.proofUrl
+        const matchingPayment = paymentRecords.find(
+          (pr: any) => updatedBooking && (pr.bookingId === updatedBooking.id || pr.id === updatedBooking.id) && pr.proofUrl
         )
         if (matchingPayment) {
           updatedBooking = { ...updatedBooking, paymentProof: matchingPayment.proofUrl, proofOfPayment: matchingPayment.proofUrl }
         }
       }
-      setSelectedPayment(updatedBooking || null)
-
+      setSelectedPayment(updatedBooking)
+      ensureReceiptForVerifiedBooking(updatedBooking)
+      
       if (type === "verify" && updatedBooking) {
         ensureReceiptForVerifiedBooking(updatedBooking)
       }
@@ -425,14 +358,13 @@ export default function AdminPaymentsPage() {
               adminNote: updatedBooking.adminLogs?.[updatedBooking.adminLogs.length - 1]?.message || undefined,
               adminName: "Administrator",
             })
-            const refreshed = readStoredBookings()
+            const refreshed = bookingCtx.bookings || []
             setBookings(refreshed)
             let updated = refreshed.find((b: BookingRecord) => b.id === updatedBooking.id)
             if (updated) {
               if (!updated.paymentProof && !updated.proofOfPayment) {
-                const allPayments = readArray<any>(PAYMENTS_STORAGE_KEY)
-                const matchingPayment = allPayments.find(
-                  (pr: any) => (pr.bookingId === updated.id || pr.id === updated.id) && pr.proofUrl
+                const matchingPayment = paymentRecords.find(
+                  (pr: any) => updated && (pr.bookingId === updated.id || pr.id === updated.id) && pr.proofUrl
                 )
                 if (matchingPayment) {
                   updated = { ...updated, paymentProof: matchingPayment.proofUrl, proofOfPayment: matchingPayment.proofUrl }
@@ -459,14 +391,13 @@ export default function AdminPaymentsPage() {
               adminNote: updatedBooking.incompletePaymentNote || updatedBooking.incompletePaymentReason || "",
               adminName: "Administrator",
             })
-            const refreshed = readStoredBookings()
+            const refreshed = bookingCtx.bookings || []
             setBookings(refreshed)
             let updated = refreshed.find((b: BookingRecord) => b.id === updatedBooking.id)
             if (updated) {
               if (!updated.paymentProof && !updated.proofOfPayment) {
-                const allPayments = readArray<any>(PAYMENTS_STORAGE_KEY)
-                const matchingPayment = allPayments.find(
-                  (pr: any) => (pr.bookingId === updated.id || pr.id === updated.id) && pr.proofUrl
+                const matchingPayment = paymentRecords.find(
+                  (pr: any) => updated && (pr.bookingId === updated.id || pr.id === updated.id) && pr.proofUrl
                 )
                 if (matchingPayment) {
                   updated = { ...updated, paymentProof: matchingPayment.proofUrl, proofOfPayment: matchingPayment.proofUrl }
@@ -1263,29 +1194,18 @@ function EmptyState() {
   )
 }
 
-function readStoredBookings() {
-  try {
-    const stored = localStorage.getItem(BOOKING_STORAGE_KEY)
-    const parsed = stored ? JSON.parse(stored) : []
-    return Array.isArray(parsed) ? parsed : []
-  } catch {
-    return []
-  }
-}
-
-function writeStoredReceipts(receipts: any[]) {
-  localStorage.setItem(E_RECEIPT_STORAGE_KEY, JSON.stringify(receipts))
-  window.dispatchEvent(new Event("oneestela_receipts_updated"))
-}
-
-function readStoredReceipts() {
-  try {
-    const stored = localStorage.getItem(E_RECEIPT_STORAGE_KEY)
-    const parsed = stored ? JSON.parse(stored) : []
-    return Array.isArray(parsed) ? parsed : []
-  } catch {
-    return []
-  }
+function readStoredReceipts(): Promise<any[]> {
+  return getDocs(query(collection(db, "receipts"), orderBy("dateGenerated", "desc"))).then(
+    (snapshot) => {
+      const result: any[] = []
+      snapshot.forEach((docSnap) => {
+        const d = docSnap.data()
+        result.push({ id: docSnap.id, ...d })
+      })
+      return result
+    },
+    () => []
+  )
 }
 
 function getSafePrice(value: unknown) {
@@ -1649,30 +1569,31 @@ function buildIncompletePaymentBooking(booking: BookingRecord, note: string, ver
 }
 
 function ensureReceiptForVerifiedBooking(booking: BookingRecord) {
-  const receipts = readStoredReceipts()
-  const existingReceipt = receipts.find((receipt) => receipt.bookingId === booking.id)
+  readStoredReceipts().then((receipts) => {
+    const existingReceipt = receipts.find((receipt) => receipt.bookingId === booking.id)
+    if (existingReceipt || booking.receipt || booking.receiptIssued) return
 
-  if (existingReceipt || booking.receipt || booking.receiptIssued) return
+    const office = isOfficeRental(booking)
+    const receiptData = {
+      receiptNumber: `ER-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`,
+      bookingId: booking.id,
+      fullName: booking.userInfo?.name || "Client",
+      bookingDate: booking.createdAt || new Date().toISOString(),
+      startDate: booking.date,
+      endDate: office ? booking.endDate || booking.contractEndDate || booking.date : booking.date,
+      rentalType: office ? "Office Space Rental" : "Event Venue Booking",
+      contractTerm: office ? booking.contractTerm || booking.rentalTerm || "N/A" : undefined,
+      paymentPurpose: office ? "Slot Reservation Only" : getPaymentTypeLabel(booking.paymentType),
+      paymentMethod: getPaymentMethodLabel(booking.paymentMethod),
+      amountPaid: formatCurrency(getAmountPaid(booking)),
+      paymentStatus: office ? "Reservation Secured" : "Payment Verified",
+      dateGenerated: new Date().toISOString(),
+    }
 
-  const office = isOfficeRental(booking)
-  const receipt = {
-    id: `ER-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`,
-    receiptNumber: `ER-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`,
-    bookingId: booking.id,
-    fullName: booking.userInfo?.name || "Client",
-    bookingDate: booking.createdAt || new Date().toISOString(),
-    startDate: booking.date,
-    endDate: office ? booking.endDate || booking.contractEndDate || booking.date : booking.date,
-    rentalType: office ? "Office Space Rental" : "Event Venue Booking",
-    contractTerm: office ? booking.contractTerm || booking.rentalTerm || "N/A" : undefined,
-    paymentPurpose: office ? "Slot Reservation Only" : getPaymentTypeLabel(booking.paymentType),
-    paymentMethod: getPaymentMethodLabel(booking.paymentMethod),
-    amountPaid: formatCurrency(getAmountPaid(booking)),
-    paymentStatus: office ? "Reservation Secured" : "Payment Verified",
-    dateGenerated: new Date().toISOString(),
-  }
-
-  writeStoredReceipts([receipt, ...receipts]  )
+    addDoc(collection(db, "receipts"), receiptData).then(() => {
+      window.dispatchEvent(new Event("oneestela_receipts_updated"))
+    })
+  })
 }
 
 function IncompletePaymentModal({

@@ -50,7 +50,6 @@ import { cn } from "@/src/modules/shared/lib/utils";
 
 const PAYMENT_WINDOW_HOURS = 24;
 const PAYMENT_WINDOW_MS = PAYMENT_WINDOW_HOURS * 60 * 60 * 1000;
-const BOOKING_STORAGE_KEY = "oneestela_global_bookings_v2";
 const MAX_PROOF_FILE_MB = 5;
 const MAX_PROOF_FILE_SIZE = MAX_PROOF_FILE_MB * 1024 * 1024;
 const PAGE_SIZE = 10;
@@ -97,16 +96,6 @@ function getRemainingMs(booking?: Booking | null) {
   const deadline = getDeadline(booking);
   if (!deadline) return PAYMENT_WINDOW_MS;
   return deadline - Date.now();
-}
-
-function readStoredBookings() {
-  try {
-    const stored = localStorage.getItem(BOOKING_STORAGE_KEY);
-    const parsed = stored ? JSON.parse(stored) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
 }
 
 async function compressImageToDataUrl(file: File, maxWidth = 900, quality = 0.7): Promise<string> {
@@ -652,11 +641,7 @@ function TransactionsContent() {
   }, [urlBookingId]);
 
   useEffect(() => {
-    if (bookings && bookings.length > 0) {
-      setLocalBookings(bookings);
-    } else {
-      setLocalBookings(readStoredBookings());
-    }
+    setLocalBookings(bookings || []);
     setIsHydrated(true);
   }, [bookings]);
 

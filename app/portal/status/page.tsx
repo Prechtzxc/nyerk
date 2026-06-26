@@ -570,8 +570,7 @@ export default function StatusPage() {
     if (user) {
       setBookings(getUserBookings(user.id))
     } else {
-      const stored = localStorage.getItem("oneestela_global_bookings_v2")
-      if (stored) setBookings(JSON.parse(stored))
+      setBookings([])
     }
   }, [user, getUserBookings])
 

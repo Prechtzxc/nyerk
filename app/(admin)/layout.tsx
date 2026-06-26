@@ -26,7 +26,7 @@ import {
 
 import { Button } from "@/src/modules/shared/components/ui/button"
 import { Input } from "@/src/modules/shared/components/ui/input"
-import { getUnreadCount, subscribeUnreadUpdates } from "@/src/modules/shared/lib/chat-unread"
+import { getUnreadCount, subscribeScopeUnread } from "@/src/modules/shared/lib/chat-unread"
 import { cn } from "@/src/modules/shared/lib/utils"
 import { LogoutConfirmDialog } from "@/src/modules/shared/components/logout-confirm-dialog"
 import { UserAvatar } from "@/src/modules/shared/components/user-avatar"
@@ -57,10 +57,8 @@ export default function AdminLayout({
   const [chatUnread, setChatUnread] = useState(0)
 
   useEffect(() => {
-    setChatUnread(getUnreadCount("admin"))
-    return subscribeUnreadUpdates(() => {
-      setChatUnread(getUnreadCount("admin"))
-    })
+    getUnreadCount("admin").then(setChatUnread)
+    return subscribeScopeUnread("admin", setChatUnread)
   }, [])
 
   useEffect(() => {

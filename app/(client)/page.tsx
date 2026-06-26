@@ -23,7 +23,6 @@ import { ReserveButton } from "@/src/modules/client/components/reserve-button"
 import { TourButton } from "@/src/modules/client/components/tour-button"
 import { useCMS } from "@/src/modules/admin/contexts/cms-context"
 import { useAuth } from "@/src/modules/shared/auth/auth-context"
-import { getCurrentUser } from "@/src/modules/shared/lib/auth-storage"
 import type { PastClientBooking } from "@/src/modules/admin/contexts/cms-context"
 
 function getImageSource(value?: string) {
@@ -193,12 +192,6 @@ export default function HomePage() {
 
     if (user) {
       redirectByRole(user.role)
-      return
-    }
-
-    const storedUser = getCurrentUser()
-    if (storedUser) {
-      redirectByRole(storedUser.role)
       return
     }
 

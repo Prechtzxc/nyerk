@@ -1,8 +1,12 @@
 "use client"
 
 import React, { createContext, useContext, useEffect, useState } from "react"
+import { doc, getDoc, setDoc } from "firebase/firestore"
+import { db } from "@/lib/firebase"
 import { useToast } from "@/src/modules/shared/hooks/use-toast"
 import { DEFAULT_POLICY_CONTENT, POLICY_LABELS, ALL_POLICY_KEYS, type PolicyKey } from "@/src/modules/shared/lib/policies"
+import { setCachedPolicies } from "@/src/modules/shared/lib/policies"
+import { setCachedVenuesAndOffices } from "@/src/modules/client/lib/venue-data"
 
 export type PastEvent = {
   id: string
@@ -153,8 +157,7 @@ type CMSContextType = {
   updateOfficeRentalContract: (data: ContractFile) => void
 }
 
-const CMS_STORAGE_KEY = "oneestela_cms_data"
-const CMS_UPDATED_EVENT = "oneestela_cms_updated"
+const CMS_DOC_PATH = "cms/data"
 
 const DEFAULT_FAQS: FAQ[] = [
   {
@@ -457,24 +460,28 @@ function normalizeCMSData(parsed: Partial<CMSData> | null): CMSData {
   }
 }
 
+const cmsDocRef = doc(db, CMS_DOC_PATH)
+
 export const CMSProvider = ({ children }: { children: React.ReactNode }) => {
   const [cmsData, setCmsData] = useState<CMSData>(defaultCMSData)
   const { toast } = useToast()
 
   useEffect(() => {
-    if (typeof window === "undefined") return
-
-    const loadCMSData = () => {
-      const stored = localStorage.getItem(CMS_STORAGE_KEY)
-
-      if (!stored) {
-        setCmsData(defaultCMSData)
-        return
-      }
-
+    const loadCMSData = async () => {
       try {
-        const parsed = JSON.parse(stored)
-        setCmsData(normalizeCMSData(parsed))
+        const docSnap = await getDoc(cmsDocRef)
+        if (docSnap.exists()) {
+          const parsed = docSnap.data() as CMSData
+          const normalized = normalizeCMSData(parsed)
+          setCmsData(normalized)
+          setCachedPolicies(normalized.policies)
+          setCachedVenuesAndOffices(normalized.venues, normalized.offices)
+        } else {
+          setCmsData(defaultCMSData)
+          await setDoc(cmsDocRef, defaultCMSData)
+          setCachedPolicies(defaultCMSData.policies)
+          setCachedVenuesAndOffices(defaultCMSData.venues, defaultCMSData.offices)
+        }
       } catch (error) {
         console.error(error)
         setCmsData(defaultCMSData)
@@ -482,31 +489,30 @@ export const CMSProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     loadCMSData()
-
-    window.addEventListener("storage", loadCMSData)
-    window.addEventListener(CMS_UPDATED_EVENT, loadCMSData)
-
-    return () => {
-      window.removeEventListener("storage", loadCMSData)
-      window.removeEventListener(CMS_UPDATED_EVENT, loadCMSData)
-    }
   }, [])
 
-  const saveCMSData = (newData: CMSData) => {
+  const saveCMSData = async (newData: CMSData) => {
     const normalizedData = normalizeCMSData(newData)
 
     setCmsData(normalizedData)
+    setCachedPolicies(normalizedData.policies)
+    setCachedVenuesAndOffices(normalizedData.venues, normalizedData.offices)
 
-    if (typeof window !== "undefined") {
-      localStorage.setItem(CMS_STORAGE_KEY, JSON.stringify(normalizedData))
-      window.dispatchEvent(new Event(CMS_UPDATED_EVENT))
+    try {
+      await setDoc(cmsDocRef, normalizedData)
+      toast({
+        title: "Content Saved",
+        description: "Changes have been successfully published.",
+        className: "bg-emerald-500 text-white border-none",
+      })
+    } catch (error) {
+      console.error(error)
+      toast({
+        title: "Error",
+        description: "Failed to save changes. Please try again.",
+        variant: "destructive",
+      })
     }
-
-    toast({
-      title: "Content Saved",
-      description: "Changes have been successfully published.",
-      className: "bg-emerald-500 text-white border-none",
-    })
   }
 
   const updateHomepage = (data: Partial<CMSData["homepage"]>) => {

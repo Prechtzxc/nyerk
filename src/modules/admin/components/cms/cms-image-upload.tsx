@@ -1,21 +1,21 @@
 "use client"
 
-import { type ChangeEvent } from "react"
-import { ImageIcon, Upload, X } from "lucide-react"
+import { type ChangeEvent, useState } from "react"
+import { ImageIcon, Loader2, Upload, X } from "lucide-react"
 import { useToast } from "@shared/hooks/use-toast"
-
-const MAX_IMAGE_SIZE_BYTES = 2.5 * 1024 * 1024
+import { validateImageFile, uploadCMSImage, removeImage } from "@shared/lib/image-upload"
 
 function getImageSource(value?: string) {
   return value && value.trim() ? value : "/placeholder.jpg"
 }
 
 export function CMSImageUpload({
-  label, value, note, accent = "orange", onValueChange,
+  label, value, note, accent = "orange", storagePath, onValueChange,
 }: {
-  label: string; value?: string; note?: string; accent?: "orange" | "blue" | "purple" | "rose"; onValueChange: (v: string) => void
+  label: string; value?: string; note?: string; accent?: "orange" | "blue" | "purple" | "rose"; storagePath?: string; onValueChange: (v: string) => void
 }) {
   const { toast } = useToast()
+  const [uploading, setUploading] = useState(false)
 
   const accentColors: Record<string, string> = {
     orange: "bg-orange-50 text-orange-600 border-orange-200 hover:border-orange-300",
@@ -24,14 +24,34 @@ export function CMSImageUpload({
     rose: "bg-rose-50 text-rose-600 border-rose-200 hover:border-rose-300",
   }
 
-  const handleFile = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleFile = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
-    if (!file.type.startsWith("image/")) { toast({ title: "Invalid File", description: "Upload an image.", variant: "destructive" }); event.target.value = ""; return }
-    if (file.size > MAX_IMAGE_SIZE_BYTES) { toast({ title: "Image Too Large", description: "Max 2.5MB.", variant: "destructive" }); event.target.value = ""; return }
-    const reader = new FileReader()
-    reader.onload = () => { onValueChange(String(reader.result || "")); event.target.value = "" }
-    reader.readAsDataURL(file)
+    event.target.value = ""
+
+    const error = validateImageFile(file)
+    if (error) {
+      toast({ title: "Invalid File", description: error, variant: "destructive" })
+      return
+    }
+
+    setUploading(true)
+    try {
+      const path = storagePath || "images"
+      const downloadUrl = await uploadCMSImage(file, path)
+      if (value && value.startsWith("https://firebasestorage.googleapis.com")) {
+        await removeImage(value)
+      }
+      onValueChange(downloadUrl)
+    } catch {
+      toast({ title: "Upload Failed", description: "Could not upload image. Please try again.", variant: "destructive" })
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleRemove = async () => {
+    onValueChange(await removeImage(value || ""))
   }
 
   return (
@@ -47,27 +67,35 @@ export function CMSImageUpload({
             <img src={getImageSource(value)} alt={label} className="h-32 w-full object-cover"
               onError={(e) => { e.currentTarget.src = "/placeholder.jpg" }} />
             <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/50 opacity-0 transition hover:opacity-100">
-              <label className="cursor-pointer">
-                <input type="file" accept="image/*" onChange={handleFile} hidden />
+              {uploading ? (
                 <span className="inline-flex items-center gap-1 rounded-lg bg-white px-3 py-1.5 text-[10px] font-bold text-slate-800 shadow">
-                  <Upload className="h-3 w-3" /> Replace
+                  <Loader2 className="h-3 w-3 animate-spin" /> Uploading...
                 </span>
-              </label>
-              <button type="button" onClick={() => onValueChange("")}
-                className="inline-flex items-center gap-1 rounded-lg bg-white px-3 py-1.5 text-[10px] font-bold text-rose-600 shadow hover:bg-rose-50">
-                <X className="h-3 w-3" /> Remove
-              </button>
+              ) : (
+                <>
+                  <label className="cursor-pointer">
+                    <input type="file" accept="image/*" onChange={handleFile} hidden />
+                    <span className="inline-flex items-center gap-1 rounded-lg bg-white px-3 py-1.5 text-[10px] font-bold text-slate-800 shadow">
+                      <Upload className="h-3 w-3" /> Replace
+                    </span>
+                  </label>
+                  <button type="button" onClick={handleRemove}
+                    className="inline-flex items-center gap-1 rounded-lg bg-white px-3 py-1.5 text-[10px] font-bold text-rose-600 shadow hover:bg-rose-50">
+                    <X className="h-3 w-3" /> Remove
+                  </button>
+                </>
+              )}
             </div>
           </div>
         ) : (
-          <label className={`flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 bg-white py-5 transition ${accentColors[accent].replace(/bg-\w+-50/g, "hover:" + (accent === "orange" ? "bg-orange-50/30" : accent === "blue" ? "bg-blue-50/30" : accent === "purple" ? "bg-purple-50/30" : "bg-rose-50/30"))}`}>
+          <label className={`flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 bg-white py-5 transition ${uploading ? "opacity-50 pointer-events-none" : accentColors[accent].replace(/bg-\w+-50/g, "hover:" + (accent === "orange" ? "bg-orange-50/30" : accent === "blue" ? "bg-blue-50/30" : accent === "purple" ? "bg-purple-50/30" : "bg-rose-50/30"))}`}>
             <input type="file" accept="image/*" onChange={handleFile} hidden />
             <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${accentColors[accent]}`}>
-              <Upload className="h-4 w-4" />
+              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
             </div>
             <div>
-              <p className="text-xs font-bold text-slate-700">Upload Photo</p>
-              <p className="text-[10px] font-semibold text-slate-500">Click to browse (max 2.5MB)</p>
+              <p className="text-xs font-bold text-slate-700">{uploading ? "Uploading..." : "Upload Photo"}</p>
+              <p className="text-[10px] font-semibold text-slate-500">{uploading ? "Please wait..." : "Click to browse (max 2.5MB)"}</p>
             </div>
           </label>
         )}
@@ -78,18 +106,38 @@ export function CMSImageUpload({
   )
 }
 
-export function CMSPanoramaUpload({ value, onValueChange }: { value?: string; onValueChange: (v: string) => void }) {
+export function CMSPanoramaUpload({ value, storagePath, onValueChange }: { value?: string; storagePath?: string; onValueChange: (v: string) => void }) {
   const { toast } = useToast()
-  const MAX_BYTES = 10 * 1024 * 1024
+  const [uploading, setUploading] = useState(false)
 
-  const handleFile = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleFile = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
-    if (!file.type.startsWith("image/")) { toast({ title: "Invalid File", description: "Upload an image.", variant: "destructive" }); event.target.value = ""; return }
-    if (file.size > MAX_BYTES) { toast({ title: "File Too Large", description: "Max 10MB.", variant: "destructive" }); event.target.value = ""; return }
-    const reader = new FileReader()
-    reader.onload = () => { onValueChange(String(reader.result || "")); event.target.value = "" }
-    reader.readAsDataURL(file)
+    event.target.value = ""
+
+    const error = validateImageFile(file, true)
+    if (error) {
+      toast({ title: "Invalid File", description: error, variant: "destructive" })
+      return
+    }
+
+    setUploading(true)
+    try {
+      const path = storagePath || "panoramas"
+      const downloadUrl = await uploadCMSImage(file, path)
+      if (value && value.startsWith("https://firebasestorage.googleapis.com")) {
+        await removeImage(value)
+      }
+      onValueChange(downloadUrl)
+    } catch {
+      toast({ title: "Upload Failed", description: "Could not upload image. Please try again.", variant: "destructive" })
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleRemove = async () => {
+    onValueChange(await removeImage(value || ""))
   }
 
   return (
@@ -104,21 +152,29 @@ export function CMSPanoramaUpload({ value, onValueChange }: { value?: string; on
           <div className="relative overflow-hidden rounded-lg border border-slate-200 bg-white">
             <img src={value} alt="Panorama" className="h-28 w-full object-cover" onError={(e) => { e.currentTarget.src = "/placeholder.jpg" }} />
             <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/50 opacity-0 transition hover:opacity-100">
-              <label className="cursor-pointer">
-                <input type="file" accept="image/*" onChange={handleFile} hidden />
-                <span className="inline-flex items-center gap-1 rounded-lg bg-white px-3 py-1.5 text-[10px] font-bold text-slate-800 shadow"><Upload className="h-3 w-3" /> Replace</span>
-              </label>
-              <button type="button" onClick={() => onValueChange("")}
-                className="inline-flex items-center gap-1 rounded-lg bg-white px-3 py-1.5 text-[10px] font-bold text-rose-600 shadow hover:bg-rose-50"><X className="h-3 w-3" /> Remove</button>
+              {uploading ? (
+                <span className="inline-flex items-center gap-1 rounded-lg bg-white px-3 py-1.5 text-[10px] font-bold text-slate-800 shadow">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Uploading...
+                </span>
+              ) : (
+                <>
+                  <label className="cursor-pointer">
+                    <input type="file" accept="image/*" onChange={handleFile} hidden />
+                    <span className="inline-flex items-center gap-1 rounded-lg bg-white px-3 py-1.5 text-[10px] font-bold text-slate-800 shadow"><Upload className="h-3 w-3" /> Replace</span>
+                  </label>
+                  <button type="button" onClick={handleRemove}
+                    className="inline-flex items-center gap-1 rounded-lg bg-white px-3 py-1.5 text-[10px] font-bold text-rose-600 shadow hover:bg-rose-50"><X className="h-3 w-3" /> Remove</button>
+                </>
+              )}
             </div>
           </div>
         ) : (
-          <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 bg-white py-4 transition hover:border-purple-300 hover:bg-purple-50/30">
+          <label className={`flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 bg-white py-4 transition hover:border-purple-300 hover:bg-purple-50/30 ${uploading ? "opacity-50 pointer-events-none" : ""}`}>
             <input type="file" accept="image/*" onChange={handleFile} hidden />
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-50 text-purple-600"><Upload className="h-4 w-4" /></div>
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-50 text-purple-600">{uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}</div>
             <div>
-              <p className="text-xs font-bold text-slate-700">Upload 360 Panorama</p>
-              <p className="text-[10px] font-semibold text-slate-500">Wide 360 image, max 10MB</p>
+              <p className="text-xs font-bold text-slate-700">{uploading ? "Uploading..." : "Upload 360 Panorama"}</p>
+              <p className="text-[10px] font-semibold text-slate-500">{uploading ? "Please wait..." : "Wide 360 image, max 10MB"}</p>
             </div>
           </label>
         )}

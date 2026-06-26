@@ -15,8 +15,6 @@ import { useBookings } from "@/src/modules/client/contexts/booking-context"
 import { useAuth } from "@/src/modules/shared/auth/auth-context"
 import { useToast } from "@/src/modules/shared/hooks/use-toast"
 
-const MAINTENANCE_STORAGE_KEY = "oneestela_global_maintenance_v2"
-
 interface ReserveDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -31,39 +29,7 @@ export function ReserveDialog({ open, onOpenChange, selectedVenueId, onBackToVen
   const { user } = useAuth()
   const { toast } = useToast()
   const allBookings = bookings || []
-  const [localMaint, setLocalMaint] = useState<string[]>([])
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const loadMaint = () => {
-        try {
-          const raw = JSON.parse(localStorage.getItem(MAINTENANCE_STORAGE_KEY) || "[]")
-          if (Array.isArray(raw)) {
-            if (raw.length > 0 && typeof raw[0] === "string") {
-              setLocalMaint(raw)
-            } else if (raw.length > 0 && typeof raw[0] === "object") {
-              setLocalMaint(raw.map((r: any) => `${r.spaceId}|${r.date}`))
-            } else {
-              setLocalMaint([])
-            }
-          } else {
-            setLocalMaint([])
-          }
-        } catch {
-          setLocalMaint([])
-        }
-      }
-      loadMaint()
-      window.addEventListener("storage", loadMaint)
-      window.addEventListener("bookingsUpdated", loadMaint)
-      window.addEventListener("oneestela_bookings_updated", loadMaint)
-      return () => {
-        window.removeEventListener("storage", loadMaint)
-        window.removeEventListener("bookingsUpdated", loadMaint)
-        window.removeEventListener("oneestela_bookings_updated", loadMaint)
-      }
-    }
-  }, [])
-  const activeMaint = maintenanceDates?.length > 0 ? maintenanceDates : localMaint
+  const activeMaint = maintenanceDates || []
 
   const [step, setStep] = useState(1)
   

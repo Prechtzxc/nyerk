@@ -56,7 +56,7 @@ export function CMSHomepageTab({ onNavigate }: { onNavigate: (tab: string) => vo
               <Textarea value={form.heroSubtitle || ""} onChange={(e) => setForm({ ...form, heroSubtitle: e.target.value })}
                 className="mt-1.5 min-h-[100px] resize-none rounded-lg border-slate-200 text-sm font-semibold" />
             </div>
-            <CMSImageUpload label="Hero Background Image" value={form.heroImage}
+            <CMSImageUpload label="Hero Background Image" value={form.heroImage} storagePath="hero"
               onValueChange={(v) => setForm({ ...form, heroImage: v })} note="Main hero background image on the landing page." />
           </div>
         </section>
@@ -84,7 +84,7 @@ export function CMSHomepageTab({ onNavigate }: { onNavigate: (tab: string) => vo
               <Textarea value={form.aboutDescription || ""} onChange={(e) => setForm({ ...form, aboutDescription: e.target.value })}
                 className="min-h-[120px] resize-none rounded-lg border-slate-200 text-sm font-semibold" />
             </div>
-            <CMSImageUpload label="About Image" value={form.aboutImage}
+            <CMSImageUpload label="About Image" value={form.aboutImage} storagePath="about"
               onValueChange={(v) => setForm({ ...form, aboutImage: v })} note="Image displayed next to the about text." />
           </div>
         </section>

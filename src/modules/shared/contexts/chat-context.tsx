@@ -1,10 +1,24 @@
 "use client"
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react"
 import { useAuth } from "../auth/auth-context"
+import { db } from "@/lib/firebase"
+import {
+  collection,
+  query,
+  orderBy,
+  onSnapshot,
+  addDoc,
+  updateDoc,
+  doc,
+  serverTimestamp,
+  limit,
+  getDocs,
+} from "firebase/firestore"
 
 export interface ChatMessageItem {
-  id: string
+  id?: string
+  firestoreId?: string
   text: string
   content?: string
   sender: "user" | "admin" | "bot" | "client"
@@ -15,7 +29,7 @@ export interface ChatMessageItem {
   clientName?: string
   targetId?: string
   recipientId?: string
-  timestamp: string | number | Date
+  timestamp: string | number | Date | any
   time?: string
   imageUrl?: string | null
   isRead?: boolean
@@ -66,6 +80,8 @@ interface ChatContextValue {
 }
 
 const ChatContext = createContext<ChatContextValue | null>(null)
+const messagesRef = collection(db, "chatMessages")
+const messagesQuery = query(messagesRef, orderBy("timestamp", "asc"), limit(500))
 
 export function ChatProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth()
@@ -75,46 +91,60 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [userStatuses, setUserStatuses] = useState<Record<string, UserStatus>>({})
   const [isOpen, setIsOpen] = useState(false)
   const [newMessageNotifications, setNewMessageNotifications] = useState<string[]>([])
+  const initialLoadDone = useRef(false)
 
   const currentClientId = user?.id ?? null
 
   useEffect(() => {
-    const savedMessages = localStorage.getItem("mock_chat_messages")
-    if (savedMessages) {
-      try {
-        setMessages(JSON.parse(savedMessages) as ChatMessageItem[])
-      } catch {
-        setMessages([])
+    const unsub = onSnapshot(messagesQuery, (snapshot) => {
+      const loaded: ChatMessageItem[] = []
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data()
+        loaded.push({
+          id: docSnap.id,
+          firestoreId: docSnap.id,
+          text: data.text || "",
+          content: data.content || data.text || "",
+          sender: data.sender || "client",
+          senderId: data.senderId,
+          senderName: data.senderName,
+          clientId: data.clientId,
+          clientName: data.clientName,
+          targetId: data.targetId,
+          recipientId: data.recipientId,
+          timestamp: data.timestamp?.toDate?.()?.toISOString() || data.timestamp || new Date().toISOString(),
+          time: data.time,
+          imageUrl: data.imageUrl || null,
+          isRead: data.isRead ?? false,
+          isReadByClient: data.isReadByClient ?? false,
+          read: data.read ?? false,
+          isBot: data.isBot ?? false,
+          followUps: data.followUps,
+          escalated: data.escalated,
+        })
+      })
+      setMessages(loaded)
+      if (!initialLoadDone.current) {
+        initialLoadDone.current = true
+        setIsChatLoaded(true)
       }
-    }
-    setIsChatLoaded(true)
+    })
 
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "mock_chat_messages" && e.newValue) {
-        try {
-          setMessages(JSON.parse(e.newValue) as ChatMessageItem[])
-        } catch {
-          setMessages([])
-        }
-      }
-    }
-
-    window.addEventListener("storage", handleStorageChange)
-    return () => window.removeEventListener("storage", handleStorageChange)
+    return () => unsub()
   }, [])
 
   const sendMessage: ChatContextValue["sendMessage"] = useCallback(
-    (text, senderRole, clientId, clientName, isBot = false, imageUrl) => {
+    async (text, senderRole, clientId, clientName, isBot = false, imageUrl) => {
       if (!text.trim() && !imageUrl) return
 
       const normalizedRole: ChatMessageItem["sender"] =
         senderRole === "user" ? "user" : senderRole === "bot" ? "bot" : senderRole
 
-      const resolvedClientId = clientId ?? user?.id ?? undefined
-      const newMessage: ChatMessageItem = {
-        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-        text,
-        content: text,
+      const resolvedClientId = clientId ?? user?.id ?? ""
+
+      const messageData = {
+        text: text.trim(),
+        content: text.trim(),
         sender: normalizedRole,
         senderId: normalizedRole === "client" || normalizedRole === "user" ? resolvedClientId : "admin",
         senderName:
@@ -122,12 +152,12 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
             ? clientName || user?.name || "Guest"
             : "Admin",
         clientId: resolvedClientId,
-        clientName: clientName,
+        clientName: clientName || null,
         targetId:
           normalizedRole === "client" || normalizedRole === "user" ? "admin" : resolvedClientId,
         recipientId:
           normalizedRole === "client" || normalizedRole === "user" ? "admin" : resolvedClientId,
-        timestamp: new Date().toISOString(),
+        timestamp: serverTimestamp(),
         time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         imageUrl: imageUrl || null,
         isRead: normalizedRole === "admin",
@@ -136,36 +166,47 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         isBot: isBot,
       }
 
-      setMessages((prevMessages) => {
-        const updatedMessages = [...prevMessages, newMessage]
-        localStorage.setItem("mock_chat_messages", JSON.stringify(updatedMessages))
-        if (normalizedRole === "user" || normalizedRole === "client") {
-          setNewMessageNotifications((notif) => [...notif, newMessage.id])
-        }
-        return updatedMessages
-      })
+      await addDoc(messagesRef, messageData)
+
+      if (normalizedRole === "user" || normalizedRole === "client") {
+        setNewMessageNotifications((notif) => [...notif, String(Date.now())])
+      }
     },
     [user]
   )
 
-  const markAsRead = useCallback((clientId: string) => {
-    setMessages((prevMessages) => {
-      const updatedMessages = prevMessages.map((m) =>
-        m.clientId === clientId && m.sender === "client" ? { ...m, isRead: true } : m
-      )
-      localStorage.setItem("mock_chat_messages", JSON.stringify(updatedMessages))
-      return updatedMessages
+  const markAsRead = useCallback(async (clientId: string) => {
+    const q = query(
+      messagesRef,
+      orderBy("timestamp", "asc"),
+      limit(500)
+    )
+    const snapshot = await getDocs(q)
+    const updates: Promise<void>[] = []
+    snapshot.forEach((docSnap) => {
+      const data = docSnap.data()
+      if (data.clientId === clientId && data.sender === "client" && !data.isRead) {
+        updates.push(updateDoc(doc(db, "chatMessages", docSnap.id), { isRead: true }))
+      }
     })
+    await Promise.all(updates)
   }, [])
 
-  const markAsReadByClient = useCallback((clientId: string) => {
-    setMessages((prevMessages) => {
-      const updatedMessages = prevMessages.map((m) =>
-        m.clientId === clientId && m.sender === "admin" ? { ...m, isReadByClient: true } : m
-      )
-      localStorage.setItem("mock_chat_messages", JSON.stringify(updatedMessages))
-      return updatedMessages
+  const markAsReadByClient = useCallback(async (clientId: string) => {
+    const q = query(
+      messagesRef,
+      orderBy("timestamp", "asc"),
+      limit(500)
+    )
+    const snapshot = await getDocs(q)
+    const updates: Promise<void>[] = []
+    snapshot.forEach((docSnap) => {
+      const data = docSnap.data()
+      if (data.clientId === clientId && data.sender === "admin" && !data.isReadByClient) {
+        updates.push(updateDoc(doc(db, "chatMessages", docSnap.id), { isReadByClient: true }))
+      }
     })
+    await Promise.all(updates)
   }, [])
 
   const markAdminAsRead = useCallback(() => {

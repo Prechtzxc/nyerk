@@ -19,6 +19,8 @@ import { cn } from "@/src/modules/shared/lib/utils"
 import { getPolicyItems } from "@/src/modules/shared/lib/policies"
 import { useCMS } from "@/src/modules/admin/contexts/cms-context"
 import { getPublicSpacesFromData, getPanoramaSource } from "@/src/modules/client/lib/venue-data"
+import { db } from "@/lib/firebase"
+import { collection, query, where, getDocs, orderBy } from "firebase/firestore"
 
 declare global { interface Window { pannellum?: any; } }
 
@@ -37,16 +39,7 @@ type StoredVenueReview = {
 const REVIEW_STORAGE_KEY = "oneestela_event_reviews_v1"
 const REVIEW_EVENT_NAME = "oneestela_reviews_updated"
 
-function safeParseVenueReviews(value: string | null): StoredVenueReview[] {
-  if (!value) return []
-
-  try {
-    const parsed = JSON.parse(value)
-    return Array.isArray(parsed) ? parsed : []
-  } catch {
-    return []
-  }
-}
+const reviewsRef = collection(db, "reviews")
 
 function normalizeReviewValue(value?: string) {
   return String(value || "")
@@ -55,9 +48,28 @@ function normalizeReviewValue(value?: string) {
     .replace(/\s+/g, " ")
 }
 
-function loadVenueReviews() {
-  if (typeof window === "undefined") return []
-  return safeParseVenueReviews(window.localStorage.getItem(REVIEW_STORAGE_KEY))
+async function loadVenueReviews(): Promise<StoredVenueReview[]> {
+  try {
+    const snapshot = await getDocs(query(reviewsRef, orderBy("createdAt", "desc")))
+    const result: StoredVenueReview[] = []
+    snapshot.forEach((docSnap) => {
+      const data = docSnap.data()
+      result.push({
+        id: docSnap.id,
+        bookingId: data.bookingId || "",
+        eventId: data.eventId || "",
+        eventName: data.eventName || "",
+        venue: data.venue || "",
+        customerName: data.customerName || "",
+        rating: data.rating || 5,
+        comment: data.comment || "",
+        createdAt: data.createdAt || new Date().toISOString(),
+      })
+    })
+    return result
+  } catch {
+    return []
+  }
 }
 
 function getReviewsForVenue(reviews: StoredVenueReview[], venueName: string) {
@@ -96,19 +108,7 @@ function useVenueReviews(venueName: string) {
   const [reviews, setReviews] = useState<StoredVenueReview[]>([])
 
   useEffect(() => {
-    const refreshReviews = () => {
-      setReviews(loadVenueReviews())
-    }
-
-    refreshReviews()
-
-    window.addEventListener(REVIEW_EVENT_NAME, refreshReviews)
-    window.addEventListener("storage", refreshReviews)
-
-    return () => {
-      window.removeEventListener(REVIEW_EVENT_NAME, refreshReviews)
-      window.removeEventListener("storage", refreshReviews)
-    }
+    loadVenueReviews().then(setReviews)
   }, [])
 
   const venueReviews = useMemo(() => {

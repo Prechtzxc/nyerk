@@ -1,10 +1,25 @@
 "use client"
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react"
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react"
 import type React from "react"
+import { db, storage } from "@/lib/firebase"
+import {
+  collection,
+  query,
+  orderBy,
+  onSnapshot,
+  addDoc,
+  updateDoc,
+  doc,
+  getDocs,
+  serverTimestamp,
+  where,
+} from "firebase/firestore"
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage"
 
 export interface PaymentProof {
   id: string
+  firestoreId?: string
   bookingId: string
   amount: number
   paymentAmount?: number
@@ -43,7 +58,7 @@ interface NewPaymentProofInput {
 
 interface PaymentProofContextValue {
   proofs: PaymentProof[]
-  uploadPaymentProof: (input: NewPaymentProofInput | string, file?: File | null, paymentDetails?: Record<string, unknown>) => PaymentProof
+  uploadPaymentProof: (input: NewPaymentProofInput | string, file?: File | null, paymentDetails?: Record<string, unknown>) => Promise<PaymentProof>
   getPaymentProofByBooking: (bookingId: string) => PaymentProof | undefined
   getPaymentProofsByBooking: (bookingId: string) => PaymentProof[]
   reviewPaymentProof: (id: string, status: "verified" | "rejected", reviewer: string, rejectionReason?: string) => void
@@ -51,54 +66,52 @@ interface PaymentProofContextValue {
   clearAll: () => void
 }
 
-const STORAGE_KEY = "oneestela_payment_proofs_v1"
-
 const PaymentProofContext = createContext<PaymentProofContextValue | undefined>(undefined)
 
-function readStored(): PaymentProof[] {
-  if (typeof window === "undefined") return []
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
-    if (!raw) return []
-    const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? (parsed as PaymentProof[]) : []
-  } catch {
-    return []
-  }
-}
-
-function writeStored(proofs: PaymentProof[]) {
-  if (typeof window === "undefined") return
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(proofs))
-  } catch {
-    // ignore
-  }
-}
-
-function makeId() {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID()
-  }
-  return `proof_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
-}
+const proofsRef = collection(db, "paymentProofs")
+const proofsQuery = query(proofsRef, orderBy("submittedAt", "desc"))
 
 export function PaymentProofProvider({ children }: { children: React.ReactNode }) {
   const [proofs, setProofs] = useState<PaymentProof[]>([])
+  const initialLoadDone = useRef(false)
 
   useEffect(() => {
-    setProofs(readStored())
-    const handler = (event: StorageEvent) => {
-      if (event.key === STORAGE_KEY) {
-        setProofs(readStored())
-      }
-    }
-    window.addEventListener("storage", handler)
-    return () => window.removeEventListener("storage", handler)
+    const unsub = onSnapshot(proofsQuery, (snapshot) => {
+      const loaded: PaymentProof[] = []
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data()
+        loaded.push({
+          id: docSnap.id,
+          firestoreId: docSnap.id,
+          bookingId: data.bookingId || "",
+          amount: data.amount || 0,
+          paymentAmount: data.paymentAmount || data.amount || 0,
+          paymentMethod: data.paymentMethod || "bank",
+          referenceNumber: data.referenceNumber || "",
+          paymentReference: data.paymentReference || data.referenceNumber || "",
+          proofImageUrl: data.proofImageUrl || "",
+          notes: data.notes || "",
+          adminNote: data.adminNote || "",
+          fileName: data.fileName || "",
+          fileSize: data.fileSize || 0,
+          paymentDate: data.paymentDate || "",
+          uploadedAt: data.uploadedAt || data.submittedAt || "",
+          status: data.status || "pending",
+          submittedAt: data.submittedAt?.toDate?.()?.toISOString() || data.submittedAt || new Date().toISOString(),
+          reviewedAt: data.reviewedAt?.toDate?.()?.toISOString() || data.reviewedAt || "",
+          reviewedBy: data.reviewedBy || "",
+          rejectionReason: data.rejectionReason || "",
+        })
+      })
+      setProofs(loaded)
+      initialLoadDone.current = true
+    })
+
+    return () => unsub()
   }, [])
 
   const uploadPaymentProof = useCallback(
-    (input: NewPaymentProofInput | string, file?: File | null, paymentDetails?: Record<string, unknown>) => {
+    async (input: NewPaymentProofInput | string, file?: File | null, paymentDetails?: Record<string, unknown>) => {
       const now = new Date().toISOString()
       const normalized: NewPaymentProofInput =
         typeof input === "string"
@@ -114,15 +127,42 @@ export function PaymentProofProvider({ children }: { children: React.ReactNode }
             }
           : input
 
+      let imageUrl = normalized.proofImageUrl || ""
+
+      if (file) {
+        const storagePath = `payment-proofs/${normalized.bookingId}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`
+        const storageRef = ref(storage, storagePath)
+        const snapshot = await uploadBytesResumable(storageRef, file)
+        imageUrl = await getDownloadURL(snapshot.ref)
+      }
+
+      const docRef = await addDoc(proofsRef, {
+        bookingId: normalized.bookingId,
+        amount: normalized.amount,
+        paymentAmount: normalized.amount,
+        paymentMethod: normalized.paymentMethod,
+        referenceNumber: normalized.referenceNumber?.trim() || "",
+        paymentReference: normalized.paymentReference?.trim() || normalized.referenceNumber?.trim() || "",
+        proofImageUrl: imageUrl,
+        fileName: (normalized.fileName ?? file?.name) || "",
+        fileSize: (normalized.fileSize ?? file?.size) || 0,
+        notes: normalized.notes || "",
+        paymentDate: normalized.paymentDate || now,
+        uploadedAt: normalized.uploadedAt || now,
+        submittedAt: serverTimestamp(),
+        status: "pending",
+      })
+
       const entry: PaymentProof = {
-        id: makeId(),
+        id: docRef.id,
+        firestoreId: docRef.id,
         bookingId: normalized.bookingId,
         amount: normalized.amount,
         paymentAmount: normalized.amount,
         paymentMethod: normalized.paymentMethod,
         referenceNumber: normalized.referenceNumber?.trim(),
         paymentReference: normalized.paymentReference?.trim() || normalized.referenceNumber?.trim(),
-        proofImageUrl: normalized.proofImageUrl,
+        proofImageUrl: imageUrl,
         fileName: normalized.fileName ?? file?.name,
         fileSize: normalized.fileSize ?? file?.size,
         notes: normalized.notes,
@@ -131,11 +171,7 @@ export function PaymentProofProvider({ children }: { children: React.ReactNode }
         submittedAt: now,
         status: "pending",
       }
-      setProofs((current) => {
-        const next = [entry, ...current]
-        writeStored(next)
-        return next
-      })
+
       return entry
     },
     []
@@ -152,37 +188,28 @@ export function PaymentProofProvider({ children }: { children: React.ReactNode }
   )
 
   const reviewPaymentProof = useCallback(
-    (id: string, status: "verified" | "rejected", reviewer: string, rejectionReason?: string) => {
-      setProofs((current) => {
-        const next = current.map((proof) =>
-          proof.id === id
-            ? {
-                ...proof,
-                status,
-                reviewedAt: new Date().toISOString(),
-                reviewedBy: reviewer,
-                rejectionReason: status === "rejected" ? rejectionReason : undefined,
-              }
-            : proof
-        )
-        writeStored(next)
-        return next
+    async (id: string, status: "verified" | "rejected", reviewer: string, rejectionReason?: string) => {
+      await updateDoc(doc(db, "paymentProofs", id), {
+        status,
+        reviewedAt: serverTimestamp(),
+        reviewedBy: reviewer,
+        rejectionReason: status === "rejected" ? (rejectionReason || "") : "",
       })
     },
     []
   )
 
-  const removePaymentProof = useCallback((id: string) => {
-    setProofs((current) => {
-      const next = current.filter((proof) => proof.id !== id)
-      writeStored(next)
-      return next
-    })
+  const removePaymentProof = useCallback(async (id: string) => {
+    await updateDoc(doc(db, "paymentProofs", id), { status: "rejected", reviewedAt: serverTimestamp() })
   }, [])
 
-  const clearAll = useCallback(() => {
-    setProofs([])
-    writeStored([])
+  const clearAll = useCallback(async () => {
+    const snapshot = await getDocs(proofsQuery)
+    const updates: Promise<void>[] = []
+    snapshot.forEach((docSnap) => {
+      updates.push(updateDoc(doc(db, "paymentProofs", docSnap.id), { status: "rejected" }))
+    })
+    await Promise.all(updates)
   }, [])
 
   const value: PaymentProofContextValue = {

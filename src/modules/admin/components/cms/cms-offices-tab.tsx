@@ -152,8 +152,8 @@ export function CMSOfficesTab({ onNavigate }: { onNavigate: (tab: string) => voi
                 <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Office description..."
                   className="mt-1 min-h-[80px] resize-none rounded-lg border-slate-200 text-sm font-semibold" />
               </div>
-              <CMSImageUpload label="Office Photo" value={form.image} accent="blue" onValueChange={(v) => setForm({ ...form, image: v })} />
-              <CMSPanoramaUpload value={form.panoImage} onValueChange={(v) => setForm({ ...form, panoImage: v })} />
+              <CMSImageUpload label="Office Photo" value={form.image} accent="blue" storagePath="offices" onValueChange={(v) => setForm({ ...form, image: v })} />
+              <CMSPanoramaUpload value={form.panoImage} storagePath="panoramas" onValueChange={(v) => setForm({ ...form, panoImage: v })} />
             </div>
             <div className="sticky bottom-0 flex gap-2 border-t border-slate-100 bg-white px-5 py-3.5">
               <Button type="button" onClick={handleSave} className="h-9 flex-1 rounded-lg bg-blue-600 text-xs font-bold text-white hover:bg-blue-700">

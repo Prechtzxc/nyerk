@@ -54,8 +54,6 @@ import { Label } from "@/src/modules/shared/components/ui/label"
 import { getAllVenues, getAllOffices } from "@/lib/central-data"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/src/modules/shared/components/ui/tabs"
 
-const BOOKING_STORAGE_KEY = "oneestela_global_bookings_v2"
-
 function formatDate(date?: string) {
   if (!date) return "—"
   try {
@@ -243,38 +241,13 @@ export default function AdminBookingsPage() {
   }, [urlStatusRef])
 
   useEffect(() => {
-    const loadBookings = () => {
-      if (contextBookings.length > 0) {
-        setBookings(contextBookings)
-        return
-      }
-      const stored = localStorage.getItem(BOOKING_STORAGE_KEY)
-      if (stored) {
-        try {
-          setBookings(JSON.parse(stored))
-        } catch {
-          setBookings([])
-        }
-      }
-    }
-
-    loadBookings()
-
-    window.addEventListener("storage", loadBookings)
-    window.addEventListener("bookingsUpdated", loadBookings)
-    window.addEventListener("oneestela_bookings_updated", loadBookings)
-
-    return () => {
-      window.removeEventListener("storage", loadBookings)
-      window.removeEventListener("bookingsUpdated", loadBookings)
-      window.removeEventListener("oneestela_bookings_updated", loadBookings)
+    if (contextBookings.length > 0) {
+      setBookings(contextBookings)
     }
   }, [contextBookings])
 
   const persistBookings = (next: Booking[]) => {
     setBookings(next)
-    localStorage.setItem(BOOKING_STORAGE_KEY, JSON.stringify(next))
-    window.dispatchEvent(new Event("oneestela_bookings_updated"))
   }
 
   const venueOptions = useMemo(() => {
@@ -404,14 +377,10 @@ export default function AdminBookingsPage() {
     bookingCtx.approveModification(id)
     setShowApproveModificationConfirm(false)
     setShowApproveModificationTarget(null)
-    try {
-      const stored = localStorage.getItem(BOOKING_STORAGE_KEY)
-      if (stored) {
-        const parsed = JSON.parse(stored)
-        const updated = parsed.find((b: Booking) => b.id === id)
-        if (updated) setSelectedBooking(updated)
-      }
-    } catch {}
+    if (selectedBooking && selectedBooking.id === id) {
+      const updated = contextBookings.find((b: Booking) => b.id === id)
+      if (updated) setSelectedBooking(updated)
+    }
     toast({
       title: "Modification Approved",
       description: `Booking ${id} has been updated with the requested changes.`,
@@ -427,14 +396,8 @@ export default function AdminBookingsPage() {
     setShowDeclineModificationModal(false)
     setDeclineModificationTarget(null)
     setDeclineModificationReason("")
-    try {
-      const stored = localStorage.getItem(BOOKING_STORAGE_KEY)
-      if (stored) {
-        const parsed = JSON.parse(stored)
-        const updated = parsed.find((b: Booking) => b.id === target.id)
-        if (updated) setSelectedBooking(updated)
-      }
-    } catch {}
+    const updated = contextBookings.find((b: Booking) => b.id === target.id)
+    if (updated) setSelectedBooking(updated)
     toast({
       title: "Modification Declined",
       description: `Booking ${target.id} has been declined. Original booking unchanged.`,
@@ -594,17 +557,7 @@ export default function AdminBookingsPage() {
           onRecorded={(updated) => {
             setSelectedBooking(updated)
             setOnsitePaymentTarget(null)
-            try {
-              const stored = localStorage.getItem(BOOKING_STORAGE_KEY)
-              if (stored) {
-                const parsed = JSON.parse(stored)
-                if (Array.isArray(parsed)) {
-                  setBookings(parsed)
-                  localStorage.setItem(BOOKING_STORAGE_KEY, JSON.stringify(parsed))
-                  window.dispatchEvent(new Event("oneestela_bookings_updated"))
-                }
-              }
-            } catch {}
+            setBookings(contextBookings)
             toast({
               title: "Onsite Payment Recorded",
               description: `Onsite payment has been recorded for booking ${updated.id}.`,
@@ -1741,16 +1694,8 @@ function RecordOnsitePaymentModal({
       adminName: "Administrator",
     })
 
-    // Read the full updated booking from localStorage after save
+    // Booking data is updated in context by manualRecordOnsitePayment
     let fullUpdated: Booking = booking
-    try {
-      const stored = localStorage.getItem(BOOKING_STORAGE_KEY)
-      if (stored) {
-        const all = JSON.parse(stored)
-        const saved = Array.isArray(all) ? all.find((b: any) => b.id === booking.id) : null
-        if (saved) fullUpdated = saved as Booking
-      }
-    } catch {}
 
     onRecorded(fullUpdated)
   }

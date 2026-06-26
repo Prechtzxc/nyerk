@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { useAuth } from "@/src/modules/shared/auth/auth-context"
 import { Card, CardContent } from "@/src/modules/shared/components/ui/card"
 import { Badge } from "@/src/modules/shared/components/ui/badge"
@@ -13,7 +13,7 @@ import {
   TooltipTrigger,
 } from "@/src/modules/shared/components/ui/tooltip"
 import Link from "next/link"
-import { getProfilePicture, subscribeProfilePictureUpdates } from "@/src/modules/shared/lib/profile-picture"
+
 import { UserAvatar } from "@/src/modules/shared/components/user-avatar"
 import { useBookings, type Booking } from "@/src/modules/client/contexts/booking-context"
 import { cn } from "@/src/modules/shared/lib/utils"
@@ -87,22 +87,7 @@ function getOfficeStatusDisplay(booking: Booking) {
 export default function ClientDashboardPage() {
   const { user } = useAuth()
   const { getUserBookings, bookings } = useBookings()
-  const [profilePicture, setProfilePicture] = useState<string | null>(user?.profilePicture ?? null)
-
-  useEffect(() => {
-    if (!user?.id) {
-      setProfilePicture(null)
-      return
-    }
-    if (user.profilePicture) {
-      setProfilePicture(user.profilePicture)
-    } else {
-      setProfilePicture(getProfilePicture(user.id))
-    }
-    return subscribeProfilePictureUpdates(() => {
-      setProfilePicture(user.profilePicture || getProfilePicture(user.id))
-    })
-  }, [user?.id, user?.profilePicture])
+  const [profilePicture] = useState<string | null>(user?.profilePicture ?? null)
 
   const myBookings = useMemo(() => {
     if (user) return getUserBookings(user.id)

@@ -2,10 +2,18 @@
 
 import { useRef, useState } from "react"
 import { Camera, Trash2, AlertCircle } from "lucide-react"
-import {
-  isValidImageFile,
-  PROFILE_PICTURE_MAX_BYTES,
-} from "@/src/modules/shared/lib/profile-picture"
+const PROFILE_PICTURE_MAX_BYTES = 2 * 1024 * 1024
+
+function isValidImageFile(file: File): { ok: boolean; reason?: string } {
+  if (!file) return { ok: false, reason: "No file selected." }
+  if (!file.type.startsWith("image/")) {
+    return { ok: false, reason: "Please select an image file only." }
+  }
+  if (file.size > PROFILE_PICTURE_MAX_BYTES) {
+    return { ok: false, reason: "Image must be smaller than 2MB." }
+  }
+  return { ok: true }
+}
 import { ImageCropper } from "@/src/modules/shared/components/image-cropper"
 
 interface ProfilePictureUploaderProps {

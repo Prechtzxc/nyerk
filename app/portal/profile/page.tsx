@@ -24,10 +24,6 @@ import {
 } from "lucide-react"
 import { cn } from "@/src/modules/shared/lib/utils"
 import { ProfilePictureUploader } from "@/src/modules/shared/components/profile-picture-uploader"
-import {
-  getProfilePicture,
-  subscribeProfilePictureUpdates,
-} from "@/src/modules/shared/lib/profile-picture"
 
 export default function ProfilePage() {
   const { user, updateProfilePicture } = useAuth()
@@ -51,10 +47,7 @@ export default function ProfilePage() {
       setPicture(null)
       return
     }
-    setPicture(user.profilePicture || getProfilePicture(user.id))
-    return subscribeProfilePictureUpdates(() => {
-      setPicture(user.profilePicture || getProfilePicture(user.id))
-    })
+    setPicture(user.profilePicture || null)
   }, [user?.id, user?.profilePicture])
 
   if (!user) return null

@@ -29,48 +29,20 @@ export function ForgotPasswordDialog({ open, onOpenChange, onBackToLogin }: Forg
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
-
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    // Demo: Accept any email that contains "oneestela.com"
-    if (email.includes("oneestela.com")) {
-      toast({
-        title: "Reset code sent",
-        description: "Please check your email for the reset code. (Demo code: 123456)",
-      })
-      setStep("verify")
-    } else {
-      toast({
-        title: "Email not found",
-        description: "No account found with this email address.",
-        variant: "destructive",
-      })
-    }
-
-    setIsLoading(false)
+    toast({
+      title: "Feature not available",
+      description: "Password reset is being configured. Please try again later.",
+      variant: "destructive",
+    })
   }
 
   const handleCodeVerification = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
-
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 500))
-
-    // Demo: Accept code "123456"
-    if (resetCode === "123456") {
-      setStep("reset")
-    } else {
-      toast({
-        title: "Invalid code",
-        description: "The reset code you entered is incorrect. Try: 123456",
-        variant: "destructive",
-      })
-    }
-
-    setIsLoading(false)
+    toast({
+      title: "Feature not available",
+      description: "Password reset is being configured. Please try again later.",
+      variant: "destructive",
+    })
   }
 
   const handlePasswordReset = async (e: React.FormEvent) => {
@@ -94,13 +66,11 @@ export function ForgotPasswordDialog({ open, onOpenChange, onBackToLogin }: Forg
       return
     }
 
-    setIsLoading(true)
-
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    setStep("success")
-    setIsLoading(false)
+    toast({
+      title: "Feature not available",
+      description: "Password reset is being configured. Please try again later.",
+      variant: "destructive",
+    })
   }
 
   const handleClose = () => {
@@ -213,9 +183,6 @@ export function ForgotPasswordDialog({ open, onOpenChange, onBackToLogin }: Forg
               </Button>
             </div>
 
-            <div className="mt-4 p-3 bg-gray-50 rounded-md">
-              <p className="text-xs text-gray-600">Demo: Use any @oneestela.com email</p>
-            </div>
           </form>
         )}
 
@@ -251,9 +218,6 @@ export function ForgotPasswordDialog({ open, onOpenChange, onBackToLogin }: Forg
               </Button>
             </div>
 
-            <div className="mt-4 p-3 bg-gray-50 rounded-md">
-              <p className="text-xs text-gray-600">Demo code: 123456</p>
-            </div>
           </form>
         )}
 

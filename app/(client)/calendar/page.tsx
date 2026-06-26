@@ -10,8 +10,6 @@ import { ReserveButton } from "@/src/modules/client/components/reserve-button"
 // PHASE 3: CENTRAL DATA SYNC
 import { getAllVenues, getAllOffices } from "@/lib/central-data"
 
-const MAINTENANCE_STORAGE_KEY = "oneestela_global_maintenance_v2"
-
 export default function CalendarPreviewPage() {
   const { bookings, maintenanceDates } = useBookings()
   const allBookings = bookings || []
@@ -31,40 +29,6 @@ export default function CalendarPreviewPage() {
     const d = new Date(); d.setDate(1); return d;
   })
 
-  // Get maintenance
-  const [localMaint, setLocalMaint] = useState<string[]>([])
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const loadMaint = () => {
-        try {
-          const raw = JSON.parse(localStorage.getItem(MAINTENANCE_STORAGE_KEY) || "[]")
-          if (Array.isArray(raw)) {
-            if (raw.length > 0 && typeof raw[0] === "string") {
-              setLocalMaint(raw)
-            } else if (raw.length > 0 && typeof raw[0] === "object") {
-              setLocalMaint(raw.map((r: any) => `${r.spaceId}|${r.date}`))
-            } else {
-              setLocalMaint([])
-            }
-          } else {
-            setLocalMaint([])
-          }
-        } catch {
-          setLocalMaint([])
-        }
-      }
-      loadMaint()
-      window.addEventListener("storage", loadMaint)
-      window.addEventListener("bookingsUpdated", loadMaint)
-      window.addEventListener("oneestela_bookings_updated", loadMaint)
-      return () => {
-        window.removeEventListener("storage", loadMaint)
-        window.removeEventListener("bookingsUpdated", loadMaint)
-        window.removeEventListener("oneestela_bookings_updated", loadMaint)
-      }
-    }
-  }, [])
-
   // Timer Effect para sa Pencil Booking
   useEffect(() => {
     if (!showPaymentTimer || timeLeft <= 0) return
@@ -72,7 +36,7 @@ export default function CalendarPreviewPage() {
     return () => clearInterval(intervalId)
   }, [showPaymentTimer, timeLeft])
 
-  const activeMaintenance = maintenanceDates?.length > 0 ? maintenanceDates : localMaint;
+  const activeMaintenance = maintenanceDates || [];
 
   // Calendar Logic
   const year = calendarMonth.getFullYear()

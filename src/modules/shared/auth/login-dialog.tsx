@@ -19,7 +19,6 @@ import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { useAuth } from "@/src/modules/shared/auth/auth-context"
 import { useToast } from "@/src/modules/shared/hooks/use-toast"
 import { ForgotPasswordDialog } from "@/src/modules/shared/auth/forgot-password-dialog"
-import { getCurrentUser } from "@/src/modules/shared/lib/auth-storage"
 
 interface LoginDialogProps {
   className?: string
@@ -81,9 +80,7 @@ export function LoginDialog({ className, children }: LoginDialogProps) {
       }
       setOpen(false)
 
-      const storedUser = getCurrentUser()
-      const role = storedUser?.role?.toLowerCase() ?? ""
-
+      const role = result.role || "client"
       if (role === "admin" || role === "staff" || role === "owner") {
         toast({ title: "Login Successful", description: "Redirecting to dashboard..." })
         router.replace("/dashboard")

@@ -379,8 +379,8 @@ export function UnifiedAdminChatPanel() {
     return lastSeenDate.toLocaleDateString()
   }
 
-  if (!user || user.email !== "demo@oneestela.com") {
-    return null // Only show for admin users
+  if (!user) {
+    return null // Only show for authenticated users
   }
 
   return (

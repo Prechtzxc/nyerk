@@ -181,6 +181,12 @@ export const DEFAULT_POLICY_CONTENT: Record<string, string> = {
   contractSigningOR: CONTRACT_INFORMATION_OFFICE_RENTAL,
 }
 
+let cachedPolicies: { type: string; content: string }[] | null = null
+
+export function setCachedPolicies(policies: { type: string; content: string }[]) {
+  cachedPolicies = policies
+}
+
 function parseCMSContent(content: string): string[] {
   return content
     .split("\n")
@@ -189,31 +195,17 @@ function parseCMSContent(content: string): string[] {
 }
 
 export function getPolicyItems(type: PolicyKey): string[] {
-  try {
-    const raw = typeof window !== "undefined" ? localStorage.getItem("oneestela_cms_data") : null
-    if (raw) {
-      const parsed = JSON.parse(raw)
-      const policies = parsed?.policies
-      if (Array.isArray(policies)) {
-        const match = policies.find((p: any) => p.type === type && p.content?.trim())
-        if (match) return parseCMSContent(match.content)
-      }
-    }
-  } catch {}
+  if (cachedPolicies) {
+    const match = cachedPolicies.find((p: any) => p.type === type && p.content?.trim())
+    if (match) return parseCMSContent(match.content)
+  }
   return parseCMSContent(DEFAULT_POLICY_CONTENT[type])
 }
 
 export function getPolicyText(type: PolicyKey): string {
-  try {
-    const raw = typeof window !== "undefined" ? localStorage.getItem("oneestela_cms_data") : null
-    if (raw) {
-      const parsed = JSON.parse(raw)
-      const policies = parsed?.policies
-      if (Array.isArray(policies)) {
-        const match = policies.find((p: any) => p.type === type && p.content?.trim())
-        if (match) return match.content
-      }
-    }
-  } catch {}
+  if (cachedPolicies) {
+    const match = cachedPolicies.find((p: any) => p.type === type && p.content?.trim())
+    if (match) return match.content
+  }
   return DEFAULT_POLICY_CONTENT[type]
 }

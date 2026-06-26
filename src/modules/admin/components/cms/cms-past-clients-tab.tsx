@@ -1,7 +1,7 @@
 "use client"
 
 import { type ChangeEvent, useState } from "react"
-import { Calendar, Eye, EyeOff, ImageIcon, Pencil, Plus, Save, Star, Trash2, Upload, X, Users } from "lucide-react"
+import { Calendar, Eye, EyeOff, ImageIcon, Loader2, Pencil, Plus, Save, Star, Trash2, Upload, X, Users } from "lucide-react"
 import { Button } from "@shared/components/ui/button"
 import { Input } from "@shared/components/ui/input"
 import { Textarea } from "@shared/components/ui/textarea"
@@ -11,8 +11,7 @@ import { useCMS } from "@admin/contexts/cms-context"
 import { CMSSectionHeader } from "./cms-section-header"
 import { CMSStatusBadge, EmptyState } from "./cms-status-badge"
 import type { PastClientBooking } from "@admin/contexts/cms-context"
-
-const MAX_IMAGE_SIZE_BYTES = 2.5 * 1024 * 1024
+import { validateImageFile, uploadCMSImage, removeImage } from "@shared/lib/image-upload"
 
 type Form = {
   photos: string[]
@@ -77,34 +76,36 @@ export function CMSPastClientsTab({ onNavigate }: { onNavigate: (tab: string) =>
     setShowModal(true)
   }
 
-  const handlePhotoUpload = (event: ChangeEvent<HTMLInputElement>) => {
+  const [uploadingPhotos, setUploadingPhotos] = useState(false)
+
+  const handlePhotoUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
-    if (!file.type.startsWith("image/")) {
-      toast({ title: "Invalid File", description: "Upload an image.", variant: "destructive" })
-      event.target.value = ""
+    event.target.value = ""
+
+    const error = validateImageFile(file)
+    if (error) {
+      toast({ title: "Invalid File", description: error, variant: "destructive" })
       return
     }
-    if (file.size > MAX_IMAGE_SIZE_BYTES) {
-      toast({ title: "Image Too Large", description: "Max 2.5MB.", variant: "destructive" })
-      event.target.value = ""
-      return
-    }
-    const reader = new FileReader()
-    reader.onload = () => {
-      const url = String(reader.result || "")
-      const newPhotos = [...form.photos, url]
+
+    setUploadingPhotos(true)
+    try {
+      const downloadUrl = await uploadCMSImage(file, "past-clients")
+      const newPhotos = [...form.photos, downloadUrl]
       setForm({
         ...form,
         photos: newPhotos,
-        coverPhoto: form.coverPhoto || url,
+        coverPhoto: form.coverPhoto || downloadUrl,
       })
-      event.target.value = ""
+    } catch {
+      toast({ title: "Upload Failed", description: "Could not upload image. Please try again.", variant: "destructive" })
+    } finally {
+      setUploadingPhotos(false)
     }
-    reader.readAsDataURL(file)
   }
 
-  const removePhoto = (index: number) => {
+  const removePhoto = async (index: number) => {
     const removed = form.photos[index]
     const newPhotos = form.photos.filter((_, i) => i !== index)
     setForm({
@@ -112,6 +113,7 @@ export function CMSPastClientsTab({ onNavigate }: { onNavigate: (tab: string) =>
       photos: newPhotos,
       coverPhoto: form.coverPhoto === removed ? (newPhotos[0] || "") : form.coverPhoto,
     })
+    await removeImage(removed)
   }
 
   const setAsCover = (url: string) => {
@@ -329,14 +331,14 @@ export function CMSPastClientsTab({ onNavigate }: { onNavigate: (tab: string) =>
                   </div>
                 )}
 
-                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 bg-white py-4 transition hover:border-pink-300 hover:bg-pink-50/30">
-                  <input type="file" accept="image/*" onChange={handlePhotoUpload} hidden />
+                <label className={`flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 bg-white py-4 transition hover:border-pink-300 hover:bg-pink-50/30 ${uploadingPhotos ? "opacity-50 pointer-events-none" : ""}`}>
+                  <input type="file" accept="image/*" onChange={handlePhotoUpload} hidden disabled={uploadingPhotos} />
                   <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-pink-50 text-pink-600">
-                    <Upload className="h-4 w-4" />
+                    {uploadingPhotos ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-slate-700">Add Photo</p>
-                    <p className="text-[10px] font-semibold text-slate-500">Max 2.5MB each</p>
+                    <p className="text-xs font-bold text-slate-700">{uploadingPhotos ? "Uploading..." : "Add Photo"}</p>
+                    <p className="text-[10px] font-semibold text-slate-500">{uploadingPhotos ? "Please wait..." : "Max 2.5MB each"}</p>
                   </div>
                 </label>
               </div>
