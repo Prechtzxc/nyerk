@@ -966,7 +966,7 @@ function normalizeBookingForNewFields(booking: Booking): Booking {
   const savedReceipt = booking.receipt;
   const computedEndDate = officeBooking
     ? calculateOfficeEndDate(booking.date, booking.officeRentalTerm)
-    : undefined;
+    : "";
 
   const normalized: Booking = {
     ...booking,
@@ -1003,15 +1003,15 @@ function normalizeBookingForNewFields(booking: Booking): Booking {
       booking.bookingCategory || (officeBooking ? "office" : "venue"),
     isOfficeRental: booking.isOfficeRental ?? officeBooking,
     officeRentalTerm:
-      booking.officeRentalTerm || (officeBooking ? "6_months" : undefined),
+      (booking.officeRentalTerm || (officeBooking ? "6_months" : "")) as OfficeRentalTerm,
     monthlyRent:
       booking.monthlyRent ||
-      (officeBooking ? getSafePrice(booking.totalPrice) : undefined),
+      (officeBooking ? getSafePrice(booking.totalPrice) : 0),
     officeReservationFee:
       booking.officeReservationFee ||
-      (officeBooking ? getSafePrice(booking.totalPrice) : undefined),
+      (officeBooking ? getSafePrice(booking.totalPrice) : 0),
     officeReservationStatus:
-      booking.officeReservationStatus ||
+      (booking.officeReservationStatus ||
       (officeBooking
         ? booking.status === "reservation_secured"
           ? "reservation_secured"
@@ -1020,14 +1020,14 @@ function normalizeBookingForNewFields(booking: Booking): Booking {
               booking.paymentStatus === "cash_pending"
             ? "pending_verification"
             : "unpaid"
-        : undefined),
+        : "")) as OfficeReservationStatus,
     officeContractSigningRequired:
       booking.officeContractSigningRequired ?? officeBooking,
     officePaymentInstructions:
       booking.officePaymentInstructions ||
       (officeBooking
         ? "After the reservation slot is secured, succeeding office rental payments are settled onsite via check and recorded by admin."
-        : undefined),
+        : ""),
     officePaymentTracker: booking.officePaymentTracker || [],
     bookingStatus: booking.bookingStatus || getDisplayBookingStatus(booking),
     isSlotSecured: booking.isSlotSecured ?? isBookingSlotSecured(booking),
@@ -1037,7 +1037,7 @@ function normalizeBookingForNewFields(booking: Booking): Booking {
     refundStatus: booking.refundStatus || "Not Applicable",
     refundEligibilityNote:
       booking.refundEligibilityNote ||
-      (booking.cancellationRequested ? getRefundEligibilityNote(booking.date) : undefined),
+      (booking.cancellationRequested ? getRefundEligibilityNote(booking.date) : ""),
     refundMode: booking.refundMode || booking.refundMethod,
     refundClaimNote: booking.refundClaimNote || booking.refundInstructions,
   };
@@ -1241,7 +1241,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     const newBooking: Booking = {
       ...bookingData,
       id: newId,
-      endDate: bookingData.endDate || (isOfficeBooking(bookingData as Booking) ? calculateOfficeEndDate(bookingData.date, (bookingData as Booking).officeRentalTerm) : undefined),
+      endDate: bookingData.endDate || (isOfficeBooking(bookingData as Booking) ? calculateOfficeEndDate(bookingData.date, (bookingData as Booking).officeRentalTerm) : ""),
       status: bookingData.status || "pending",
       bookingStatus: bookingData.bookingStatus || "Pending Verification",
       isSlotSecured: bookingData.isSlotSecured || false,

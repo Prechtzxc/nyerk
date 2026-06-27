@@ -754,7 +754,7 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
     const isOfficeBooking = isOffice
     const rentalTerm = isOfficeBooking
       ? rentalTermMap[selectedDuration] || "6_months"
-      : undefined
+      : ""
 
     const resolvedNatureOfBusiness = eventType === "others" ? customEventType.trim() : eventType
 
@@ -766,12 +766,12 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
         : selectedItem.name,
       eventName: eventName.trim() || "Space Rental",
       eventType: resolvedNatureOfBusiness,
-      companyName: isOfficeBooking ? eventName.trim() : undefined,
-      natureOfBusiness: isOfficeBooking ? resolvedNatureOfBusiness : undefined,
+      companyName: isOfficeBooking ? eventName.trim() : "",
+      natureOfBusiness: isOfficeBooking ? resolvedNatureOfBusiness : "",
       customEventType: isOfficeBooking && eventType === "others" ? customEventType.trim() : "",
       guestCount: isOfficeBooking ? 1 : Number(guests || 1),
       date: selectedDate,
-      endDate: isOfficeBooking ? calculateOfficeEndDate(selectedDate, rentalTerm as any) : undefined,
+      endDate: isOfficeBooking ? calculateOfficeEndDate(selectedDate, rentalTerm as any) : "",
       time: selectedDuration,
       startTime: isOfficeBooking
         ? ""
@@ -787,8 +787,8 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
       bookingStatus: "Pending Verification" as any,
       isSlotSecured: false,
       paymentStatus: "unpaid" as any,
-      paymentType: isOfficeBooking ? ("slot_reservation" as any) : undefined,
-      paymentMethod: undefined,
+      paymentType: isOfficeBooking ? ("slot_reservation" as any) : "",
+      paymentMethod: "",
       amountPaid: 0,
       remainingBalance: isOfficeBooking ? 0 : selectedItem.price,
       remainingBalancePaid: false,
@@ -814,7 +814,7 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
       refundStatus: "Not Applicable" as any,
       officePaymentNote: isOfficeBooking
         ? "This system payment is for slot reservation only. Succeeding office rental payments are settled onsite via check after contract signing."
-        : undefined,
+        : "",
       adminLogs: isOfficeBooking
         ? [
             {
@@ -862,11 +862,15 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
         router.push(`/portal/payments?bookingId=${newId}`)
       }, 150)
     } catch (error) {
-      console.error("Booking submit error:", error)
+      const err = error as any;
+      console.error(err);
+      console.error(err.code);
+      console.error(err.message);
+      console.error(err.stack);
 
       toast({
         title: "Error",
-        description: "Failed to submit booking. Please try again.",
+        description: err.message || "Failed to submit booking. Please try again.",
         variant: "destructive",
       })
     } finally {
