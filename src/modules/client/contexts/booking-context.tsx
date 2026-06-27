@@ -975,7 +975,7 @@ function normalizeBookingForNewFields(booking: Booking): Booking {
     downpaymentPaid: booking.downpaymentPaid ?? 0,
     downpaymentRemaining: booking.downpaymentRemaining ?? 0,
     paymentStage: booking.paymentStage ?? "Initial Payment",
-    receipt: booking.receipt || savedReceipt,
+    receipt: booking.receipt || savedReceipt || (null as unknown as BookingReceipt | undefined),
     receiptIssued: booking.receiptIssued ?? Boolean(savedReceipt),
     receiptNumber: booking.receiptNumber || savedReceipt?.receiptNumber,
     receiptIssuedAt: booking.receiptIssuedAt || savedReceipt?.dateGenerated || savedReceipt?.dateIssued,
@@ -1071,6 +1071,11 @@ function normalizeBookingForNewFields(booking: Booking): Booking {
     }
   }
 
+  for (const key of Object.keys(normalized)) {
+    if ((normalized as any)[key] === undefined) {
+      (normalized as any)[key] = null;
+    }
+  }
   return normalized;
 }
 
