@@ -772,7 +772,7 @@ async function loadReceipts(): Promise<BookingReceipt[]> {
         endDate: d.endDate || "",
         rentalType: d.rentalType || "",
         bookingType: d.bookingType || "",
-        contractTerm: d.contractTerm,
+        contractTerm: d.contractTerm || "",
         paymentPurpose: d.paymentPurpose || "",
         paymentMethod: d.paymentMethod || "",
         amountPaid: d.amountPaid || 0,
@@ -825,7 +825,7 @@ async function getStoredReceiptByBookingId(bookingId: string): Promise<BookingRe
           endDate: d.endDate || "",
           rentalType: d.rentalType || "",
           bookingType: d.bookingType || "",
-          contractTerm: d.contractTerm,
+          contractTerm: d.contractTerm || "",
           paymentPurpose: d.paymentPurpose || "",
           paymentMethod: d.paymentMethod || "",
           amountPaid: d.amountPaid || 0,
@@ -909,8 +909,8 @@ function getReceiptAmount(booking: Booking) {
 function buildAutoReceipt(booking: Booking, generatedAt = new Date().toISOString()) {
   const existingReceipt = booking.receipt;
   const officeBooking = isOfficeBooking(booking);
-  const officeTerm = officeBooking ? booking.officeRentalTerm || "6_months" : undefined;
-  const contractTerm = officeBooking ? formatOfficeContractTerm(officeTerm) : undefined;
+  const officeTerm = officeBooking ? booking.officeRentalTerm || "6_months" : "";
+  const contractTerm = officeBooking ? formatOfficeContractTerm(officeTerm as OfficeRentalTerm) : "";
   const receiptNumber =
     existingReceipt?.receiptNumber ||
     `ER-${new Date(generatedAt).getFullYear()}-${String(Date.now()).slice(-6)}`;
@@ -922,7 +922,7 @@ function buildAutoReceipt(booking: Booking, generatedAt = new Date().toISOString
     bookingDate: booking.createdAt || generatedAt,
     startDate: booking.date || "Not set",
     endDate: officeBooking
-      ? addMonthsToDate(booking.date, getOfficeTermMonths(officeTerm))
+      ? addMonthsToDate(booking.date, getOfficeTermMonths(officeTerm as OfficeRentalTerm))
       : booking.date || "Not set",
     rentalType: officeBooking ? "Office Space Rental" : "Event Venue Booking",
     bookingType: officeBooking ? "Office Space Rental" : booking.eventType || "Event Venue Booking",
@@ -1155,11 +1155,24 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     let writeCount = 0
     let deleteCount = 0
 
+    function findUndefined(obj: Record<string, unknown>, path = "") {
+      for (const [key, value] of Object.entries(obj)) {
+        const current = path ? `${path}.${key}` : key;
+        if (value === undefined) {
+          console.error("[Undefined Field]", current);
+        }
+        if (value && typeof value === "object" && !Array.isArray(value)) {
+          findUndefined(value as Record<string, unknown>, current);
+        }
+      }
+    }
+
     try {
       for (const [id, next] of nextMap) {
         const prev = prevMap.get(id)
         if (!prev || JSON.stringify(prev) !== JSON.stringify(next)) {
           const { id: _id, ...data } = next
+          findUndefined(data as Record<string, unknown>);
           const docRef = doc(bookingsRef, id)
           console.log("[Booking:saveBookings] batch.set — path:", docRef.path, "userId:", data.userId)
           writeCount++
@@ -1473,7 +1486,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     const isSlotSecured = isBookingSlotSecured(targetBooking);
     const eventDate = getBookingEventDate(targetBooking);
     const daysBefore = calculateDaysBeforeEvent(eventDate);
-    const eligibilityNote = isSlotSecured ? getRefundEligibilityNote(eventDate) : undefined;
+    const eligibilityNote = isSlotSecured ? getRefundEligibilityNote(eventDate) : "";
     const likelyEligible = isSlotSecured ? daysBefore >= REFUND_ELIGIBLE_DAYS : false;
     const now = new Date().toISOString();
 
@@ -1499,8 +1512,8 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         adminCancelDecision: null,
         adminCancelReason: "",
         refundEligible: likelyEligible,
-        refundMethod: isSlotSecured && likelyEligible ? "Cash" : undefined,
-        refundMode: isSlotSecured && likelyEligible ? "Cash" : undefined,
+        refundMethod: isSlotSecured && likelyEligible ? "Cash" : null,
+        refundMode: isSlotSecured && likelyEligible ? "Cash" : null,
         refundStatus: "Pending Review" as RefundStatus,
         refundEligibilityNote: eligibilityNote,
         refundClaimNote: isSlotSecured
@@ -1508,7 +1521,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
             ? "If approved by admin, refund may be claimed onsite in cash within the allowed processing period."
             : "No refund will be processed if admin confirms the request is non-refundable based on policy."
           : "No payment has been made, so no refund is applicable.",
-        daysBeforeEventAtCancellation: isSlotSecured ? daysBefore : undefined,
+        daysBeforeEventAtCancellation: isSlotSecured ? daysBefore : null,
         updatedAt: now,
         adminLogs: makeAdminLog(
           booking,
@@ -1546,10 +1559,10 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         adminCancelDecision: "approved",
         adminCancelReason: "",
         refundEligible: eligible,
-        refundMethod: eligible ? ("Cash" as const) : undefined,
-        refundMode: eligible ? ("Cash" as const) : undefined,
+        refundMethod: eligible ? ("Cash" as const) : null,
+        refundMode: eligible ? ("Cash" as const) : null,
         refundStatus: eligible ? ("Refund Eligible" as RefundStatus) : ("Non-Refundable" as RefundStatus),
-        refundReadyDate: eligible ? readyDate : undefined,
+        refundReadyDate: eligible ? readyDate : null,
         refundEligibilityNote: eligible
           ? "May be eligible for refund"
           : "Non-refundable based on policy",
@@ -1603,21 +1616,21 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         cancellationStatusLabel: "Declined",
         cancellationReviewedAt: new Date().toISOString(),
         cancellationDeclinedAt: new Date().toISOString(),
-        cancellationCooldownUntil: addDays(new Date(), 0).getTime() ? new Date(Date.now() + 60 * 60 * 1000).toISOString() : undefined,
+        cancellationCooldownUntil: addDays(new Date(), 0).getTime() ? new Date(Date.now() + 60 * 60 * 1000).toISOString() : null,
         cancellationDeclineReason: reason.trim(),
         refundStatus: "Not Applicable" as RefundStatus,
-        refundEligibilityNote: undefined,
-        refundClaimNote: undefined,
-        previousStatus: undefined,
-        previousBookingStatus: undefined,
-        previousPaymentStatus: undefined,
+        refundEligibilityNote: null,
+        refundClaimNote: null,
+        previousStatus: null,
+        previousBookingStatus: null,
+        previousPaymentStatus: null,
         updatedAt: new Date().toISOString(),
         adminLogs: makeAdminLog(
           booking,
           "DECLINE_CANCELLATION_REQUEST",
           `Cancellation request declined. Reason: ${reason.trim()}`,
         ),
-      } as Booking;
+      } as unknown as Booking;
 
       return restoredBooking;
     });
@@ -1690,10 +1703,10 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         modificationRequested: false,
         modificationStatus: "Approved" as ModificationStatus,
         modificationReviewedAt: new Date().toISOString(),
-        modificationPreviousStatus: undefined,
-        modificationPreviousBookingStatus: undefined,
-        requestedChanges: undefined,
-        originalBookingSnapshot: undefined,
+        modificationPreviousStatus: null,
+        modificationPreviousBookingStatus: null,
+        requestedChanges: null,
+        originalBookingSnapshot: null,
         updatedAt: new Date().toISOString(),
         adminLogs: makeAdminLog(
           booking,
@@ -1729,10 +1742,10 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         modificationStatus: "Declined" as ModificationStatus,
         modificationDeclineReason: reason.trim(),
         modificationReviewedAt: new Date().toISOString(),
-        modificationPreviousStatus: undefined,
-        modificationPreviousBookingStatus: undefined,
-        requestedChanges: undefined,
-        originalBookingSnapshot: undefined,
+        modificationPreviousStatus: null,
+        modificationPreviousBookingStatus: null,
+        requestedChanges: null,
+        originalBookingSnapshot: null,
         updatedAt: new Date().toISOString(),
         adminLogs: makeAdminLog(
           booking,
@@ -2463,9 +2476,9 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
             actualPaymentMethod: "Cash / Onsite",
             paymentSubmissionType: "onsite" as const,
             paymentType: "slot_reservation" as const,
-            paymentProof: undefined,
-            proofOfPayment: undefined,
-            bankReferenceNumber: undefined,
+            paymentProof: null,
+            proofOfPayment: null,
+            bankReferenceNumber: null,
             paymentAmount: 0,
             paymentSubmittedAt: new Date().toISOString(),
             amountPaid: 0,
@@ -2552,9 +2565,9 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
             paymentSubmissionType: "onsite" as const,
             paymentMethod: "cash" as const,
             actualPaymentMethod: "Cash / Onsite",
-            paymentProof: undefined,
-            proofOfPayment: undefined,
-            bankReferenceNumber: undefined,
+            paymentProof: null,
+            proofOfPayment: null,
+            bankReferenceNumber: null,
             paymentAmount: Number(dpAmount),
             pendingPaymentAmount: Number(dpAmount),
             paymentSubmittedAt: new Date().toISOString(),
@@ -2614,9 +2627,9 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
             paymentSubmissionType: "onsite" as const,
             paymentMethod: "cash" as const,
             actualPaymentMethod: "Cash / Onsite",
-            paymentProof: undefined,
-            proofOfPayment: undefined,
-            bankReferenceNumber: undefined,
+            paymentProof: null,
+            proofOfPayment: null,
+            bankReferenceNumber: null,
             paymentAmount: paymentAmount,
             pendingPaymentAmount: paymentAmount,
             paymentSubmittedAt: new Date().toISOString(),
@@ -2665,9 +2678,9 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           paymentSubmissionType: "onsite" as const,
           paymentMethod: "cash" as const,
           actualPaymentMethod: "Cash / Onsite",
-          paymentProof: undefined,
-          proofOfPayment: undefined,
-          bankReferenceNumber: undefined,
+          paymentProof: null,
+          proofOfPayment: null,
+          bankReferenceNumber: null,
           paymentAmount: Number(paymentData.amount || total),
           pendingPaymentAmount: Number(paymentData.amount || total),
           paymentSubmittedAt: new Date().toISOString(),
