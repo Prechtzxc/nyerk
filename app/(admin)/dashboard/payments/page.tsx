@@ -112,6 +112,7 @@ export default function AdminPaymentsPage() {
       id: pr.bookingId || pr.id,
       bookingId: pr.bookingId,
       bookingCode: pr.bookingCode,
+      userInfo: undefined,
       eventName: pr.eventName || "",
       venue: pr.venueName || "",
       venueName: pr.venueName || "",
@@ -189,8 +190,6 @@ export default function AdminPaymentsPage() {
         booking?.paymentType,
         booking?.paymentStatus,
         booking?.bankReferenceNumber,
-        booking?.referenceNumber,
-        booking?.transactionReferenceNumber,
         booking?.userInfo?.name,
         booking?.userInfo?.email,
       ]
