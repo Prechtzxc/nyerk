@@ -144,7 +144,7 @@ export default function AdminPaymentsPage() {
     const seen = new Set<string>()
     const allPaymentRecords = paymentRecords
     const deduped = merged.filter((item) => {
-      const key = item.id || item.bookingId || ""
+      const key = item.id || ""
       if (seen.has(key)) return false
       seen.add(key)
 
