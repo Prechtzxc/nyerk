@@ -431,6 +431,7 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
   const [notes, setNotes] = useState("")
   const [agreed, setAgreed] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const isSubmittingRef = useRef(false)
   const [isBookingConfirmOpen, setIsBookingConfirmOpen] = useState(false)
   const [pendingBookingPayload, setPendingBookingPayload] = useState<any | null>(null)
   
@@ -662,7 +663,7 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
   const executeSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (isSubmitting) return
+    if (isSubmittingRef.current) return
 
     if (!user) {
       toast({
@@ -831,10 +832,11 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
   }
 
   const confirmBookingSubmission = async () => {
-    if (!pendingBookingPayload || isSubmitting) return
+    if (!pendingBookingPayload || isSubmittingRef.current) return
 
     try {
       setIsSubmitting(true)
+      isSubmittingRef.current = true
 
       const newId = await addBooking(pendingBookingPayload as any)
 
@@ -868,6 +870,7 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
         variant: "destructive",
       })
     } finally {
+      isSubmittingRef.current = false
       setIsSubmitting(false)
     }
   }

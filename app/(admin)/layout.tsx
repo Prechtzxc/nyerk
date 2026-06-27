@@ -6,7 +6,6 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useAuth } from "@/src/modules/shared/auth/auth-context"
 import { useChat } from "@/src/modules/shared/contexts/chat-context"
-import { GlobalProvider } from "@/src/modules/shared/components/global-provider"
 import { StaffProvider } from "@/src/modules/admin/contexts/staff-context"
 
 import {
@@ -99,7 +98,6 @@ export default function AdminLayout({
   const profilePicture = user.profilePicture
 
   return (
-    <GlobalProvider>
       <div className="relative flex h-screen w-full flex-col overflow-hidden bg-slate-50">
         {/* ORANGE HEADER matching client portal */}
         <header className="z-50 flex h-16 shrink-0 items-center justify-between bg-gradient-to-r from-orange-600 via-orange-600 to-orange-700 text-white shadow-lg">
@@ -258,6 +256,6 @@ export default function AdminLayout({
           description="Are you sure you want to log out of the admin console? You will be returned to the home page."
         />
       </div>
-    </GlobalProvider>
   )
 }
+
