@@ -499,7 +499,18 @@ export const CMSProvider = ({ children }: { children: React.ReactNode }) => {
     setCachedVenuesAndOffices(normalizedData.venues, normalizedData.offices)
 
     try {
+      console.log("=== CMS WRITE ===")
+      console.log("PATH:", cmsDocRef.path)
+      console.log("homepage:", normalizedData.homepage)
+      console.log("footer:", normalizedData.footer)
+      console.log("FULL:", normalizedData)
+
       await setDoc(cmsDocRef, normalizedData)
+
+      const verify = await getDoc(cmsDocRef)
+      console.log("=== CMS READ BACK ===")
+      console.log(verify.data())
+
       toast({
         title: "Content Saved",
         description: "Changes have been successfully published.",
