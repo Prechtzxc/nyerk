@@ -278,18 +278,18 @@ export function PublicLayout({ children }: PublicLayoutProps) {
               <li className="flex items-start gap-3">
                 <MapPin className="h-5 w-5 shrink-0 text-orange-500" />
                 <span>
-                  {cmsData?.footer?.address || "123 Event Street, City, State 12345"}
+                  {cmsData?.footer?.address || "Carmona, Calabarzon, Philippines"}
                 </span>
               </li>
 
               <li className="flex items-center gap-3">
                 <Phone className="h-5 w-5 shrink-0 text-orange-500" />
-                <span>{cmsData?.footer?.phone || "(555) 123-4567"}</span>
+                <span>{cmsData?.footer?.phone || "+63 917 123 4567"}</span>
               </li>
 
               <li className="flex items-center gap-3">
                 <Mail className="h-5 w-5 shrink-0 text-orange-500" />
-                <span>{cmsData?.footer?.email || "info@oneestela.com"}</span>
+                <span>{cmsData?.footer?.email || "inquiries@oneestelaplace.com"}</span>
               </li>
             </ul>
           </div>

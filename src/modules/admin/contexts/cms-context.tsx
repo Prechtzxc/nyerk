@@ -481,8 +481,8 @@ phone: normalized.footer.phone,
 email: normalized.footer.email,
 })
           setCmsData(normalized)
-          setCachedPolicies(normalized.policies)
-          setCachedVenuesAndOffices(normalized.venues, normalized.offices)
+          try { setCachedPolicies(normalized.policies) } catch (e) { console.error("FAILED setCachedPolicies", e) }
+          try { setCachedVenuesAndOffices(normalized.venues, normalized.offices) } catch (e) { console.error("FAILED setCachedVenuesAndOffices", e) }
         } else {
           console.log("=== CMS CONTEXT (default) ===", {
 heroTitle: defaultCMSData.homepage.heroTitle,
@@ -497,7 +497,10 @@ email: defaultCMSData.footer.email,
           setCachedVenuesAndOffices(defaultCMSData.venues, defaultCMSData.offices)
         }
       } catch (error) {
-        console.error(error)
+        console.error("CMS LOAD ERROR", error)
+        if (error instanceof Error) {
+          console.error(error.stack)
+        }
         setCmsData(defaultCMSData)
       }
     }

@@ -220,59 +220,8 @@ email: cmsData?.footer?.email,
 })
   const [galleryBooking, setGalleryBooking] = useState<PastClientBooking | null>(null)
 
-  const homepage = cmsData?.homepage || {
-    heroTitle: "Welcome to One Estela Place",
-    heroSubtitle: "The perfect venue for your special events and celebrations.",
-    heroImage: "/images/venue-interior.jpg",
-    heroBadge: "Event Venue · San Pedro, Laguna",
-    heroPrimaryCta: "Book Your Event",
-    heroSecondaryCta: "Take a Tour",
-    aboutLabel: "Our Story",
-    aboutTitle: "One Estela Place Event Venue",
-    aboutDescription: "One Estela Place is an event venue in San Pedro, Laguna, established in 2018. It was created to provide a clean, comfortable, and elegant space for special occasions and gatherings.\n\nThe venue focuses on space rental, giving clients the freedom to arrange their own decorations, suppliers, catering, and event setup based on their preferred style.",
-    aboutImage: "/images/venue-chandelier.png",
-    galleryLabel: "Past Client Bookings",
-    galleryTitle: "Real Events Hosted at One Estela Place",
-    gallerySubtitle: "Actual client celebrations and gatherings held at our event venue, uploaded by the admin with client permission.",
-    faqLabel: "Help Center",
-    faqTitle: "Frequently Asked Questions",
-    faqSubtitle: "Find answers to common questions about booking at One Estela Place.",
-    ctaTitle: "Ready to plan your next event?",
-    ctaDescription: "Explore the venue through our virtual tour or send a booking request to start your reservation.",
-    ctaButtonText: "Book Your Event",
-    ctaText: "Take a Tour",
-  }
-
-  const faqs =
-    cmsData?.faqs?.length > 0
-      ? cmsData.faqs
-      : [
-          {
-            question: "How long is the standard venue rental?",
-            answer:
-              "The standard venue rental is 6 hours. Setup, program, and cleanup should fit within the approved booking schedule.",
-          },
-          {
-            question: "What is included in the venue rental?",
-            answer:
-              "One Estela Place focuses on venue space rental only. Clients may arrange their own decorations, catering, suppliers, and event services.",
-          },
-          {
-            question: "Do you provide catering services?",
-            answer:
-              "No. Catering is not included. Clients may bring or coordinate with their preferred caterer based on venue guidelines.",
-          },
-          {
-            question: "Can I visit the venue before booking?",
-            answer:
-              "Yes. Clients may schedule an ocular visit before finalizing their reservation.",
-          },
-          {
-            question: "How does booking confirmation work?",
-            answer:
-              "A booking request will be reviewed first. Once approved and payment requirements are verified, the booking may be marked as confirmed.",
-          },
-        ]
+  const homepage = cmsData.homepage
+  const faqs = cmsData.faqs
 
   const pastClientBookings = useMemo(() => {
     const bookings = Array.isArray(cmsData?.pastClientBookings) ? cmsData.pastClientBookings : []
@@ -310,16 +259,15 @@ email: cmsData?.footer?.email,
 
         <div className="container relative z-10 mx-auto px-4 py-24 text-center">
           <div className="mx-auto mb-5 w-fit rounded-full border border-white/20 bg-white/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.22em] text-orange-100 backdrop-blur">
-            {homepage.heroBadge || "Event Venue · San Pedro, Laguna"}
+            {homepage.heroBadge}
           </div>
 
           <h1 className="mx-auto mb-6 max-w-4xl whitespace-pre-line text-4xl font-black leading-tight text-white drop-shadow-lg md:text-6xl">
-            {homepage.heroTitle || "Welcome to One Estela Place"}
+            {homepage.heroTitle}
           </h1>
 
           <p className="mx-auto mb-8 max-w-2xl text-base font-semibold leading-8 text-white/90 drop-shadow-md md:text-xl">
-            {homepage.heroSubtitle ||
-              "The perfect venue for your special events and celebrations."}
+            {homepage.heroSubtitle}
           </p>
 
           <div className="mx-auto flex w-full max-w-sm flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center">
@@ -327,14 +275,14 @@ email: cmsData?.footer?.email,
               className="h-12 w-full justify-center rounded-full border-0 bg-white px-7 text-sm font-black text-orange-600 shadow-lg transition hover:bg-orange-50 sm:w-auto"
               size="lg"
             >
-              {homepage.heroPrimaryCta || "Book Your Event"}
+              {homepage.heroPrimaryCta}
             </ReserveButton>
 
             <TourButton
               className="h-12 w-full justify-center rounded-full border-0 bg-orange-600 px-7 text-sm font-black text-white shadow-lg shadow-orange-600/30 transition hover:bg-orange-700 sm:w-auto"
               size="lg"
             >
-              {homepage.heroSecondaryCta || "Take a Tour"}
+              {homepage.heroSecondaryCta}
             </TourButton>
           </div>
         </div>
@@ -345,17 +293,17 @@ email: cmsData?.footer?.email,
           <div className="grid items-center gap-12 lg:grid-cols-2">
             <div>
               <p className="mb-2 text-xs font-black uppercase tracking-[0.25em] text-orange-600">
-                {homepage.aboutLabel || "Our Story"}
+                {homepage.aboutLabel}
               </p>
 
               <h2 className="mb-4 text-4xl font-black text-slate-950">
-                {homepage.aboutTitle || "One Estela Place Event Venue"}
+                {homepage.aboutTitle}
               </h2>
 
               <div className="mb-8 h-1.5 w-20 rounded-full bg-orange-600" />
 
               <div className="space-y-6 text-lg leading-relaxed text-slate-600">
-                {(homepage.aboutDescription || "").split("\n\n").filter(Boolean).map((para: string, i: number) => (
+                {homepage.aboutDescription.split("\n\n").filter(Boolean).map((para: string, i: number) => (
                   <p key={i}>{para}</p>
                 ))}
               </div>
@@ -381,15 +329,15 @@ email: cmsData?.footer?.email,
             <div>
               <p className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-[0.25em] text-orange-600">
                 <Sparkles className="h-4 w-4" />
-                {homepage.galleryLabel || "Past Client Bookings"}
+                {homepage.galleryLabel}
               </p>
 
               <h2 className="text-4xl font-black tracking-tight text-slate-950">
-                {homepage.galleryTitle || "Real Events Hosted at One Estela Place"}
+                {homepage.galleryTitle}
               </h2>
 
               <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-500">
-                {homepage.gallerySubtitle || "Actual client celebrations and gatherings held at our event venue, uploaded by the admin with client permission."}
+                {homepage.gallerySubtitle}
               </p>
             </div>
 
@@ -473,15 +421,15 @@ email: cmsData?.footer?.email,
         <div className="container mx-auto max-w-4xl px-4">
           <div className="mb-12 text-center">
             <p className="mb-2 text-xs font-black uppercase tracking-[0.25em] text-orange-600">
-              {homepage.faqLabel || "Help Center"}
+              {homepage.faqLabel}
             </p>
 
             <h2 className="mb-4 text-4xl font-black text-slate-950">
-              {homepage.faqTitle || "Frequently Asked Questions"}
+              {homepage.faqTitle}
             </h2>
 
             <p className="text-lg text-slate-600">
-              {homepage.faqSubtitle || "Find answers to common questions about booking at One Estela Place."}
+              {homepage.faqSubtitle}
             </p>
           </div>
 
@@ -510,11 +458,11 @@ email: cmsData?.footer?.email,
           <Camera className="mx-auto mb-5 h-12 w-12 text-orange-500" />
 
           <h2 className="text-3xl font-black md:text-4xl">
-            {homepage.ctaTitle || "Ready to plan your next event?"}
+            {homepage.ctaTitle}
           </h2>
 
           <p className="mx-auto mt-3 max-w-2xl text-sm font-semibold leading-7 text-slate-300">
-            {homepage.ctaDescription || "Explore the venue through our virtual tour or send a booking request to start your reservation."}
+            {homepage.ctaDescription}
           </p>
 
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
@@ -522,14 +470,14 @@ email: cmsData?.footer?.email,
               className="h-12 rounded-full bg-orange-600 px-7 text-sm font-black text-white hover:bg-orange-700"
               size="lg"
             >
-              {homepage.ctaButtonText || homepage.heroPrimaryCta || "Book Your Event"}
+              {homepage.ctaButtonText}
             </ReserveButton>
 
             <TourButton
               className="h-12 rounded-full border border-white/20 bg-white px-7 text-sm font-black text-slate-950 hover:bg-orange-50"
               size="lg"
             >
-              {homepage.ctaText || homepage.heroSecondaryCta || "Take a Tour"}
+              {homepage.ctaText}
             </TourButton>
           </div>
         </div>
