@@ -211,6 +211,13 @@ export default function HomePage() {
 
 function LandingPageContent() {
   const { cmsData } = useCMS()
+  console.log("=== LANDING ===", {
+heroTitle: cmsData?.homepage?.heroTitle,
+heroSubtitle: cmsData?.homepage?.heroSubtitle,
+address: cmsData?.footer?.address,
+phone: cmsData?.footer?.phone,
+email: cmsData?.footer?.email,
+})
   const [galleryBooking, setGalleryBooking] = useState<PastClientBooking | null>(null)
 
   const homepage = cmsData?.homepage || {

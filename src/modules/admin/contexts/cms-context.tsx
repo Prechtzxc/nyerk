@@ -473,10 +473,24 @@ export const CMSProvider = ({ children }: { children: React.ReactNode }) => {
         if (docSnap.exists()) {
           const parsed = docSnap.data() as CMSData
           const normalized = normalizeCMSData(parsed)
+          console.log("=== CMS CONTEXT ===", {
+heroTitle: normalized.homepage.heroTitle,
+heroSubtitle: normalized.homepage.heroSubtitle,
+address: normalized.footer.address,
+phone: normalized.footer.phone,
+email: normalized.footer.email,
+})
           setCmsData(normalized)
           setCachedPolicies(normalized.policies)
           setCachedVenuesAndOffices(normalized.venues, normalized.offices)
         } else {
+          console.log("=== CMS CONTEXT (default) ===", {
+heroTitle: defaultCMSData.homepage.heroTitle,
+heroSubtitle: defaultCMSData.homepage.heroSubtitle,
+address: defaultCMSData.footer.address,
+phone: defaultCMSData.footer.phone,
+email: defaultCMSData.footer.email,
+})
           setCmsData(defaultCMSData)
           await setDoc(cmsDocRef, defaultCMSData)
           setCachedPolicies(defaultCMSData.policies)
@@ -499,17 +513,24 @@ export const CMSProvider = ({ children }: { children: React.ReactNode }) => {
     setCachedVenuesAndOffices(normalizedData.venues, normalizedData.offices)
 
     try {
-      console.log("=== CMS WRITE ===")
-      console.log("PATH:", cmsDocRef.path)
-      console.log("homepage:", normalizedData.homepage)
-      console.log("footer:", normalizedData.footer)
-      console.log("FULL:", normalizedData)
+      console.log("=== CMS WRITE ===", {
+heroTitle: normalizedData.homepage.heroTitle,
+heroSubtitle: normalizedData.homepage.heroSubtitle,
+address: normalizedData.footer.address,
+phone: normalizedData.footer.phone,
+email: normalizedData.footer.email,
+})
 
       await setDoc(cmsDocRef, normalizedData)
 
       const verify = await getDoc(cmsDocRef)
-      console.log("=== CMS READ BACK ===")
-      console.log(verify.data())
+      console.log("=== CMS READ BACK ===", {
+heroTitle: verify.data()?.homepage?.heroTitle,
+heroSubtitle: verify.data()?.homepage?.heroSubtitle,
+address: verify.data()?.footer?.address,
+phone: verify.data()?.footer?.phone,
+email: verify.data()?.footer?.email,
+})
 
       toast({
         title: "Content Saved",
