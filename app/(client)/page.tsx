@@ -303,7 +303,7 @@ email: cmsData?.footer?.email,
               <div className="mb-8 h-1.5 w-20 rounded-full bg-orange-600" />
 
               <div className="space-y-6 text-lg leading-relaxed text-slate-600">
-                {homepage.aboutDescription.split("\n\n").filter(Boolean).map((para: string, i: number) => (
+                {(homepage.aboutDescription ?? "").split("\n\n").filter(Boolean).map((para: string, i: number) => (
                   <p key={i}>{para}</p>
                 ))}
               </div>
