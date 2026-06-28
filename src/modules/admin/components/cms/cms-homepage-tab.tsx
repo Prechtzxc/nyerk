@@ -11,7 +11,7 @@ import { CMSSectionHeader } from "./cms-section-header"
 import { CMSImageUpload } from "./cms-image-upload"
 
 export function CMSHomepageTab({ onNavigate }: { onNavigate: (tab: string) => void }) {
-  const { cmsData, updateHomepage, updateFooter } = useCMS()
+  const { cmsData, saveCMSData } = useCMS()
   const { toast } = useToast()
   const [form, setForm] = useState(cmsData.homepage)
   const [footer, setFooter] = useState(cmsData.footer)
@@ -19,8 +19,11 @@ export function CMSHomepageTab({ onNavigate }: { onNavigate: (tab: string) => vo
   useEffect(() => { setForm(cmsData.homepage); setFooter(cmsData.footer) }, [cmsData.homepage, cmsData.footer])
 
   const handleSave = () => {
-    updateHomepage(form)
-    updateFooter(footer)
+    saveCMSData({
+      ...cmsData,
+      homepage: form,
+      footer: footer,
+    })
     toast({ title: "Homepage saved", description: "Homepage content updated successfully.", className: "bg-emerald-500 text-white border-none" })
   }
 
