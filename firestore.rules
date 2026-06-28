@@ -7,11 +7,16 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Bookings collection: authenticated users can read all, write their own
+    // Bookings collection: authenticated users can read all
+    //   create: booking owner only
+    //   update: booking owner OR admin
     match /bookings/{bookingId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      allow update: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update: if request.auth != null && (
+        request.resource.data.userId == request.auth.uid ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin"
+      );
       allow delete: if false;
     }
 
