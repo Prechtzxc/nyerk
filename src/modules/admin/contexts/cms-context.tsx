@@ -1,7 +1,7 @@
 "use client"
 
 import React, { createContext, useContext, useEffect, useState } from "react"
-import { doc, getDoc, setDoc } from "firebase/firestore"
+import { doc, onSnapshot, setDoc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { useToast } from "@/src/modules/shared/hooks/use-toast"
 import { DEFAULT_POLICY_CONTENT, POLICY_LABELS, ALL_POLICY_KEYS, type PolicyKey } from "@/src/modules/shared/lib/policies"
@@ -467,13 +467,13 @@ export const CMSProvider = ({ children }: { children: React.ReactNode }) => {
   const { toast } = useToast()
 
   useEffect(() => {
-    const loadCMSData = async () => {
-      try {
-        const docSnap = await getDoc(cmsDocRef)
+    const unsubscribe = onSnapshot(
+      cmsDocRef,
+      (docSnap) => {
         if (docSnap.exists()) {
           const parsed = docSnap.data() as CMSData
           const normalized = normalizeCMSData(parsed)
-          console.log("=== CMS CONTEXT ===", {
+          console.log("=== CMS CONTEXT (snapshot) ===", {
 heroTitle: normalized.homepage.heroTitle,
 heroSubtitle: normalized.homepage.heroSubtitle,
 address: normalized.footer.address,
@@ -492,20 +492,21 @@ phone: defaultCMSData.footer.phone,
 email: defaultCMSData.footer.email,
 })
           setCmsData(defaultCMSData)
-          await setDoc(cmsDocRef, defaultCMSData)
+          setDoc(cmsDocRef, defaultCMSData)
           setCachedPolicies(defaultCMSData.policies)
           setCachedVenuesAndOffices(defaultCMSData.venues, defaultCMSData.offices)
         }
-      } catch (error) {
-        console.error("CMS LOAD ERROR", error)
+      },
+      (error) => {
+        console.error("CMS SNAPSHOT ERROR", error)
         if (error instanceof Error) {
           console.error(error.stack)
         }
         setCmsData(defaultCMSData)
       }
-    }
+    )
 
-    loadCMSData()
+    return unsubscribe
   }, [])
 
   const saveCMSData = async (newData: CMSData) => {
@@ -525,15 +526,6 @@ email: normalizedData.footer.email,
 })
 
       await setDoc(cmsDocRef, normalizedData)
-
-      const verify = await getDoc(cmsDocRef)
-      console.log("=== CMS READ BACK ===", {
-heroTitle: verify.data()?.homepage?.heroTitle,
-heroSubtitle: verify.data()?.homepage?.heroSubtitle,
-address: verify.data()?.footer?.address,
-phone: verify.data()?.footer?.phone,
-email: verify.data()?.footer?.email,
-})
 
       toast({
         title: "Content Saved",

@@ -5,14 +5,12 @@ import { Save } from "lucide-react"
 import { Button } from "@shared/components/ui/button"
 import { Input } from "@shared/components/ui/input"
 import { Textarea } from "@shared/components/ui/textarea"
-import { useToast } from "@shared/hooks/use-toast"
 import { useCMS } from "@admin/contexts/cms-context"
 import { CMSSectionHeader } from "./cms-section-header"
 import { CMSImageUpload } from "./cms-image-upload"
 
 export function CMSHomepageTab({ onNavigate }: { onNavigate: (tab: string) => void }) {
   const { cmsData, saveCMSData } = useCMS()
-  const { toast } = useToast()
   const [form, setForm] = useState(cmsData.homepage)
   const [footer, setFooter] = useState(cmsData.footer)
 
@@ -24,7 +22,6 @@ export function CMSHomepageTab({ onNavigate }: { onNavigate: (tab: string) => vo
       homepage: form,
       footer: footer,
     })
-    toast({ title: "Homepage saved", description: "Homepage content updated successfully.", className: "bg-emerald-500 text-white border-none" })
   }
 
   return (
