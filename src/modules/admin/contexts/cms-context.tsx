@@ -1,7 +1,7 @@
 "use client"
 
 import React, { createContext, useContext, useEffect, useState } from "react"
-import { doc, onSnapshot, setDoc } from "firebase/firestore"
+import { doc, getDoc, setDoc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { useToast } from "@/src/modules/shared/hooks/use-toast"
 import { DEFAULT_POLICY_CONTENT, POLICY_LABELS, ALL_POLICY_KEYS, type PolicyKey } from "@/src/modules/shared/lib/policies"
@@ -467,13 +467,13 @@ export const CMSProvider = ({ children }: { children: React.ReactNode }) => {
   const { toast } = useToast()
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(
-      cmsDocRef,
-      (docSnap) => {
+    const loadCMSData = async () => {
+      try {
+        const docSnap = await getDoc(cmsDocRef)
         if (docSnap.exists()) {
           const parsed = docSnap.data() as CMSData
           const normalized = normalizeCMSData(parsed)
-          console.log("=== CMS CONTEXT (snapshot) ===", {
+          console.log("=== CMS CONTEXT ===", {
 heroTitle: normalized.homepage.heroTitle,
 heroSubtitle: normalized.homepage.heroSubtitle,
 address: normalized.footer.address,
@@ -492,21 +492,20 @@ phone: defaultCMSData.footer.phone,
 email: defaultCMSData.footer.email,
 })
           setCmsData(defaultCMSData)
-          setDoc(cmsDocRef, defaultCMSData)
+          await setDoc(cmsDocRef, defaultCMSData)
           setCachedPolicies(defaultCMSData.policies)
           setCachedVenuesAndOffices(defaultCMSData.venues, defaultCMSData.offices)
         }
-      },
-      (error) => {
-        console.error("CMS SNAPSHOT ERROR", error)
+      } catch (error) {
+        console.error("CMS LOAD ERROR", error)
         if (error instanceof Error) {
           console.error(error.stack)
         }
         setCmsData(defaultCMSData)
       }
-    )
+    }
 
-    return unsubscribe
+    loadCMSData()
   }, [])
 
   const saveCMSData = async (newData: CMSData) => {
