@@ -683,16 +683,6 @@ function recalculatePaymentStage(booking: Booking): Booking {
 function getCurrentAmountPaid(booking: Booking) {
   if (typeof booking.amountPaid === "number") return booking.amountPaid;
 
-  if (booking.paymentType === "downpayment")
-    return getDownpaymentAmount(booking);
-
-  if (
-    booking.paymentStatus === "paid" ||
-    booking.paymentStatus === "verified"
-  ) {
-    return getSafePrice(booking.totalPrice);
-  }
-
   return 0;
 }
 

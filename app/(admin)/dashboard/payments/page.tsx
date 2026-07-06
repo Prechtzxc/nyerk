@@ -1505,7 +1505,7 @@ function buildRejectedPaymentBooking(booking: BookingRecord, reason: string) {
 
 function buildIncompletePaymentBooking(booking: BookingRecord, note: string, verifiedAmount?: number) {
   const total = getAmountValue(booking.totalAmount || booking.totalPrice || booking.amount || booking.price)
-  const currentPaid = getAmountValue(booking.amountPaid || booking.paymentAmount || booking.paidAmount)
+  const currentPaid = typeof booking.amountPaid === "number" ? booking.amountPaid : 0
   const newPaid = verifiedAmount ? currentPaid + verifiedAmount : currentPaid
   const remaining = Math.max(total - newPaid, 0)
   const isDownpayment = String(booking.paymentType || "").toLowerCase() === "downpayment"
@@ -1595,9 +1595,7 @@ function IncompletePaymentModal({
   const expectedAmount = office
     ? getAmountValue((booking as any).expectedAmount || (booking as any).paymentAmount || (booking as any).amount || (booking as any).amountPaid || totalAmount)
     : isDownpayment ? selectedDP : totalAmount
-  const currentAmountPaid = getAmountValue(
-    (booking as any).amountPaid || (booking as any).paymentAmount || (booking as any).paidAmount
-  )
+  const currentAmountPaid = typeof (booking as any).amountPaid === "number" ? (booking as any).amountPaid : 0
   const currentDownpaymentPaid = getAmountValue(booking.downpaymentPaid)
   const enteredAmount = getAmountValue(verifiedAmount)
   const newAmountPaid = currentAmountPaid + enteredAmount
@@ -1849,7 +1847,7 @@ function OnsiteVerifyModal({
   if (!booking) return null
 
   const totalAmount = getAmountValue(booking.totalAmount || booking.totalPrice || booking.amount || booking.price)
-  const currentAmountPaid = getAmountValue(booking.amountPaid || booking.paymentAmount || booking.paidAmount)
+  const currentAmountPaid = typeof booking.amountPaid === "number" ? booking.amountPaid : 0
   const enteredAmount = getAmountValue(amountReceived)
   const newAmountPaid = currentAmountPaid + enteredAmount
   const newRemainingBalance = Math.max(totalAmount - newAmountPaid, 0)
