@@ -271,7 +271,14 @@ export default function AdminPaymentsPage() {
         bookingCtx.markIncompletePayment(bookingId, { verifiedAmount: 0, adminNote: note, adminName: "Administrator" })
       }
 
-      let updatedBooking = (bookingCtx.bookings || []).find((b: BookingRecord) => b.id === bookingId)
+      let updatedBooking: BookingRecord
+      if (type === "verify") {
+        updatedBooking = buildVerifiedPaymentBooking(payment)
+      } else if (type === "reject") {
+        updatedBooking = buildRejectedPaymentBooking(payment, note)
+      } else {
+        updatedBooking = buildIncompletePaymentBooking(payment, note, 0)
+      }
       if (updatedBooking && !updatedBooking.paymentProof && !updatedBooking.proofOfPayment) {
         const matchingPayment = paymentRecords.find(
           (pr: any) => updatedBooking && (pr.bookingId === updatedBooking.id || pr.id === updatedBooking.id) && pr.proofUrl
@@ -282,10 +289,6 @@ export default function AdminPaymentsPage() {
       }
       setSelectedPayment(updatedBooking)
       ensureReceiptForVerifiedBooking(updatedBooking)
-      
-      if (type === "verify" && updatedBooking) {
-        ensureReceiptForVerifiedBooking(updatedBooking)
-      }
 
       toast({
         title: getActionSuccessTitle(type),
@@ -329,19 +332,17 @@ export default function AdminPaymentsPage() {
               adminNote: updatedBooking.adminLogs?.[updatedBooking.adminLogs.length - 1]?.message || undefined,
               adminName: "Administrator",
             })
-            let updated = (bookingCtx.bookings || []).find((b: BookingRecord) => b.id === updatedBooking.id)
-            if (updated) {
-              if (!updated.paymentProof && !updated.proofOfPayment) {
-                const matchingPayment = paymentRecords.find(
-                  (pr: any) => updated && (pr.bookingId === updated.id || pr.id === updated.id) && pr.proofUrl
-                )
-                if (matchingPayment) {
-                  updated = { ...updated, paymentProof: matchingPayment.proofUrl, proofOfPayment: matchingPayment.proofUrl }
-                }
+            let updated = updatedBooking
+            if (!updated.paymentProof && !updated.proofOfPayment) {
+              const matchingPayment = paymentRecords.find(
+                (pr: any) => updated && (pr.bookingId === updated.id || pr.id === updated.id) && pr.proofUrl
+              )
+              if (matchingPayment) {
+                updated = { ...updated, paymentProof: matchingPayment.proofUrl, proofOfPayment: matchingPayment.proofUrl }
               }
-              setSelectedPayment(updated)
-              ensureReceiptForVerifiedBooking(updated)
             }
+            setSelectedPayment(updated)
+            ensureReceiptForVerifiedBooking(updated)
             setOnsiteVerifyTarget(null)
             toast({
               title: "Onsite Payment Verified",
@@ -360,19 +361,17 @@ export default function AdminPaymentsPage() {
               adminNote: updatedBooking.incompletePaymentNote || updatedBooking.incompletePaymentReason || "",
               adminName: "Administrator",
             })
-            let updated = (bookingCtx.bookings || []).find((b: BookingRecord) => b.id === updatedBooking.id)
-            if (updated) {
-              if (!updated.paymentProof && !updated.proofOfPayment) {
-                const matchingPayment = paymentRecords.find(
-                  (pr: any) => updated && (pr.bookingId === updated.id || pr.id === updated.id) && pr.proofUrl
-                )
-                if (matchingPayment) {
-                  updated = { ...updated, paymentProof: matchingPayment.proofUrl, proofOfPayment: matchingPayment.proofUrl }
-                }
+            let updated = updatedBooking
+            if (!updated.paymentProof && !updated.proofOfPayment) {
+              const matchingPayment = paymentRecords.find(
+                (pr: any) => updated && (pr.bookingId === updated.id || pr.id === updated.id) && pr.proofUrl
+              )
+              if (matchingPayment) {
+                updated = { ...updated, paymentProof: matchingPayment.proofUrl, proofOfPayment: matchingPayment.proofUrl }
               }
-              setSelectedPayment(updated)
-              ensureReceiptForVerifiedBooking(updated)
             }
+            setSelectedPayment(updated)
+            ensureReceiptForVerifiedBooking(updated)
             setIncompletePaymentTarget(null)
             toast({
               title: "Incomplete Payment Recorded",

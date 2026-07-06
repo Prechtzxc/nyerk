@@ -332,7 +332,7 @@ function CurrentTransactionCard({
   const balanceStatus = String((booking as any).balanceStatus || "").toLowerCase();
   const paymentStage = String((booking as any).paymentStage || "").toLowerCase();
   const isDownpaymentActive =
-    booking.status === "confirmed" && booking.paymentType === "downpayment" && !["cancelled", "declined"].includes(String(booking.status).toLowerCase());
+    booking.status === "confirmed" && booking.paymentType === "downpayment" && !["cancelled", "declined"].includes(String(booking.status).toLowerCase()) && remaining > 0 && paymentStatus !== "paid";
   const hasRemainingPaymentDue =
     paymentStatus === "partial" ||
     paymentStatus === "incomplete" ||
