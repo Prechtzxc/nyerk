@@ -774,10 +774,7 @@ function BookingDetailsModal({
     payStatus !== "paid" &&
     payStatus !== "slot_verified" &&
     booking.status !== "completed" &&
-    booking.status !== "cancelled" &&
-    booking.status !== "modification_under_review" &&
-    booking.cancellationStatus !== "Under Review" &&
-    booking.cancellationStatus !== "Pending"
+    booking.status !== "cancelled"
 
   const hasActiveCancellationRequest =
     normalizeStatus(booking.cancellationStatus) === "under review" ||
@@ -797,23 +794,19 @@ function BookingDetailsModal({
     !!booking.cancellationStatus &&
     booking.cancellationStatus !== "None"
 
+  const isPendingAction = hasActiveModificationRequest || hasActiveCancellationRequest
+
   const showCancelAction =
     onCancel &&
     booking.status !== "completed" &&
     booking.status !== "cancelled" &&
-    booking.status !== "modification_under_review" &&
     booking.cancellationStatus !== "Approved" &&
-    !hasActiveCancellationRequest &&
-    !hasCancellationHistory &&
-    !hasActiveModificationRequest
+    !hasCancellationHistory
 
   const showModify =
     booking.status !== "completed" &&
     booking.status !== "cancelled" &&
-    booking.status !== "modification_under_review" &&
     booking.cancellationStatus !== "Approved" &&
-    !hasActiveModificationRequest &&
-    !hasActiveCancellationRequest &&
     !hasCancellationHistory
 
   const hasReceipt = !!(booking.receipt)
@@ -1272,13 +1265,19 @@ function BookingDetailsModal({
                   {showModify && (
                     <Button
                       variant="outline"
+                      disabled={isPendingAction}
                       onClick={() => {
-                        if (onEdit) {
+                        if (onEdit && !isPendingAction) {
                           onEdit(booking)
                           onClose()
                         }
                       }}
-                      className="h-10 w-full rounded-lg border-slate-200 px-4 text-xs font-bold text-slate-700 hover:bg-slate-100"
+                      className={cn(
+                        "h-10 w-full rounded-lg border-slate-200 px-4 text-xs font-bold",
+                        isPendingAction
+                          ? "text-slate-400 opacity-60 cursor-not-allowed"
+                          : "text-slate-700 hover:bg-slate-100"
+                      )}
                     >
                       <Pencil className="mr-1.5 h-3.5 w-3.5" />
                       Modify Booking
@@ -1298,11 +1297,19 @@ function BookingDetailsModal({
                     </Button>
                   ) : showPay && !isPayUnderReview ? (
                     <Button
+                      disabled={isPendingAction}
                       onClick={() => {
-                        onPay(booking)
-                        onClose()
+                        if (!isPendingAction) {
+                          onPay(booking)
+                          onClose()
+                        }
                       }}
-                      className="h-10 w-full rounded-lg bg-[#ea580c] hover:bg-[#c2410c] px-5 text-xs font-bold text-white shadow-sm"
+                      className={cn(
+                        "h-10 w-full rounded-lg px-5 text-xs font-bold text-white shadow-sm",
+                        isPendingAction
+                          ? "bg-slate-300 cursor-not-allowed opacity-60"
+                          : "bg-[#ea580c] hover:bg-[#c2410c]"
+                      )}
                     >
                       <CreditCard className="mr-1.5 h-3.5 w-3.5" />
                       Pay Now
@@ -1345,13 +1352,19 @@ function BookingDetailsModal({
               {showCancelAction && (
                 <Button
                   variant="outline"
+                  disabled={isPendingAction}
                   onClick={() => {
-                    if (onCancel) {
+                    if (onCancel && !isPendingAction) {
                       onCancel(booking)
                       onClose()
                     }
                   }}
-                  className="h-11 w-full rounded-xl border-rose-200 px-4 text-xs font-bold text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                  className={cn(
+                    "h-11 w-full rounded-xl border-rose-200 px-4 text-xs font-bold",
+                    isPendingAction
+                      ? "text-rose-300 opacity-60 cursor-not-allowed"
+                      : "text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                  )}
                 >
                   <X className="mr-1.5 h-3.5 w-3.5" />
                   Cancel Booking

@@ -234,6 +234,14 @@ export default function AdminBookingsPage() {
   const [showMaintenanceModal, setShowMaintenanceModal] = useState(false)
   const { maintenanceDates, toggleMaintenanceDate } = bookingCtx || {}
 
+  useEffect(() => {
+    if (!selectedBooking) return
+    const found = bookings.find((b: Booking) => b.id === selectedBooking.id)
+    if (found && found !== selectedBooking) {
+      setSelectedBooking(found)
+    }
+  }, [bookings, selectedBooking?.id])
+
   const urlStatusRef = useMemo(() => {
     if (typeof window === "undefined") return null
     const params = new URLSearchParams(window.location.search)

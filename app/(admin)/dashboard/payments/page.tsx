@@ -73,6 +73,14 @@ export default function AdminPaymentsPage() {
   const PAYMENTS_PER_PAGE = 10
 
   useEffect(() => {
+    if (!selectedPayment) return
+    const found = bookingCtx.bookings.find((b: any) => b.id === selectedPayment.id)
+    if (found && found !== selectedPayment) {
+      setSelectedPayment(found)
+    }
+  }, [bookingCtx.bookings, selectedPayment?.id])
+
+  useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
     const searchId = urlParams.get("search")
 
