@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react"
 import type React from "react"
-import { db, storage } from "@/lib/firebase"
+import { db } from "@/lib/firebase"
 import {
   collection,
   query,
@@ -13,9 +13,8 @@ import {
   doc,
   getDocs,
   serverTimestamp,
-  where,
 } from "firebase/firestore"
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage"
+import { uploadToCloudinary, validateFileType } from "@/src/modules/shared/lib/cloudinary"
 
 export interface PaymentProof {
   id: string
@@ -130,10 +129,15 @@ export function PaymentProofProvider({ children }: { children: React.ReactNode }
       let imageUrl = normalized.proofImageUrl || ""
 
       if (file) {
-        const storagePath = `payment-proofs/${normalized.bookingId}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`
-        const storageRef = ref(storage, storagePath)
-        const snapshot = await uploadBytesResumable(storageRef, file)
-        imageUrl = await getDownloadURL(snapshot.ref)
+        const resourceType = validateFileType(file, { allowDocuments: true });
+        if (!resourceType) {
+          throw new Error("Unsupported file type. Allowed: jpg, jpeg, png, webp, pdf, doc, docx.");
+        }
+        const result = await uploadToCloudinary(file, {
+          folder: `payment-proofs/${normalized.bookingId}`,
+          resourceType: resourceType as "image" | "raw",
+        });
+        imageUrl = result.secureUrl;
       }
 
       const docRef = await addDoc(proofsRef, {

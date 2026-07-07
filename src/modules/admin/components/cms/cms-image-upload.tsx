@@ -29,22 +29,22 @@ export function CMSImageUpload({
     if (!file) return
     event.target.value = ""
 
-    const error = validateImageFile(file)
-    if (error) {
-      toast({ title: "Invalid File", description: error, variant: "destructive" })
-      return
-    }
-
     setUploading(true)
     try {
+      validateImageFile(file)
       const path = storagePath || "images"
       const downloadUrl = await uploadCMSImage(file, path)
-      if (value && value.startsWith("https://firebasestorage.googleapis.com")) {
+      if (value) {
         await removeImage(value)
       }
       onValueChange(downloadUrl)
-    } catch {
-      toast({ title: "Upload Failed", description: "Could not upload image. Please try again.", variant: "destructive" })
+    } catch (error: any) {
+      const msg = error?.message || ""
+      if (msg.includes("Only") || msg.includes("size exceeds")) {
+        toast({ title: "Invalid File", description: msg, variant: "destructive" })
+      } else {
+        toast({ title: "Upload Failed", description: "Could not upload image. Please try again.", variant: "destructive" })
+      }
     } finally {
       setUploading(false)
     }
@@ -115,22 +115,22 @@ export function CMSPanoramaUpload({ value, storagePath, onValueChange }: { value
     if (!file) return
     event.target.value = ""
 
-    const error = validateImageFile(file, true)
-    if (error) {
-      toast({ title: "Invalid File", description: error, variant: "destructive" })
-      return
-    }
-
     setUploading(true)
     try {
+      validateImageFile(file, true)
       const path = storagePath || "panoramas"
       const downloadUrl = await uploadCMSImage(file, path)
-      if (value && value.startsWith("https://firebasestorage.googleapis.com")) {
+      if (value) {
         await removeImage(value)
       }
       onValueChange(downloadUrl)
-    } catch {
-      toast({ title: "Upload Failed", description: "Could not upload image. Please try again.", variant: "destructive" })
+    } catch (error: any) {
+      const msg = error?.message || ""
+      if (msg.includes("Only") || msg.includes("size exceeds")) {
+        toast({ title: "Invalid File", description: msg, variant: "destructive" })
+      } else {
+        toast({ title: "Upload Failed", description: "Could not upload image. Please try again.", variant: "destructive" })
+      }
     } finally {
       setUploading(false)
     }

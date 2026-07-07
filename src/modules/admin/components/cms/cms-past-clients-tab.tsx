@@ -83,14 +83,9 @@ export function CMSPastClientsTab({ onNavigate }: { onNavigate: (tab: string) =>
     if (!file) return
     event.target.value = ""
 
-    const error = validateImageFile(file)
-    if (error) {
-      toast({ title: "Invalid File", description: error, variant: "destructive" })
-      return
-    }
-
     setUploadingPhotos(true)
     try {
+      validateImageFile(file)
       const downloadUrl = await uploadCMSImage(file, "past-clients")
       const newPhotos = [...form.photos, downloadUrl]
       setForm({
@@ -98,8 +93,13 @@ export function CMSPastClientsTab({ onNavigate }: { onNavigate: (tab: string) =>
         photos: newPhotos,
         coverPhoto: form.coverPhoto || downloadUrl,
       })
-    } catch {
-      toast({ title: "Upload Failed", description: "Could not upload image. Please try again.", variant: "destructive" })
+    } catch (error: any) {
+      const msg = error?.message || ""
+      if (msg.includes("Only") || msg.includes("size exceeds")) {
+        toast({ title: "Invalid File", description: msg, variant: "destructive" })
+      } else {
+        toast({ title: "Upload Failed", description: "Could not upload image. Please try again.", variant: "destructive" })
+      }
     } finally {
       setUploadingPhotos(false)
     }

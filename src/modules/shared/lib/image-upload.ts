@@ -1,47 +1,39 @@
-import { storage } from "@/lib/firebase"
-import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage"
+import { uploadToCloudinary, deleteFromCloudinary, extractPublicId } from "./cloudinary";
 
-const MAX_IMAGE_SIZE_BYTES = 2.5 * 1024 * 1024
-const MAX_PANORAMA_SIZE_BYTES = 10 * 1024 * 1024
-
-export function validateImageFile(file: File, isPanorama = false): string | null {
-  const maxSize = isPanorama ? MAX_PANORAMA_SIZE_BYTES : MAX_IMAGE_SIZE_BYTES
-  if (!file.type.startsWith("image/")) return "Upload an image."
-  if (file.size > maxSize) return isPanorama ? "Max 10MB." : "Max 2.5MB."
-  return null
+export function validateImageFile(file: File, isPanorama = false) {
+  const allowed = ["image/jpeg", "image/png", "image/webp"];
+  if (!allowed.includes(file.type)) {
+    throw new Error("Only JPG, PNG, and WebP images are allowed.");
+  }
+  const maxSize = isPanorama ? 10 * 1024 * 1024 : 2.5 * 1024 * 1024;
+  if (file.size > maxSize) {
+    throw new Error(
+      isPanorama
+        ? "File size exceeds 10MB limit for panoramas."
+        : "File size exceeds 2.5MB limit.",
+    );
+  }
 }
 
-export async function uploadCMSImage(file: File, storagePath: string): Promise<string> {
-  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_")
-  const fullPath = `cms/${storagePath}/${Date.now()}_${safeName}`
-  const storageRef = ref(storage, fullPath)
-  const snapshot = await uploadBytesResumable(storageRef, file)
-  return getDownloadURL(snapshot.ref)
+export async function uploadCMSImage(file: File, storagePath = "images") {
+  const result = await uploadToCloudinary(file, { folder: `cms/${storagePath}` });
+  return result.secureUrl;
 }
 
-export async function deleteCMSImage(imageUrl: string): Promise<void> {
-  if (!imageUrl || !imageUrl.startsWith("https://firebasestorage.googleapis.com")) return
+export async function deleteCMSImage(imageUrl: string) {
   try {
-    const storageRef = ref(storage, imageUrl)
-    await deleteObject(storageRef)
-  } catch {
-    // silently ignore — file may already be deleted
+    const publicId = extractPublicId(imageUrl);
+    if (publicId) {
+      await deleteFromCloudinary(publicId);
+    }
+  } catch (error) {
+    console.warn("[deleteCMSImage] Failed to delete:", error);
   }
 }
 
-function isFirebaseStorageUrl(url: string): boolean {
-  return url.startsWith("https://firebasestorage.googleapis.com")
-}
-
-export async function removeImage(value: string): Promise<string> {
-  if (isFirebaseStorageUrl(value)) {
-    await deleteCMSImage(value)
+export async function removeImage(value: string) {
+  if (value) {
+    await deleteCMSImage(value);
   }
-  return ""
-}
-
-export function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  return "";
 }
