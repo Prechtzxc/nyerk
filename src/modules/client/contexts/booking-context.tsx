@@ -1466,6 +1466,52 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     saveBookings(updatedBookings as Booking[]);
   };
 
+  function getRoomKey(booking: Partial<Booking>): string {
+    if (!isOfficeBooking(booking)) return "";
+    const venue = String(booking.venue || "");
+    const roomMatch = venue.match(/Room\s+(\d+)/i);
+    return roomMatch ? `${booking.venueId || ""}|${roomMatch[1]}` : "";
+  }
+
+  function isActiveCompetingBooking(booking: Partial<Booking>): boolean {
+    if (!isOfficeBooking(booking)) return false;
+    const s = String(booking.status || "").toLowerCase();
+    return !["cancelled", "declined", "completed", "rental_expired"].includes(s);
+  }
+
+  function cancelCompetingBookings(
+    bookingsList: Booking[],
+    winningId: string,
+    roomKey: string,
+  ): Booking[] {
+    if (!roomKey) return bookingsList;
+    return bookingsList.map((b) => {
+      if (b.id === winningId) return b;
+      if (!isActiveCompetingBooking(b)) return b;
+      if (getRoomKey(b) !== roomKey) return b;
+
+      return {
+        ...b,
+        status: "cancelled" as BookingStatus,
+        bookingStatus: "Cancelled",
+        cancellationStatus: "Approved" as const,
+        cancellationReviewedAt: new Date().toISOString(),
+        cancellationStatusLabel: "Cancellation Approved",
+        adminCancelDecision: "Auto-cancelled",
+        adminCancelReason:
+          "Another customer completed payment for this office room before your payment was verified. Please choose another available room.",
+        cancellationReason:
+          "Another customer completed payment for this office room before your payment was verified.",
+        updatedAt: new Date().toISOString(),
+        adminLogs: makeAdminLog(
+          b,
+          "AUTO_CANCELLED_COMPETING_BOOKING",
+          "This booking was automatically cancelled because another customer's payment for the same office room was verified first.",
+        ),
+      } as Booking;
+    });
+  }
+
   const deleteBooking = (id: string) => {
     saveBookings(bookings.filter((booking) => booking.id !== id));
   };
@@ -1918,8 +1964,34 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     id: string,
     paymentType: "downpayment" | "full" = "full",
   ) => {
+    const winningBooking = bookings.find((b) => b.id === id && isOfficeBooking(b));
+    const winningRoomKey = winningBooking ? getRoomKey(winningBooking) : "";
+
     const updatedBookings = bookings.map((booking) => {
-      if (booking.id !== id) return booking;
+      if (booking.id !== id) {
+        if (winningRoomKey && isActiveCompetingBooking(booking) && getRoomKey(booking) === winningRoomKey) {
+          return {
+            ...booking,
+            status: "cancelled" as BookingStatus,
+            bookingStatus: "Cancelled",
+            cancellationStatus: "Approved" as const,
+            cancellationReviewedAt: new Date().toISOString(),
+            cancellationStatusLabel: "Cancellation Approved",
+            adminCancelDecision: "Auto-cancelled",
+            adminCancelReason:
+              "Another customer completed payment for this office room before your payment was verified. Please choose another available room.",
+            cancellationReason:
+              "Another customer completed payment for this office room before your payment was verified.",
+            updatedAt: new Date().toISOString(),
+            adminLogs: makeAdminLog(
+              booking,
+              "AUTO_CANCELLED_COMPETING_BOOKING",
+              "This booking was automatically cancelled because another customer's payment for the same office room was verified first.",
+            ),
+          } as Booking;
+        }
+        return booking;
+      }
 
       if (isOfficeBooking(booking)) {
         const reservationFee = getOfficeReservationFee(booking);
@@ -2201,8 +2273,34 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
   };
 
   const verifyPayment = (id: string, reviewData?: { verifiedAmount?: number; adminNote?: string; adminName?: string }) => {
+    const winningBooking = bookings.find((b) => b.id === id && isOfficeBooking(b));
+    const winningRoomKey = winningBooking ? getRoomKey(winningBooking) : "";
+
     const updatedBookings = bookings.map((booking) => {
-      if (booking.id !== id) return booking;
+      if (booking.id !== id) {
+        if (winningRoomKey && isActiveCompetingBooking(booking) && getRoomKey(booking) === winningRoomKey) {
+          return {
+            ...booking,
+            status: "cancelled" as BookingStatus,
+            bookingStatus: "Cancelled",
+            cancellationStatus: "Approved" as const,
+            cancellationReviewedAt: new Date().toISOString(),
+            cancellationStatusLabel: "Cancellation Approved",
+            adminCancelDecision: "Auto-cancelled",
+            adminCancelReason:
+              "Another customer completed payment for this office room before your payment was verified. Please choose another available room.",
+            cancellationReason:
+              "Another customer completed payment for this office room before your payment was verified.",
+            updatedAt: new Date().toISOString(),
+            adminLogs: makeAdminLog(
+              booking,
+              "AUTO_CANCELLED_COMPETING_BOOKING",
+              "This booking was automatically cancelled because another customer's payment for the same office room was verified first.",
+            ),
+          } as Booking;
+        }
+        return booking;
+      }
 
       if (isOfficeBooking(booking)) {
         const reservationFee = getOfficeReservationFee(booking);

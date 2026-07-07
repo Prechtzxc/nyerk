@@ -413,6 +413,22 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
     return d;
   }, []);
 
+  const occupiedRoomNums = useMemo(() => {
+    if (!selectedItem) return new Set<number>()
+    const occupyingStatuses = ["reservation_secured", "contract_signing_required", "active_rental", "confirmed"]
+    const occupied = new Set<number>()
+    for (const b of bookings) {
+      const s = String(b.status || "").toLowerCase()
+      if (!occupyingStatuses.includes(s)) continue
+      const venue = String(b.venue || "")
+      const roomMatch = venue.match(/Room\s+(\d+)/i)
+      if (roomMatch && b.venueId === selectedItem.id) {
+        occupied.add(Number(roomMatch[1]))
+      }
+    }
+    return occupied
+  }, [bookings, selectedItem?.id])
+
   const [calendarMonth, setCalendarMonth] = useState(() => {
     const today = new Date();
     const minDate = new Date(today);
@@ -714,6 +730,25 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
       return
     }
 
+    if (isOffice) {
+      const activeStatuses = ["pending", "verifying", "for_review", "partial", "incomplete", "confirmed", "reservation_secured", "contract_signing_required", "active_rental", "modification_under_review"]
+      const hasActiveOffice = bookings.some(
+        (b) =>
+          b.userId === user.id &&
+          (b.isOfficeRental === true || b.bookingCategory === "office" || String(b.venue || "").toLowerCase().includes("office")) &&
+          activeStatuses.includes(String(b.status || "").toLowerCase()),
+      )
+      if (hasActiveOffice) {
+        toast({
+          title: "Active Booking Exists",
+          description:
+            "You already have an active office rental booking. Please complete, cancel, or finish your current rental before creating another.",
+          variant: "destructive",
+        })
+        return
+      }
+    }
+
     if (!agreed) {
       toast({
         title: "Terms Required",
@@ -962,7 +997,7 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
         
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 xl:gap-4">
           {Array.from({ length: 8 }, (_, i) => i + 1).map((roomNum) => {
-            const isBooked = roomNum === 2 || roomNum === 5;
+            const isBooked = occupiedRoomNums.has(roomNum);
             return (
               <button aria-label={`Select Room ${roomNum}`} key={roomNum} disabled={isBooked} onClick={() => { setSelectedRoom(roomNum); setStep('schedule') }}
                 className={`p-6 xl:p-6 rounded-[1.5rem] xl:rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-2 min-h-[120px] xl:min-h-[100px] focus-visible:ring-2 focus-visible:ring-orange-300 outline-none ${isBooked ? 'opacity-40 grayscale cursor-not-allowed bg-slate-50 border-slate-200' : 'bg-white hover:border-[#ea580c] hover:shadow-md border-slate-100 shadow-sm'}`}>
@@ -974,7 +1009,7 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
         </div>
       </div>
     </div>
-  )
+    )
 
   const renderSchedule = () => {
     const year = calendarMonth.getFullYear();
