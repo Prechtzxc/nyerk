@@ -705,7 +705,7 @@ function PaymentSummaryCard({
 }
 
 function BookingDetailsModal({
-  booking,
+  booking: propBooking,
   open,
   onClose,
   onPay,
@@ -723,11 +723,17 @@ function BookingDetailsModal({
 }) {
   const [showContractPreview, setShowContractPreview] = useState(false)
   const [showContractFile, setShowContractFile] = useState(false)
+  const { bookings } = useBookings()
   const { cmsData } = useCMS()
 
   useEffect(() => {
     console.log("[BookingDetailsModal] showContractPreview:", showContractPreview)
   }, [showContractPreview])
+
+  const booking = useMemo(() => {
+    if (!propBooking) return null
+    return bookings.find((b) => b.id === propBooking.id) || propBooking
+  }, [bookings, propBooking?.id])
 
   if (!booking) return null
   const isPaymentVerified = (() => {

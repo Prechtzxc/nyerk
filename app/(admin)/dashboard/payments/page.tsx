@@ -1398,14 +1398,15 @@ function buildVerifiedPaymentBooking(booking: BookingRecord) {
   const selectedDP = getSafePrice(booking.selectedDownpaymentAmount) || (isDownpayment ? totalAmount * 0.5 : 0)
 
   if (office) {
+    const officeNewPaid = currentAmountPaid + paymentAmount
     return {
       ...booking,
       status: "reservation_secured",
       bookingStatus: "Slot Secured",
       paymentStatus: "slot_verified",
       isSlotSecured: true,
-      amountPaid: paymentAmount,
-      remainingBalance: 0,
+      amountPaid: officeNewPaid,
+      remainingBalance: Math.max(totalAmount - officeNewPaid, 0),
       paymentVerifiedAt: new Date().toISOString(),
       verifiedAt: new Date().toISOString(),
       verifiedByAdmin: true,
@@ -1628,14 +1629,14 @@ function IncompletePaymentModal({
       status: latestStatus,
       bookingStatus: latestBookingStatus,
       isSlotSecured: !isDownpayment,
-      amountPaid: office ? enteredAmount : newAmountPaid,
+      amountPaid: newAmountPaid,
       paidAmount: office ? enteredAmount : undefined,
       downpaymentPaid: isDownpayment ? newDownpaymentPaid : 0,
       downpaymentRemaining: newDPRemaining,
       selectedDownpaymentAmount: isDownpayment ? selectedDP : 0,
       lastPaymentAmount: enteredAmount,
       paymentStatus: "incomplete",
-      remainingBalance: office ? remainingAfterInput : (isDownpayment ? newDPRemaining : newRemainingBalance),
+      remainingBalance: office ? newRemainingBalance : (isDownpayment ? newDPRemaining : newRemainingBalance),
       balanceStatus: "With Remaining Balance",
       contractStatus: "Pending Signature",
       hasActivePaymentSubmission: false,

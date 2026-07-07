@@ -643,6 +643,18 @@ function getSelectedDownpaymentAmount(booking: Booking) {
 
 function recalculatePaymentStage(booking: Booking): Booking {
   if (isOfficeBooking(booking)) {
+    const total = getSafePrice(booking.totalPrice);
+    const amountPaid = typeof booking.amountPaid === "number" ? booking.amountPaid : 0;
+    if (amountPaid >= total) {
+      return {
+        ...booking,
+        paymentStage: "Fully Paid",
+        paymentStatus: "paid" as PaymentStatus,
+        balanceStatus: "Settled",
+        remainingBalance: 0,
+        remainingBalancePaid: true,
+      };
+    }
     return booking;
   }
 
@@ -845,9 +857,11 @@ function addMonthsToDate(dateValue?: string, months = 0) {
 
   const end = new Date(start);
   end.setMonth(end.getMonth() + months);
-  end.setDate(end.getDate() - 1);
 
-  return end.toISOString().slice(0, 10);
+  const y = end.getFullYear();
+  const m = String(end.getMonth() + 1).padStart(2, "0");
+  const d = String(end.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 function getOfficeTermMonths(term?: OfficeRentalTerm) {
@@ -870,8 +884,10 @@ export function calculateOfficeEndDate(startDate: string, term?: OfficeRentalTer
     date.setFullYear(date.getFullYear() + 2);
   }
 
-  date.setDate(date.getDate() - 1);
-  return date.toISOString().split("T")[0];
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 function getReceiptPaymentMethodLabel(method?: Booking["paymentMethod"]) {
@@ -1685,9 +1701,24 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
 
       const restored = getRestoredStatus(booking);
 
-      return {
+      const merged = {
         ...booking,
         ...changes,
+      };
+
+      if (isOfficeBooking(merged)) {
+        const officeTerm =
+          (merged as any).officeRentalTerm ||
+          (merged as any).rentalTerm ||
+          (merged as any).contractTerm;
+        const startDate = merged.date;
+        if (officeTerm && startDate && ((changes as any).officeRentalTerm || changes.date)) {
+          merged.endDate = calculateOfficeEndDate(startDate, officeTerm as OfficeRentalTerm);
+        }
+      }
+
+      return {
+        ...merged,
         status: restored.status,
         bookingStatus: restored.bookingStatus,
         modificationRequested: false,
@@ -1892,6 +1923,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
 
       if (isOfficeBooking(booking)) {
         const reservationFee = getOfficeReservationFee(booking);
+        const currentAmountPaid = typeof booking.amountPaid === "number" ? booking.amountPaid : 0;
 
         return attachAutoReceipt({
           ...booking,
@@ -1901,7 +1933,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           paymentStatus: "slot_verified" as PaymentStatus,
           paymentType: "slot_reservation" as const,
           paymentMethod: "cash" as const,
-          amountPaid: reservationFee,
+          amountPaid: currentAmountPaid + reservationFee,
           remainingBalance: 0,
           remainingBalancePaid: true,
           contractSigningRequired: true,
@@ -2041,7 +2073,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         newPaymentStage = "Fully Paid";
       } else if (paymentData.paymentType === "remaining_balance") {
         newAmountPaid = currentAmountPaid + amountReceived;
-        newDownpaymentPaid = (typeof booking.downpaymentPaid === "number" ? booking.downpaymentPaid : 0) + amountReceived;
+        newDownpaymentPaid = typeof booking.downpaymentPaid === "number" ? booking.downpaymentPaid : 0;
         newRemainingBalance = Math.max(total - newAmountPaid, 0);
         if (newRemainingBalance === 0) {
           newPaymentStatus = "paid" as PaymentStatus;
@@ -2174,6 +2206,8 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
 
       if (isOfficeBooking(booking)) {
         const reservationFee = getOfficeReservationFee(booking);
+        const currentAmountPaid = typeof booking.amountPaid === "number" ? booking.amountPaid : 0;
+        const verifiedAmount = reviewData?.verifiedAmount || reservationFee;
 
         return attachAutoReceipt({
           ...booking,
@@ -2182,14 +2216,14 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           isSlotSecured: true,
           paymentStatus: "slot_verified" as PaymentStatus,
           paymentType: "slot_reservation" as const,
-          amountPaid: reviewData?.verifiedAmount || reservationFee,
-          lastPaymentAmount: reviewData?.verifiedAmount || reservationFee,
+          amountPaid: currentAmountPaid + verifiedAmount,
+          lastPaymentAmount: verifiedAmount,
           remainingBalance: 0,
           remainingBalancePaid: true,
           hasActivePaymentSubmission: false,
           paymentVerifiedAt: new Date().toISOString(),
           paymentVerifiedBy: reviewData?.adminName || "Administrator",
-          paymentVerifiedAmount: reviewData?.verifiedAmount || reservationFee,
+          paymentVerifiedAmount: verifiedAmount,
           contractSigningRequired: true,
           officeReservationStatus:
             "reservation_secured" as OfficeReservationStatus,
