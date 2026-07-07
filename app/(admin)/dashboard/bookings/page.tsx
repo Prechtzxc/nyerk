@@ -730,7 +730,7 @@ function AdminBookingCard({
 }
 
 function BookingDetailsModal({
-  booking,
+  booking: propBooking,
   open,
   onClose,
   onMarkCompleted,
@@ -754,9 +754,15 @@ function BookingDetailsModal({
   onApproveModification?: (id: string) => void
   onDeclineModification?: (id: string) => void
 }) {
-  if (!booking) return null
-
+  const { bookings } = useBookings()
   const router = useRouter()
+
+  const booking = useMemo(() => {
+    if (!propBooking) return null
+    return bookings.find((b) => b.id === propBooking.id) || propBooking
+  }, [bookings, propBooking?.id])
+
+  if (!booking) return null
 
   const isPaymentVerified = (() => {
     const ps = String(booking.paymentStatus || "").toLowerCase()

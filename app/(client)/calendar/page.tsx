@@ -55,7 +55,7 @@ export default function CalendarPreviewPage() {
     if (iterDate < today) return "past"
     if (activeMaintenance.includes(`${selectedFacilityId}|${iterDateStr}`)) return "maintenance"
 
-    const dayBookings = allBookings.filter(b => b.date === iterDateStr && (!b.venueId || b.venueId === selectedFacilityId) && ["approved", "confirmed", "completed"].includes(b.status?.toLowerCase() || ""));
+    const dayBookings = allBookings.filter(b => b.date === iterDateStr && (!b.venueId || b.venueId === selectedFacilityId) && ["approved", "confirmed", "completed", "contract_signing_required", "reservation_secured", "active_rental"].includes(b.status?.toLowerCase() || ""));
     
     // PHASE 2: Magkaibang Logic para sa Venue at Office
     if (bookingType === "office") {

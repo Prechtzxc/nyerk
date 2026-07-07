@@ -759,11 +759,13 @@ function BookingDetailsModal({
   const paymentStage = String((booking as any).paymentStage || "").toLowerCase()
   const remainingBalance = Number((booking as any).remainingBalance || 0)
   const hasRemainingPayment =
-    payStatus === "partial" ||
-    payStatus === "incomplete" ||
-    balanceStatus === "with remaining balance" ||
-    paymentStage === "complete downpayment" ||
-    paymentStage === "settle remaining balance"
+    remainingBalance > 0 && (
+      payStatus === "partial" ||
+      payStatus === "incomplete" ||
+      balanceStatus === "with remaining balance" ||
+      paymentStage === "complete downpayment" ||
+      paymentStage === "settle remaining balance"
+    )
   const showBalanceReminderNotice = (booking as any).balanceReminderSent === true && hasRemainingPayment
 
   const isPayUnderReview = payStatus === "for_review" || payStatus === "cash_pending" || payStatus === "slot_pending"

@@ -334,11 +334,13 @@ function CurrentTransactionCard({
   const isDownpaymentActive =
     booking.status === "confirmed" && booking.paymentType === "downpayment" && !["cancelled", "declined"].includes(String(booking.status).toLowerCase()) && remaining > 0 && paymentStatus !== "paid";
   const hasRemainingPaymentDue =
-    paymentStatus === "partial" ||
-    paymentStatus === "incomplete" ||
-    balanceStatus === "with remaining balance" ||
-    paymentStage === "complete downpayment" ||
-    paymentStage === "settle remaining balance";
+    remaining > 0 && (
+      paymentStatus === "partial" ||
+      paymentStatus === "incomplete" ||
+      balanceStatus === "with remaining balance" ||
+      paymentStage === "complete downpayment" ||
+      paymentStage === "settle remaining balance"
+    );
   const remainingMs = getRemainingMs(booking);
   const isExpired = booking.status === "pending" && remainingMs <= 0;
   const isCashPending = booking.paymentMethod === "cash" && booking.paymentStatus === "cash_pending";
@@ -863,7 +865,7 @@ function TransactionsContent() {
     const downpaymentAmount = totalPrice * 0.5;
     const isCompletingDownpayment = paymentStage === "complete downpayment" || (isSettlingBalance && downpaymentRemaining > 0);
     const amountToPay = isOfficeRental
-      ? officeReservationFee
+      ? (currentAmountPaid > 0 ? remainingBalance : officeReservationFee)
       : isCompletingDownpayment
         ? downpaymentRemaining
         : isRemainingPaymentFlow
