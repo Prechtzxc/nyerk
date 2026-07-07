@@ -861,6 +861,8 @@ function TransactionsContent() {
 
     const currentAmountPaid = Number((booking as any).amountPaid || 0);
     const remainingBalance = Math.max(totalPrice - currentAmountPaid, 0);
+    const isOfficeRemainingPayment =
+      isOfficeRental && currentAmountPaid > 0 && remainingBalance > 0;
     const officeReservationFee = getOfficeReservationFee(booking) || totalPrice;
     const downpaymentAmount = totalPrice * 0.5;
     const isCompletingDownpayment = paymentStage === "complete downpayment" || (isSettlingBalance && downpaymentRemaining > 0);
@@ -1105,7 +1107,7 @@ function TransactionsContent() {
                         <span className="font-semibold text-slate-500">Term</span>
                         <span className="text-right font-black text-slate-900">
                           {isOfficeRental
-                            ? "Slot Reservation Only"
+                            ? (isOfficeRemainingPayment ? "Remaining Balance" : "Slot Reservation Only")
                             : getPaymentTermLabel(paymentType, isSettlingBalance)}
                         </span>
                       </div>
@@ -1199,7 +1201,7 @@ function TransactionsContent() {
               <div>
                 <h2 className="text-xl font-black text-orange-950">
                   {isOfficeRental
-                    ? "Secure Office Reservation Slot"
+                    ? (isOfficeRemainingPayment ? "Settle Remaining Balance" : "Secure Office Reservation Slot")
                     : isCompletingDownpayment
                       ? "Complete Your Downpayment"
                       : isRemainingPaymentFlow
@@ -1210,7 +1212,9 @@ function TransactionsContent() {
                 </h2>
                 <p className="mt-1 text-sm leading-6 text-orange-800">
                   {isOfficeRental
-                    ? "This payment is for slot reservation only. After admin verification, succeeding office rental payments are settled onsite via check."
+                    ? (isOfficeRemainingPayment
+                      ? `Please settle your remaining balance of ₱${remainingBalance.toLocaleString()}.`
+                      : "This payment is for slot reservation only. After admin verification, succeeding office rental payments are settled onsite via check.")
                     : isCompletingDownpayment
                       ? `Please complete your downpayment of ₱${downpaymentRemaining.toLocaleString()}.`
                       : isRemainingPaymentFlow
@@ -1245,7 +1249,7 @@ function TransactionsContent() {
                 Payment Term
               </h3>
 
-              {isOfficeRental ? (
+              {isOfficeRental && !isOfficeRemainingPayment ? (
                 <div className="rounded-xl border-2 border-orange-600 bg-orange-50 p-5">
                   <div className="mb-2 flex items-center justify-between gap-3">
                     <p className="text-sm font-bold text-slate-900">
@@ -1266,6 +1270,25 @@ function TransactionsContent() {
                     {getOfficeTermLabel(booking.officeRentalTerm)} · Required
                     onsite: contract signing, 1 month advance, and 2 months
                     deposit.
+                  </div>
+                </div>
+              ) : isOfficeRental && isOfficeRemainingPayment ? (
+                <div className="rounded-xl border-2 border-orange-600 bg-orange-50 p-5">
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <p className="text-sm font-bold text-slate-900">
+                      Remaining Balance
+                    </p>
+                    <CheckCircle2 className="h-5 w-5 shrink-0 text-orange-600" />
+                  </div>
+                  <p className="text-2xl font-black text-orange-600">
+                    ₱{remainingBalance.toLocaleString()}
+                  </p>
+                  <p className="mt-3 text-xs font-semibold leading-5 text-orange-800">
+                    Complete the remaining balance for this reservation.
+                  </p>
+                  <div className="mt-3 space-y-1 rounded-lg bg-white p-3 text-xs font-bold text-slate-700">
+                    <p>Already Paid: ₱{currentAmountPaid.toLocaleString()}</p>
+                    <p>Remaining: ₱{remainingBalance.toLocaleString()}</p>
                   </div>
                 </div>
               ) : isCompletingDownpayment || isRemainingPaymentFlow || isSettlingBalance ? (
