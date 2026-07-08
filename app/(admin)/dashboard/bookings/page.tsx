@@ -812,7 +812,7 @@ function BookingDetailsModal({
   const hasActiveProof = (() => {
     const proofExists = Boolean(
       booking?.proofUrl ||
-      booking?.paymentProof ||
+      (booking as any)?.paymentProof ||
       (booking as any)?.proofOfPayment ||
       (booking as any)?.proofImage ||
       (booking as any)?.receiptImage
