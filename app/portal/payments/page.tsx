@@ -200,7 +200,7 @@ function isCurrentTransaction(booking: Booking) {
 function hasPaymentRecord(booking: Booking) {
   const amt = Number((booking as any).amountPaid || 0);
   const payAmt = Number((booking as any).paymentAmount || 0);
-  const proof = (booking as any).paymentProof || (booking as any).proofOfPayment;
+  const proof = (booking as any).proofUrl || (booking as any).paymentProof || (booking as any).proofOfPayment;
   const ps = String(booking.paymentStatus || "").toLowerCase();
   if (amt > 0 || payAmt > 0) return true;
   if (proof) return true;

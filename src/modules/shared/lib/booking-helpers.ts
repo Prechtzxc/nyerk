@@ -45,7 +45,8 @@ export function hasActivePaymentSubmission(booking: Record<string, unknown>): bo
 
 export function hasPaymentProof(booking: Record<string, unknown>): boolean {
   return Boolean(
-    booking.paymentProof ||
+    booking.proofUrl ||
+      booking.paymentProof ||
       booking.proofOfPayment ||
       booking.paymentReference ||
       booking.referenceNumber ||

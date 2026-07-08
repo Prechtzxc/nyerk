@@ -25,7 +25,7 @@ export interface PaymentProof {
   paymentMethod: "bank" | "cash"
   referenceNumber?: string
   paymentReference?: string
-  proofImageUrl?: string
+  proofUrl?: string
   notes?: string
   adminNote?: string
   fileName?: string
@@ -45,7 +45,7 @@ interface NewPaymentProofInput {
   paymentMethod: "bank" | "cash"
   referenceNumber?: string
   paymentReference?: string
-  proofImageUrl?: string
+  proofUrl?: string
   fileName?: string
   fileSize?: number
   notes?: string
@@ -88,7 +88,7 @@ export function PaymentProofProvider({ children }: { children: React.ReactNode }
           paymentMethod: data.paymentMethod || "bank",
           referenceNumber: data.referenceNumber || "",
           paymentReference: data.paymentReference || data.referenceNumber || "",
-          proofImageUrl: data.proofImageUrl || "",
+          proofUrl: data.proofUrl || "",
           notes: data.notes || "",
           adminNote: data.adminNote || "",
           fileName: data.fileName || "",
@@ -126,7 +126,7 @@ export function PaymentProofProvider({ children }: { children: React.ReactNode }
             }
           : input
 
-      let imageUrl = normalized.proofImageUrl || ""
+      let imageUrl = normalized.proofUrl || ""
 
       if (file) {
         const resourceType = validateFileType(file, { allowDocuments: true });
@@ -147,7 +147,7 @@ export function PaymentProofProvider({ children }: { children: React.ReactNode }
         paymentMethod: normalized.paymentMethod,
         referenceNumber: normalized.referenceNumber?.trim() || "",
         paymentReference: normalized.paymentReference?.trim() || normalized.referenceNumber?.trim() || "",
-        proofImageUrl: imageUrl,
+        proofUrl: imageUrl,
         fileName: (normalized.fileName ?? file?.name) || "",
         fileSize: (normalized.fileSize ?? file?.size) || 0,
         notes: normalized.notes || "",
@@ -166,7 +166,7 @@ export function PaymentProofProvider({ children }: { children: React.ReactNode }
         paymentMethod: normalized.paymentMethod,
         referenceNumber: normalized.referenceNumber?.trim(),
         paymentReference: normalized.paymentReference?.trim() || normalized.referenceNumber?.trim(),
-        proofImageUrl: imageUrl,
+        proofUrl: imageUrl,
         fileName: normalized.fileName ?? file?.name,
         fileSize: normalized.fileSize ?? file?.size,
         notes: normalized.notes,

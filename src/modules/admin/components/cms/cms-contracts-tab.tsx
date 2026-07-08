@@ -1,13 +1,30 @@
 "use client"
 
-import { type ChangeEvent, useRef, useState } from "react"
-import { Download, FileText, ImageIcon, Trash2, Upload, X } from "lucide-react"
+import { useCallback, useEffect, useRef, useState } from "react"
+import { Check, Download, FileText, ImageIcon, Loader2, Trash2, X } from "lucide-react"
 import { Button } from "@shared/components/ui/button"
 import { useToast } from "@shared/hooks/use-toast"
 import { useCMS } from "@admin/contexts/cms-context"
 import { CMSSectionHeader } from "./cms-section-header"
 
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024
+type AvailableContract = {
+  fileName: string
+  fileType: string
+  fileUrl: string
+  lastModified: number
+}
+
+function formatDate(ms: number) {
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    }).format(new Date(ms))
+  } catch {
+    return ""
+  }
+}
 
 function getFileIcon(fileType: string) {
   if (fileType.startsWith("image/")) return <ImageIcon className="h-5 w-5 text-purple-500" />
@@ -16,58 +33,61 @@ function getFileIcon(fileType: string) {
 
 function FileUploader({
   label,
+  category,
   contract,
   onUpdate,
 }: {
   label: string
+  category: "venue" | "office"
   contract: { fileName: string; fileType: string; fileUrl: string }
   onUpdate: (data: { fileName: string; fileType: string; fileUrl: string }) => void
 }) {
   const { toast } = useToast()
-  const inputRef = useRef<HTMLInputElement>(null)
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [available, setAvailable] = useState<AvailableContract[]>([])
+  const [loading, setLoading] = useState(false)
+  const [fetchError, setFetchError] = useState(false)
 
-  const handleFile = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-
-    const allowedTypes = [
-      "application/pdf",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "image/jpeg",
-      "image/png",
-      "image/webp",
-      "image/gif",
-    ]
-
-    if (!allowedTypes.includes(file.type)) {
-      toast({ title: "Invalid File", description: "Upload PDF, DOCX, or image files.", variant: "destructive" })
-      event.target.value = ""
-      return
+  const fetchAvailable = useCallback(async () => {
+    setLoading(true)
+    setFetchError(false)
+    try {
+      const res = await fetch(`/api/contracts?category=${category}`)
+      const json = await res.json()
+      setAvailable(json.contracts?.[category] || [])
+    } catch {
+      setFetchError(true)
+    } finally {
+      setLoading(false)
     }
+  }, [category])
 
-    if (file.size > MAX_FILE_SIZE_BYTES) {
-      toast({ title: "File Too Large", description: "Max 10MB.", variant: "destructive" })
-      event.target.value = ""
-      return
-    }
+  useEffect(() => {
+    fetchAvailable()
+  }, [fetchAvailable])
 
-    const reader = new FileReader()
-    reader.onload = () => {
-      onUpdate({
-        fileName: file.name,
-        fileType: file.type,
-        fileUrl: String(reader.result || ""),
-      })
-      event.target.value = ""
-    }
-    reader.readAsDataURL(file)
+  const handleSelect = (file: AvailableContract) => {
+    onUpdate({
+      fileName: file.fileName,
+      fileType: file.fileType,
+      fileUrl: file.fileUrl,
+    })
   }
 
   const handleRemove = () => {
     onUpdate({ fileName: "", fileType: "", fileUrl: "" })
-    setPreviewUrl(null)
   }
+
+  const isSelectedFileMissing =
+    contract.fileUrl &&
+    !contract.fileUrl.startsWith("data:") &&
+    available.length > 0 &&
+    !available.some((a) => a.fileUrl === contract.fileUrl)
+
+  const fileTypeLabel = contract.fileType.startsWith("image/")
+    ? "Image"
+    : contract.fileType === "application/pdf"
+      ? "PDF"
+      : "DOCX"
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -81,11 +101,25 @@ function FileUploader({
               {getFileIcon(contract.fileType)}
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-bold text-slate-900">{contract.fileName}</p>
-                <p className="text-[10px] font-semibold text-slate-500">
-                  {contract.fileType.startsWith("image/") ? "Image" : contract.fileType === "application/pdf" ? "PDF" : "DOCX"}
-                </p>
+                <p className="text-[10px] font-semibold text-slate-500">{fileTypeLabel}</p>
+                {(() => {
+                  const match = available.find((a) => a.fileUrl === contract.fileUrl)
+                  if (match?.lastModified) {
+                    return (
+                      <p className="mt-0.5 text-[10px] font-medium text-slate-400">
+                        Updated: {formatDate(match.lastModified)}
+                      </p>
+                    )
+                  }
+                  return null
+                })()}
               </div>
             </div>
+            {isSelectedFileMissing && (
+              <p className="rounded-lg bg-rose-50 px-3 py-2 text-[11px] font-semibold text-rose-600">
+                This file no longer exists in public/contracts/{category}/. Select a different contract below.
+              </p>
+            )}
             <div className="flex gap-2">
               <Button
                 type="button"
@@ -121,17 +155,83 @@ function FileUploader({
               </Button>
             </div>
           </div>
+        ) : null}
+
+        {loading ? (
+          <div className="flex items-center justify-center gap-2 py-6">
+            <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+            <p className="text-xs font-semibold text-slate-400">Loading available contracts...</p>
+          </div>
+        ) : fetchError ? (
+          <div className="rounded-lg border-2 border-dashed border-rose-200 bg-rose-50/50 p-4 text-center">
+            <p className="text-xs font-semibold text-rose-600">Failed to load available contracts.</p>
+            <button
+              type="button"
+              onClick={fetchAvailable}
+              className="mt-2 text-xs font-bold text-orange-600 underline underline-offset-2 hover:text-orange-700"
+            >
+              Retry
+            </button>
+          </div>
+        ) : available.length === 0 ? (
+          <div className="rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 p-4 text-center">
+            <p className="text-xs font-semibold text-slate-500">
+              No contract files found in public/contracts/{category}/.
+            </p>
+          </div>
         ) : (
-          <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50/50 py-8 transition hover:border-orange-300 hover:bg-orange-50/30">
-            <input ref={inputRef} type="file" accept=".pdf,.docx,image/*" onChange={handleFile} hidden />
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-50 text-orange-600">
-              <Upload className="h-5 w-5" />
+          <div className="space-y-2">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+              Available Contracts
+            </p>
+            <div className="space-y-1">
+              {available.map((file) => {
+                const isActive = contract.fileUrl === file.fileUrl
+                return (
+                  <button
+                    key={file.fileUrl}
+                    type="button"
+                    onClick={() => handleSelect(file)}
+                    className={[
+                      "flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition",
+                      isActive
+                        ? "border-orange-300 bg-orange-50 ring-1 ring-orange-300"
+                        : "border-slate-200 bg-white hover:border-orange-200 hover:bg-orange-50/30",
+                    ].join(" ")}
+                  >
+                    {getFileIcon(file.fileType)}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-bold text-slate-900">{file.fileName}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-[10px] font-semibold text-slate-500">
+                          {file.fileType.startsWith("image/")
+                            ? "Image"
+                            : file.fileType === "application/pdf"
+                              ? "PDF"
+                              : "DOCX"}
+                        </p>
+                        {isActive && (
+                          <span className="inline-flex items-center rounded-full bg-orange-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-orange-700">
+                            Current
+                          </span>
+                        )}
+                      </div>
+                      {file.lastModified ? (
+                        <p className="mt-0.5 text-[10px] font-medium text-slate-400">
+                          Updated: {formatDate(file.lastModified)}
+                        </p>
+                      ) : null}
+                    </div>
+                    {isActive && (
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-orange-600">
+                        <Check className="h-3 w-3 text-white" />
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
             </div>
-            <div className="text-center">
-              <p className="text-sm font-bold text-slate-700">Upload Contract File</p>
-              <p className="mt-0.5 text-[11px] font-semibold text-slate-500">PDF, DOCX, or Image — max 10MB</p>
-            </div>
-          </label>
+          </div>
         )}
       </div>
     </div>
@@ -153,11 +253,13 @@ export function CMSContractsTab({ onNavigate }: { onNavigate: (tab: string) => v
       <div className="grid gap-6 md:grid-cols-2">
         <FileUploader
           label="Event Venue Contract"
+          category="venue"
           contract={cmsData.eventVenueContract}
           onUpdate={updateEventVenueContract}
         />
         <FileUploader
           label="Office Rental Contract"
+          category="office"
           contract={cmsData.officeRentalContract}
           onUpdate={updateOfficeRentalContract}
         />

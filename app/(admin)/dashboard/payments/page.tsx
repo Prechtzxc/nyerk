@@ -133,8 +133,7 @@ export default function AdminPaymentsPage() {
       paymentAmount: pr.amount,
       pendingPaymentAmount: pr.amount,
       amountPaid: pr.amountPaid,
-      paymentProof: pr.proofUrl,
-      proofOfPayment: pr.proofUrl,
+      proofUrl: pr.proofUrl,
       bankReferenceNumber: pr.referenceNo,
       paymentReference: pr.referenceNo,
       paymentSubmissionType: pr.paymentMethod === "cash" ? "onsite" : "bank_transfer",
@@ -161,9 +160,8 @@ export default function AdminPaymentsPage() {
         (pr: any) => (pr.bookingId === key || pr.id === key) && pr.proofUrl
       )
 
-      if (matchingPayment && !item.paymentProof && !item.proofOfPayment) {
-        item.paymentProof = matchingPayment.proofUrl
-        item.proofOfPayment = matchingPayment.proofUrl
+      if (matchingPayment && !item.proofUrl) {
+        item.proofUrl = matchingPayment.proofUrl
       }
 
       const totalFromPaymentRecords = allPaymentRecords
@@ -287,12 +285,12 @@ export default function AdminPaymentsPage() {
       } else {
         updatedBooking = buildIncompletePaymentBooking(payment, note, 0)
       }
-      if (updatedBooking && !updatedBooking.paymentProof && !updatedBooking.proofOfPayment) {
+      if (updatedBooking && !updatedBooking.proofUrl) {
         const matchingPayment = paymentRecords.find(
           (pr: any) => updatedBooking && (pr.bookingId === updatedBooking.id || pr.id === updatedBooking.id) && pr.proofUrl
         )
         if (matchingPayment) {
-          updatedBooking = { ...updatedBooking, paymentProof: matchingPayment.proofUrl, proofOfPayment: matchingPayment.proofUrl }
+          updatedBooking = { ...updatedBooking, proofUrl: matchingPayment.proofUrl }
         }
       }
       setSelectedPayment(updatedBooking)
@@ -341,12 +339,12 @@ export default function AdminPaymentsPage() {
               adminName: "Administrator",
             })
             let updated = updatedBooking
-            if (!updated.paymentProof && !updated.proofOfPayment) {
+            if (!updated.proofUrl) {
               const matchingPayment = paymentRecords.find(
                 (pr: any) => updated && (pr.bookingId === updated.id || pr.id === updated.id) && pr.proofUrl
               )
               if (matchingPayment) {
-                updated = { ...updated, paymentProof: matchingPayment.proofUrl, proofOfPayment: matchingPayment.proofUrl }
+                updated = { ...updated, proofUrl: matchingPayment.proofUrl }
               }
             }
             setSelectedPayment(updated)
@@ -370,12 +368,12 @@ export default function AdminPaymentsPage() {
               adminName: "Administrator",
             })
             let updated = updatedBooking
-            if (!updated.paymentProof && !updated.proofOfPayment) {
+            if (!updated.proofUrl) {
               const matchingPayment = paymentRecords.find(
                 (pr: any) => updated && (pr.bookingId === updated.id || pr.id === updated.id) && pr.proofUrl
               )
               if (matchingPayment) {
-                updated = { ...updated, paymentProof: matchingPayment.proofUrl, proofOfPayment: matchingPayment.proofUrl }
+                updated = { ...updated, proofUrl: matchingPayment.proofUrl }
               }
             }
             setSelectedPayment(updated)
@@ -814,7 +812,7 @@ function PaymentReviewModal({
   const displayLabel = isIncompletePayment ? "Amount Received" : "Amount Submitted"
 
   const paymentRecordProof = useMemo(() => {
-    if (payment.paymentProof || payment.proofOfPayment) return null
+    if (payment.proofUrl) return null
     if (!paymentRecords?.length) return null
     const key = payment.id || payment.bookingId || ""
     const match = paymentRecords.find(
@@ -823,7 +821,7 @@ function PaymentReviewModal({
     return match?.proofUrl || null
   }, [payment, paymentRecords])
 
-  const effectiveProof = payment.paymentProof || payment.proofOfPayment || payment.proofImage || payment.receiptImage || paymentRecordProof
+  const effectiveProof = payment.proofUrl || payment.paymentProof || payment.proofOfPayment || payment.proofImage || payment.receiptImage || paymentRecordProof
   const hasImageProof = isImageProof(effectiveProof)
 
   return (
@@ -1240,7 +1238,8 @@ function isPaymentRecord(booking: BookingRecord) {
   ).toLowerCase()
 
   const hasPaymentProof = Boolean(
-    booking?.paymentProof ||
+    booking?.proofUrl ||
+      booking?.paymentProof ||
       booking?.proofOfPayment ||
       booking?.paymentReference ||
       booking?.referenceNumber ||

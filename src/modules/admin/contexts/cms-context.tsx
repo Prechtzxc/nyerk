@@ -313,8 +313,16 @@ const defaultCMSData: CMSData = {
   pastEvents: [],
   pastClientBookings: [],
   policies: DEFAULT_POLICIES,
-  eventVenueContract: { fileName: "", fileType: "", fileUrl: "" },
-  officeRentalContract: { fileName: "", fileType: "", fileUrl: "" },
+  eventVenueContract: {
+    fileName: "Events Place Contract.docx",
+    fileType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    fileUrl: "/contracts/venue/Events Place Contract.docx",
+  },
+  officeRentalContract: {
+    fileName: "Office space contract.docx",
+    fileType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    fileUrl: "/contracts/office/Office space contract.docx",
+  },
 }
 
 const defaultHomepage: CMSData["homepage"] = defaultCMSData.homepage

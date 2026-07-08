@@ -244,8 +244,7 @@ export interface Booking {
   actualPaymentMethod?: string;
   hasActivePaymentSubmission?: boolean;
   paymentSubmissionType?: "bank_transfer" | "onsite";
-  paymentProof?: string;
-  proofOfPayment?: string;
+  proofUrl?: string;
   bankReferenceNumber?: string;
   paymentReference?: string;
   paymentAmount?: number;
@@ -461,6 +460,7 @@ function stripHeavyBookingFields(booking: any) {
     proofImage,
     proofDataUrl,
     paymentProof,
+    proofOfPayment,
     receiptImage,
     uploadedProof,
     bankProof,
@@ -2598,8 +2598,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
             actualPaymentMethod: "Cash / Onsite",
             paymentSubmissionType: "onsite" as const,
             paymentType: "slot_reservation" as const,
-            paymentProof: null,
-            proofOfPayment: null,
+            proofUrl: null,
             bankReferenceNumber: null,
             paymentAmount: 0,
             paymentSubmittedAt: new Date().toISOString(),
@@ -2632,6 +2631,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           paymentMethod: paymentData.method,
           bankReferenceNumber: paymentData.bankReferenceNumber?.trim(),
           paymentReference: paymentData.bankReferenceNumber?.trim(),
+          proofUrl: paymentData.proof,
           paymentAmount: Number(paymentData.amount || reservationFee),
           pendingPaymentAmount: Number(paymentData.amount || reservationFee),
           paymentSubmittedAt: new Date().toISOString(),
@@ -2687,8 +2687,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
             paymentSubmissionType: "onsite" as const,
             paymentMethod: "cash" as const,
             actualPaymentMethod: "Cash / Onsite",
-            paymentProof: null,
-            proofOfPayment: null,
+            proofUrl: null,
             bankReferenceNumber: null,
             paymentAmount: Number(dpAmount),
             pendingPaymentAmount: Number(dpAmount),
@@ -2718,6 +2717,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           paymentMethod: paymentData.method,
           bankReferenceNumber: paymentData.bankReferenceNumber?.trim(),
           paymentReference: paymentData.bankReferenceNumber?.trim(),
+          proofUrl: paymentData.proof,
           paymentAmount: Number(dpAmount),
           pendingPaymentAmount: Number(dpAmount),
           paymentSubmittedAt: new Date().toISOString(),
@@ -2749,8 +2749,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
             paymentSubmissionType: "onsite" as const,
             paymentMethod: "cash" as const,
             actualPaymentMethod: "Cash / Onsite",
-            paymentProof: null,
-            proofOfPayment: null,
+            proofUrl: null,
             bankReferenceNumber: null,
             paymentAmount: paymentAmount,
             pendingPaymentAmount: paymentAmount,
@@ -2776,8 +2775,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           paymentMethod: paymentData.method,
           bankReferenceNumber: paymentData.bankReferenceNumber?.trim(),
           paymentReference: paymentData.bankReferenceNumber?.trim(),
-          paymentProof: paymentData.proof,
-          proofOfPayment: paymentData.proof,
+          proofUrl: paymentData.proof,
           paymentAmount: paymentAmount,
           pendingPaymentAmount: paymentAmount,
           paymentSubmittedAt: new Date().toISOString(),
@@ -2800,8 +2798,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           paymentSubmissionType: "onsite" as const,
           paymentMethod: "cash" as const,
           actualPaymentMethod: "Cash / Onsite",
-          paymentProof: null,
-          proofOfPayment: null,
+          proofUrl: null,
           bankReferenceNumber: null,
           paymentAmount: Number(paymentData.amount || total),
           pendingPaymentAmount: Number(paymentData.amount || total),
@@ -2831,6 +2828,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         paymentMethod: paymentData.method,
         bankReferenceNumber: paymentData.bankReferenceNumber?.trim(),
         paymentReference: paymentData.bankReferenceNumber?.trim(),
+        proofUrl: paymentData.proof,
         paymentAmount: Number(paymentData.amount || total),
         pendingPaymentAmount: Number(paymentData.amount || total),
         paymentSubmittedAt: new Date().toISOString(),
@@ -2863,7 +2861,6 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           amount: Number(paymentData.amount || getSafePrice(updatedBooking.totalPrice)),
           amountPaid: Number(paymentData.amount || 0),
           referenceNo: paymentData.bankReferenceNumber?.trim() ?? "",
-          proofName: "",
           proofUrl: paymentData.proof ?? "",
           status: paymentData.method === "cash" ? "Awaiting Onsite Payment" : "For Verification",
           verificationStatus: paymentData.method === "cash" ? "Pending Onsite Verification" : "Pending",
