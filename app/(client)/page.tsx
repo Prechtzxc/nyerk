@@ -221,7 +221,7 @@ email: cmsData?.footer?.email,
   const [galleryBooking, setGalleryBooking] = useState<PastClientBooking | null>(null)
 
   const homepage = cmsData.homepage
-  const faqs = cmsData.faqs
+  const faqs = cmsData.faqs.filter((f: any) => !f.isHidden)
 
   const pastClientBookings = useMemo(() => {
     const bookings = Array.isArray(cmsData?.pastClientBookings) ? cmsData.pastClientBookings : []

@@ -17,6 +17,7 @@ export type PublicSpace = {
   panoramaUrl: string
   type?: string
   panoImage?: string
+  isHidden?: boolean
 }
 
 export type PublicSpacesResult = {
@@ -71,6 +72,7 @@ function normalizeItem(item: any, category: "venue" | "office"): PublicSpace {
     image: String(item.image || ""),
     panoramaUrl: String(item.panoramaUrl || item.panoImage || item.panorama || item.tourImage || ""),
     panoImage: String(item.panoImage || item.panoramaUrl || item.panorama || item.tourImage || ""),
+    isHidden: item.isHidden === true,
   }
 }
 

@@ -1156,7 +1156,7 @@ function BookingDetailsModal({
               </section>
             ) : null}
 
-              {isPaymentVerified && (() => {
+              {(() => {
                 const contract = isOfficeRental
                   ? cmsData.officeRentalContract
                   : cmsData.eventVenueContract
@@ -1195,7 +1195,7 @@ function BookingDetailsModal({
                             variant="outline"
                             onClick={() => {
                               console.log("[View Contract] clicked")
-                              setShowContractPreview(true)
+                              setShowContractFile(true)
                             }}
                             className="h-9 flex-1 rounded-lg border-slate-200 text-[10px] font-bold"
                           >

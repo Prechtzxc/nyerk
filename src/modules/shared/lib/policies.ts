@@ -196,7 +196,7 @@ function parseCMSContent(content: string): string[] {
 
 export function getPolicyItems(type: PolicyKey): string[] {
   if (cachedPolicies) {
-    const match = cachedPolicies.find((p: any) => p.type === type && p.content?.trim())
+    const match = cachedPolicies.find((p: any) => p.type === type && p.content?.trim() && p.isPublished !== false)
     if (match) return parseCMSContent(match.content)
   }
   return parseCMSContent(DEFAULT_POLICY_CONTENT[type])
@@ -204,7 +204,7 @@ export function getPolicyItems(type: PolicyKey): string[] {
 
 export function getPolicyText(type: PolicyKey): string {
   if (cachedPolicies) {
-    const match = cachedPolicies.find((p: any) => p.type === type && p.content?.trim())
+    const match = cachedPolicies.find((p: any) => p.type === type && p.content?.trim() && p.isPublished !== false)
     if (match) return match.content
   }
   return DEFAULT_POLICY_CONTENT[type]

@@ -56,15 +56,26 @@ export default function CalendarPreviewPage() {
     if (activeMaintenance.includes(`${selectedFacilityId}|${iterDateStr}`)) return "maintenance"
 
     const dayBookings = allBookings.filter(b => b.date === iterDateStr && (!b.venueId || b.venueId === selectedFacilityId) && ["approved", "confirmed", "completed", "contract_signing_required", "reservation_secured", "active_rental"].includes(b.status?.toLowerCase() || ""));
+    const pendingBookings = allBookings.filter(b => b.date === iterDateStr && (!b.venueId || b.venueId === selectedFacilityId) && ["pending", "verifying"].includes(b.status?.toLowerCase() || ""));
+    const modRequestBookings = allBookings.filter(b => b.date === iterDateStr && (!b.venueId || b.venueId === selectedFacilityId) && ["modification_under_review", "cancellation_requested"].includes(b.status?.toLowerCase() || ""));
+    
+    const hasPending = pendingBookings.length > 0
+    const hasModRequest = modRequestBookings.length > 0
+    const hasModification = modRequestBookings.length > 0
+
+    // Priority: modification request > pending > booked
+    if (hasModRequest) return "modification_request"
+    if (hasPending) return "pending"
     
     // PHASE 2: Magkaibang Logic para sa Venue at Office
     if (bookingType === "office") {
-      // OFFICES: Contract-based. Kapag occupied na, blocked agad.
-      if (dayBookings.length >= 1) return "full"
+      if (dayBookings.length >= 1) return "booked"
     } else {
-      // VENUES: Hourly-based (6 hrs). Posible ang multiple bookings (max 2 per day para sa logic na ito)
-      if (dayBookings.length >= 2) return "full"
-      if (dayBookings.length === 1) return "partial"
+      if (dayBookings.length >= 2) return "booked"
+      if (dayBookings.length === 1) {
+        const hasReserved = dayBookings.some(b => ["reservation_secured", "contract_signing_required"].includes(b.status?.toLowerCase() || ""))
+        return hasReserved ? "reserved" : "booked"
+      }
     }
     
     return "available"
@@ -123,14 +134,16 @@ export default function CalendarPreviewPage() {
                </div>
 
                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-4">
-                  <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2"><Info className="w-4 h-4 text-amber-600"/> Legend</h4>
-                  <div className="space-y-3">
-                     <div className="flex items-center gap-3"><div className="w-4 h-4 rounded-full bg-emerald-100 border border-emerald-300"></div><span className="text-sm font-semibold text-slate-600">Available</span></div>
-                     <div className="flex items-center gap-3"><div className="w-4 h-4 rounded-full bg-amber-100 border border-amber-300"></div><span className="text-sm font-semibold text-slate-600">Partially Booked</span></div>
-                     <div className="flex items-center gap-3"><div className="w-4 h-4 rounded-full bg-rose-100 border border-rose-300"></div><span className="text-sm font-semibold text-slate-600">Fully Booked</span></div>
-                     <div className="flex items-center gap-3"><div className="w-4 h-4 rounded-full bg-slate-200 border border-slate-300"></div><span className="text-sm font-semibold text-slate-600">Maintenance</span></div>
-                  </div>
-               </div>
+                   <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2"><Info className="w-4 h-4 text-amber-600"/> Legend</h4>
+                   <div className="space-y-2.5">
+                      <div className="flex items-center gap-3"><div className="w-4 h-4 rounded-full bg-emerald-100 border border-emerald-300"></div><span className="text-sm font-semibold text-slate-600">🟢 Available</span></div>
+                      <div className="flex items-center gap-3"><div className="w-4 h-4 rounded-full bg-rose-100 border border-rose-300"></div><span className="text-sm font-semibold text-slate-600">🔴 Booked</span></div>
+                      <div className="flex items-center gap-3"><div className="w-4 h-4 rounded-full bg-amber-100 border border-amber-300"></div><span className="text-sm font-semibold text-slate-600">🟡 Pending</span></div>
+                      <div className="flex items-center gap-3"><div className="w-4 h-4 rounded-full bg-purple-100 border border-purple-300"></div><span className="text-sm font-semibold text-slate-600">🟣 Modification Request</span></div>
+                      <div className="flex items-center gap-3"><div className="w-4 h-4 rounded-full bg-blue-100 border border-blue-300"></div><span className="text-sm font-semibold text-slate-600">🔵 Reserved</span></div>
+                      <div className="flex items-center gap-3"><div className="w-4 h-4 rounded-full bg-slate-200 border border-slate-300"></div><span className="text-sm font-semibold text-slate-600">⚫ Maintenance</span></div>
+                   </div>
+                </div>
 
                {/* PHASE 3: Trigger Pencil Booking */}
                <ReserveButton 
@@ -158,12 +171,14 @@ export default function CalendarPreviewPage() {
                  {days.map((day) => {
                    const status = getDayStatus(day);
                    
-                   let bgClass = "bg-slate-50 text-slate-700 hover:border-amber-400";
-                   if (status === "past") bgClass = "bg-white text-slate-300 opacity-50";
-                   else if (status === "full") bgClass = "bg-rose-50 text-rose-700 border-rose-200";
-                   else if (status === "partial") bgClass = "bg-amber-50 text-amber-700 border-amber-200";
-                   else if (status === "maintenance") bgClass = "bg-slate-200 text-slate-500 border-slate-300";
-                   else if (status === "available") bgClass = "bg-emerald-50 text-emerald-700 border-emerald-200";
+                    let bgClass = "bg-slate-50 text-slate-700 hover:border-amber-400";
+                    if (status === "past") bgClass = "bg-white text-slate-300 opacity-50";
+                    else if (status === "booked") bgClass = "bg-rose-50 text-rose-700 border-rose-300";
+                    else if (status === "reserved") bgClass = "bg-blue-50 text-blue-700 border-blue-300";
+                    else if (status === "pending") bgClass = "bg-amber-50 text-amber-700 border-amber-300";
+                    else if (status === "modification_request") bgClass = "bg-purple-50 text-purple-700 border-purple-300";
+                    else if (status === "maintenance") bgClass = "bg-slate-200 text-slate-500 border-slate-400";
+                    else if (status === "available") bgClass = "bg-emerald-50 text-emerald-700 border-emerald-300";
 
                    return (
                      <div key={day} className="aspect-square flex items-center justify-center p-1">

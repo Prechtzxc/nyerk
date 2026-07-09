@@ -946,16 +946,24 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
             <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">{category === 'venue' ? 'Our Venues' : 'Office Wings'}</h2>
             <p className="text-slate-500 mt-1 text-sm">Select a space to view its availability and 360 preview.</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
-            {items.map((item) => (
-              <div key={item.id} className="bg-white rounded-[1.5rem] xl:rounded-[1rem] overflow-hidden shadow-sm border border-slate-200 hover:shadow-md transition-all duration-300 group flex flex-col">
-                <div className="relative aspect-[16/10] overflow-hidden bg-slate-100 min-h-0 cursor-pointer focus-within:ring-2 focus-within:ring-orange-300 outline-none" onClick={() => { setSelectedItem(item); setStep(category === 'office' ? 'room' : 'schedule') }}>
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+            {items.map((item) => {
+              const isMaintenance = item.isHidden === true
+              return (
+              <div key={item.id} className={`bg-white rounded-[1.5rem] xl:rounded-[1rem] overflow-hidden shadow-sm border transition-all duration-300 group flex flex-col ${isMaintenance ? 'border-slate-300 opacity-75' : 'border-slate-200 hover:shadow-md'}`}>
+                <div className={`relative aspect-[16/10] overflow-hidden bg-slate-100 min-h-0 ${isMaintenance ? 'cursor-not-allowed' : 'cursor-pointer focus-within:ring-2 focus-within:ring-orange-300 outline-none'}`} onClick={() => { if (!isMaintenance) { setSelectedItem(item); setStep(category === 'office' ? 'room' : 'schedule') }}}>
                   <img src={item.image} alt={item.name} loading="lazy" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
                   
                   <VenueRatingBadge venueName={item.name} />
 
                   <div className="absolute bottom-4 left-5 right-5 xl:bottom-4 xl:left-5"><h4 className="font-black text-white text-xl lg:text-lg leading-tight mb-1">{item.name}</h4><p className="text-white/80 text-xs xl:text-[10px] line-clamp-1">{item.description}</p></div>
+                  
+                  {isMaintenance && (
+                    <div className="absolute top-3 right-3 rounded-full bg-slate-900/80 px-3 py-1 text-[9px] font-bold text-white backdrop-blur-sm border border-slate-600">
+                      Under Maintenance
+                    </div>
+                  )}
                 </div>
                 
                 <div className="p-4 flex flex-col gap-3 bg-white shrink-0">
@@ -976,12 +984,13 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
                       </VenueReviewsDialog>
                   </div>
                   
-                  <Button aria-label={`Select ${item.name}`} onClick={() => { setSelectedItem(item); setStep(category === 'office' ? 'room' : 'schedule') }} className="w-full rounded-full bg-slate-900 hover:bg-[#ea580c] text-white font-bold h-10 text-sm transition-colors shadow-sm">
-                      Select {category === 'venue' ? 'Venue' : 'Office'}
+                  <Button aria-label={`Select ${item.name}`} disabled={isMaintenance} onClick={() => { if (!isMaintenance) { setSelectedItem(item); setStep(category === 'office' ? 'room' : 'schedule') }}} className="w-full rounded-full bg-slate-900 hover:bg-[#ea580c] text-white font-bold h-10 text-sm transition-colors shadow-sm disabled:bg-slate-300 disabled:cursor-not-allowed disabled:shadow-none">
+                      {isMaintenance ? 'Under Maintenance' : `Select ${category === 'venue' ? 'Venue' : 'Office'}`}
                   </Button>
                 </div>
               </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       </div>
