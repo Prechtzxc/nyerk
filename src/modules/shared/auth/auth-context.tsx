@@ -85,23 +85,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        console.log("[Auth:onAuthStateChanged] Firebase Auth user detected:", firebaseUser.uid)
         try {
           const userDocRef = doc(db, "users", firebaseUser.uid)
-          console.log("[Auth:onAuthStateChanged] Reading", userDocRef.path, "...")
           const userDocSnap = await getDoc(userDocRef)
-          console.log("[Auth:onAuthStateChanged] exists() =", userDocSnap.exists())
           if (userDocSnap.exists()) {
             const data = userDocSnap.data()
             const rawRole: string = String(data.role || "").toLowerCase().trim()
-            console.log("[Auth:onAuthStateChanged] Profile loaded — raw role from Firestore:", JSON.stringify(data.role))
 
             if (rawRole !== "admin" && rawRole !== "client") {
               console.error("[Auth:onAuthStateChanged] INVALID ROLE:", rawRole, "- not setting user")
               setUser(null)
             } else {
               const validRole = rawRole as "admin" | "client"
-              console.log("[Auth:onAuthStateChanged] Valid role resolved:", validRole)
               setUser({
                 id: firebaseUser.uid,
                 fullName: data.fullName || "",
@@ -114,20 +109,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 phone: data.phone || "",
               })
             }
-          } else {
-            console.warn(
-              "[Auth:onAuthStateChanged] Auth user",
-              firebaseUser.uid,
-              "has no Firestore document at",
-              userDocRef.path,
-              "— user will need to login to trigger recovery or re-register"
-            )
           }
         } catch (err: any) {
           console.error("[Auth:onAuthStateChanged] Firestore read error:", err?.code || err?.message || err)
         }
       } else {
-        console.log("[Auth:onAuthStateChanged] No Firebase Auth user detected")
         setUser(null)
       }
       setIsLoading(false)
@@ -141,12 +127,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const credential = await signInWithEmailAndPassword(auth, email, password!)
 
       const userDocRef = doc(db, "users", credential.user.uid)
-      console.log("[Auth] Login reading:", userDocRef.path)
       const userDocSnap = await getDoc(userDocRef)
 
       if (!userDocSnap.exists()) {
-        console.log("[Auth] Login — document missing at", userDocRef.path, "for uid", credential.user.uid)
-        console.log("[Auth] Login — attempting auto-recovery for uid =", credential.user.uid)
 
         const recoveredEmail = (credential.user.email || email).toLowerCase().trim()
         const now = new Date().toISOString()
@@ -159,28 +142,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           createdAt: now,
         }
 
-        console.log("[Auth] Login — auto-recovery payload:", JSON.stringify(recoveredData, null, 2))
-
-        // Write the missing document
-        console.log("[Auth] Login — calling setDoc at", userDocRef.path, "...")
         await setDoc(userDocRef, recoveredData)
-        console.log("[Auth] Login — setDoc returned (no throw)")
 
-        // Read back to confirm
-        console.log("[Auth] Login — verifying with getDoc at", userDocRef.path, "...")
         const verifySnap = await getDoc(userDocRef)
-        console.log("[Auth] Login — getDoc exists() =", verifySnap.exists())
         if (!verifySnap.exists()) {
           console.error("[Auth] Login — FATAL: setDoc succeeded but getDoc returns exists()=false")
-          console.error("[Auth] Login — Security rules may be blocking reads.")
           return {
             success: false,
             message:
               "Profile recovery failed — document was written but could not be read back. Check Firestore security rules.",
           }
         }
-
-        console.log("[Auth] Login — auto-recovery successful, document confirmed at", userDocRef.path)
 
         setUser({
           id: credential.user.uid,
@@ -198,8 +170,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const data = userDocSnap.data()
-      console.log("[Auth] Login — Firestore document data:", JSON.stringify(data, null, 2))
-      console.log("[Auth] Login — raw role from Firestore (unsanitized):", JSON.stringify(data.role))
       const rawRole: string = String(data.role || "").toLowerCase().trim()
 
       if (rawRole !== "admin" && rawRole !== "client") {
@@ -211,14 +181,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const role = rawRole
-
-      console.log("[Auth] Login success", {
-        uid: credential.user.uid,
-        email: credential.user.email,
-        role,
-        currentRoute: window.location.pathname,
-        targetRoute: role === "admin" ? "/dashboard" : "/portal",
-      })
 
       setUser({
         id: credential.user.uid,
@@ -242,17 +204,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let uid: string | null = null
 
     try {
-      // STEP 1: createUserWithEmailAndPassword
-      console.log("[Auth:Signup] === STEP 1/6: createUserWithEmailAndPassword ===")
-      console.log("[Auth:Signup] Input email:", input.email)
       const credential = await createUserWithEmailAndPassword(auth, input.email, input.password)
       uid = credential.user.uid
-      console.log("[Auth:Signup] createUserWithEmailAndPassword SUCCESS")
-
-      // STEP 2: Firebase UID
-      console.log("[Auth:Signup] === STEP 2/6: Firebase UID ===")
-      console.log("[Auth:Signup] UID:", uid)
-      console.log("[Auth:Signup] Auth user email:", credential.user.email)
 
       const fullName = [input.firstName, input.middleName, input.lastName]
         .filter(Boolean)
@@ -261,10 +214,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const role = "client"
       const createdAt = new Date().toISOString()
       const userDocRef = doc(db, "users", uid)
-
-      // STEP 3: Firestore document path
-      console.log("[Auth:Signup] === STEP 3/6: Firestore document path ===")
-      console.log("[Auth:Signup] Firestore path:", userDocRef.path)
 
       const userData = {
         uid,
@@ -280,34 +229,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         createdAt,
       }
 
-      // STEP 4: setDoc payload
-      console.log("[Auth:Signup] === STEP 4/6: setDoc payload ===")
-      console.log("[Auth:Signup] Payload:", JSON.stringify(userData, null, 2))
-
-      // STEP 5: setDoc()
-      console.log("[Auth:Signup] === STEP 5/6: setDoc() ===")
-      console.log("[Auth:Signup] Calling setDoc...")
       await setDoc(userDocRef, userData)
-      console.log("[Auth:Signup] setDoc SUCCESS — document written to", userDocRef.path)
 
-      // STEP 6: Read back with getDoc to confirm
-      console.log("[Auth:Signup] === STEP 6/6: getDoc readback verification ===")
-      console.log("[Auth:Signup] Reading back", userDocRef.path, "...")
       const verifySnap = await getDoc(userDocRef)
-      console.log("[Auth:Signup] getDoc returned exists() =", verifySnap.exists())
-      if (verifySnap.exists()) {
-        console.log("[Auth:Signup] getDoc data:", JSON.stringify(verifySnap.data(), null, 2))
-      } else {
-        console.error("[Auth:Signup] FATAL: setDoc reported success but getDoc returns exists()=false")
-        console.error("[Auth:Signup] This indicates a security rule or backend inconsistency.")
+      if (!verifySnap.exists()) {
+        console.error("[Auth:Signup] FATAL: setDoc succeeded but getDoc returns exists()=false")
         return {
           success: false,
           message:
             "Account created but profile write could not be verified. Please try logging in — the system will attempt to recover your profile.",
         }
       }
-
-      console.log("[Auth:Signup] === SIGNUP COMPLETE: BOTH auth + Firestore confirmed ===")
 
       setUser({
         id: uid,
@@ -325,17 +257,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error: any) {
       const errorCode = error?.code || "unknown"
       const errorMessage = error?.message || String(error)
-
-      console.error("[Auth:Signup] === ERROR ===")
-      console.error("[Auth:Signup] File:", "src/modules/shared/auth/auth-context.tsx")
-      console.error("[Auth:Signup] Function:", "signup()")
-      console.error("[Auth:Signup] UID at time of error:", uid || "(not yet created)")
-      console.error("[Auth:Signup] Target Firestore path:", `users/${uid || "(no uid)"}`)
-      console.error("[Auth:Signup] Firebase error code:", JSON.stringify(errorCode))
-      console.error("[Auth:Signup] Firebase error message:", JSON.stringify(errorMessage))
-      if (error?.details) {
-        console.error("[Auth:Signup] Firebase error details:", JSON.stringify(error.details))
-      }
 
       if (errorCode === "permission-denied") {
         return {

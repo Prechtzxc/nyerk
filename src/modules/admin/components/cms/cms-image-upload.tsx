@@ -4,10 +4,7 @@ import { type ChangeEvent, useState } from "react"
 import { ImageIcon, Loader2, Upload, X } from "lucide-react"
 import { useToast } from "@shared/hooks/use-toast"
 import { validateImageFile, uploadCMSImage, removeImage } from "@shared/lib/image-upload"
-
-function getImageSource(value?: string) {
-  return value && value.trim() ? value : "/placeholder.jpg"
-}
+import { getImageSource } from "@/src/modules/shared/lib/file-utils"
 
 export function CMSImageUpload({
   label, value, note, accent = "orange", storagePath, onValueChange,

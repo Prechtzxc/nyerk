@@ -17,12 +17,13 @@ import { Textarea } from "@/src/modules/shared/components/ui/textarea"
 import { Calendar } from "@/src/modules/shared/components/ui/calendar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/src/modules/shared/components/ui/tabs"
 import { useToast } from "@/src/modules/shared/hooks/use-toast"
+import { type Booking } from "@/src/modules/client/contexts/booking-context"
 
 interface ModifyBookingDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  booking: any
-  onSave: (updatedBooking: any) => void
+  booking: Booking
+  onSave: (updatedBooking: Booking) => void
 }
 
 export function ModifyBookingDialog({ open, onOpenChange, booking, onSave }: ModifyBookingDialogProps) {

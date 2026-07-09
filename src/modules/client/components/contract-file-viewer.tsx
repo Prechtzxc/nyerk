@@ -11,6 +11,7 @@ import {
 } from "@/src/modules/shared/components/ui/dialog"
 import { Button } from "@/src/modules/shared/components/ui/button"
 import type { ContractFile } from "@/src/modules/admin/contexts/cms-context"
+import { isPDF, isImage, isDOCX } from "@/src/modules/shared/lib/file-utils"
 
 export function ContractFileViewer({
   open,
@@ -25,16 +26,12 @@ export function ContractFileViewer({
 }) {
   if (!file || !file.fileUrl) return null
 
-  const isPDF = file.fileType === "application/pdf"
-  const isImage = file.fileType.startsWith("image/")
-  const isDOCX = file.fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-
   const docxContainerRef = useRef<HTMLDivElement>(null)
   const [docxLoading, setDocxLoading] = useState(false)
   const [docxError, setDocxError] = useState(false)
 
   useEffect(() => {
-    if (!open || !file || !isDOCX || !docxContainerRef.current) return
+    if (!open || !file || !isDOCX(file.fileType) || !docxContainerRef.current) return
 
     setDocxLoading(true)
     setDocxError(false)
@@ -55,7 +52,7 @@ export function ContractFileViewer({
     }
 
     loadDocx()
-  }, [open, file, isDOCX])
+  }, [open, file?.fileUrl, file?.fileType])
 
   const handleDownload = () => {
     const a = document.createElement("a")
@@ -94,13 +91,13 @@ export function ContractFileViewer({
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
-          {isPDF ? (
+          {isPDF(file.fileType) ? (
             <iframe
               src={file.fileUrl}
               className="h-[70vh] w-full rounded-lg border border-slate-200"
               title="Contract PDF"
             />
-          ) : isImage ? (
+          ) : isImage(file.fileType) ? (
             <div className="flex items-center justify-center">
               <img
                 src={file.fileUrl}
@@ -108,7 +105,7 @@ export function ContractFileViewer({
                 className="max-h-[70vh] w-auto max-w-full rounded-lg object-contain"
               />
             </div>
-          ) : isDOCX ? (
+          ) : isDOCX(file.fileType) ? (
             <div className="flex items-center justify-center">
               {docxLoading && (
                 <div className="flex flex-col items-center gap-3 py-12">

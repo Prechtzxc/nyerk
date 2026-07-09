@@ -69,7 +69,6 @@ export function LoginDialog({ className, children }: LoginDialogProps) {
     try {
       const result = await login(email, password)
       if (!result.success) {
-        console.log("[LoginDialog] Login failed", result)
         toast({
           title: "Login failed",
           description: result.message || "Invalid credentials",
@@ -77,11 +76,9 @@ export function LoginDialog({ className, children }: LoginDialogProps) {
         })
         return
       }
-      console.log("[LoginDialog] Login succeeded, calling setOpen(false)")
       setOpen(false)
 
       const role = result.role
-      console.log("[LoginDialog] role from login():", role)
 
       if (!role) {
         console.error("[LoginDialog] No role returned from login")
@@ -90,11 +87,9 @@ export function LoginDialog({ className, children }: LoginDialogProps) {
       }
 
       if (role === "admin") {
-        console.log("[LoginDialog] Redirecting to /dashboard")
         toast({ title: "Login Successful", description: "Redirecting to dashboard..." })
         window.location.replace("/dashboard")
       } else if (role === "client") {
-        console.log("[LoginDialog] Redirecting to /portal")
         toast({ title: "Welcome back!", description: "Taking you to your portal..." })
         window.location.replace("/portal")
       } else {
@@ -102,7 +97,7 @@ export function LoginDialog({ className, children }: LoginDialogProps) {
         toast({ title: "Login Error", description: "Invalid account role.", variant: "destructive" })
       }
     } catch (error) {
-      console.log("[LoginDialog] Unexpected error", error)
+      console.error("[LoginDialog] Unexpected error", error)
       toast({ title: "Error", description: "Something went wrong", variant: "destructive" })
     }
   }

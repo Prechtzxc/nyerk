@@ -7,7 +7,7 @@ import { Input } from "@shared/components/ui/input"
 import { Textarea } from "@shared/components/ui/textarea"
 import { Switch } from "@shared/components/ui/switch"
 import { useToast } from "@shared/hooks/use-toast"
-import { useCMS } from "@admin/contexts/cms-context"
+import { useCMS, type FAQ } from "@admin/contexts/cms-context"
 import { CMSSectionHeader } from "./cms-section-header"
 import { CMSStatusBadge, EmptyState } from "./cms-status-badge"
 
@@ -25,7 +25,7 @@ export function CMSFaqsTab({ onNavigate }: { onNavigate: (tab: string) => void }
 
   const resetForm = () => { setQuestion(""); setAnswer(""); setIsHidden(false); setEditingId(null); setShowModal(false) }
   const openNew = () => { resetForm(); setShowModal(true) }
-  const openEdit = (faq: any) => { setEditingId(faq.id); setQuestion(faq.question); setAnswer(faq.answer); setIsHidden(faq.isHidden ?? false); setShowModal(true) }
+  const openEdit = (faq: FAQ) => { setEditingId(faq.id); setQuestion(faq.question); setAnswer(faq.answer); setIsHidden(faq.isHidden ?? false); setShowModal(true) }
 
   const handleSave = () => {
     if (!question.trim()) { toast({ title: "Question required", description: "Enter a question.", variant: "destructive" }); return }

@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useMemo, useRef } from "react"
 import { useAuth } from "@/src/modules/shared/auth/auth-context"
 import { useRouter } from "next/navigation"
-import { useBookings, Booking, calculateOfficeEndDate } from "@/src/modules/client/contexts/booking-context"
+import { useBookings, Booking, calculateOfficeEndDate, type BookingStatus, type BookingStatusLabel, type PaymentStatus, type ContractStatus, type CancellationStatus, type RefundStatus, type OfficeRentalTerm } from "@/src/modules/client/contexts/booking-context"
 import { 
   Building2, Tent, Calendar, Clock, MapPin, Users, AlertCircle, Plus, Receipt, ChevronLeft, ChevronRight, CheckCircle2, XCircle, ArrowLeft, X, DoorOpen, PartyPopper, PlayCircle, PauseCircle, Navigation, Loader2, Star, MessageSquare, Briefcase, FileText, Camera
 } from "lucide-react"
@@ -806,7 +806,7 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
       customEventType: isOfficeBooking && eventType === "others" ? customEventType.trim() : "",
       guestCount: isOfficeBooking ? 1 : Number(guests || 1),
       date: selectedDate,
-      endDate: isOfficeBooking ? calculateOfficeEndDate(selectedDate, rentalTerm as any) : "",
+      endDate: isOfficeBooking ? calculateOfficeEndDate(selectedDate, rentalTerm as OfficeRentalTerm) : "",
       time: selectedDuration,
       startTime: isOfficeBooking
         ? ""
@@ -818,11 +818,11 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
         : selectedDuration.includes("-")
           ? selectedDuration.split("-")[1].trim()
           : selectedDuration,
-      status: "pending" as any,
-      bookingStatus: "Pending Verification" as any,
+      status: "pending" as BookingStatus,
+      bookingStatus: "Pending Verification" as BookingStatusLabel,
       isSlotSecured: false,
-      paymentStatus: "unpaid" as any,
-      paymentType: isOfficeBooking ? ("slot_reservation" as any) : "",
+      paymentStatus: "unpaid" as PaymentStatus,
+      paymentType: isOfficeBooking ? "slot_reservation" as const : "",
       paymentMethod: "",
       amountPaid: 0,
       remainingBalance: isOfficeBooking ? 0 : selectedItem.price,
@@ -842,11 +842,11 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
       contractTerm: rentalTerm,
       contractSigningRequired: true,
       contractSigned: false,
-      contractStatus: "Not Available" as any,
+      contractStatus: "Not Available" as ContractStatus,
       requiresOnsiteContractSigning: isOfficeBooking,
       cancellationRequested: false,
-      cancellationStatus: "None" as any,
-      refundStatus: "Not Applicable" as any,
+      cancellationStatus: "None" as CancellationStatus,
+      refundStatus: "Not Applicable" as RefundStatus,
       officePaymentNote: isOfficeBooking
         ? "This system payment is for slot reservation only. Succeeding office rental payments are settled onsite via check after contract signing."
         : "",

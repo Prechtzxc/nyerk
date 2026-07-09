@@ -1,26 +1,12 @@
 "use client"
 
 import React, { createContext, useContext, useEffect, useState } from "react"
-import { doc, getDoc, setDoc } from "firebase/firestore"
+import { doc, onSnapshot, setDoc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { useToast } from "@/src/modules/shared/hooks/use-toast"
 import { DEFAULT_POLICY_CONTENT, POLICY_LABELS, ALL_POLICY_KEYS, type PolicyKey } from "@/src/modules/shared/lib/policies"
 import { setCachedPolicies } from "@/src/modules/shared/lib/policies"
 import { setCachedVenuesAndOffices } from "@/src/modules/client/lib/venue-data"
-
-export type PastEvent = {
-  id: string
-  title: string
-  clientName?: string
-  description: string
-  eventDate: string
-  venueName: string
-  image: string
-  isFeatured?: boolean
-  hasClientConsent?: boolean
-  createdAt: string
-  updatedAt?: string
-}
 
 export interface HomepageContent {
   heroTitle: string
@@ -105,7 +91,6 @@ export interface CMSData {
   venues: any[]
   offices: any[]
   faqs: FAQ[]
-  pastEvents: PastEvent[]
   pastClientBookings: PastClientBooking[]
   policies: Policy[]
   eventVenueContract: ContractFile
@@ -142,10 +127,6 @@ type CMSContextType = {
   addPolicy: (data: Omit<Policy, "id" | "createdAt" | "updatedAt">) => void
   updatePolicy: (id: string, data: Partial<Policy>) => void
   deletePolicy: (id: string) => void
-
-  addPastEvent: (data: Omit<PastEvent, "id" | "createdAt" | "updatedAt">) => void
-  updatePastEvent: (id: string, data: Partial<PastEvent>) => void
-  deletePastEvent: (id: string) => void
 
   pastClientBookings: PastClientBooking[]
   addPastClientBooking: (data: Omit<PastClientBooking, "id" | "createdAt" | "updatedAt">) => void
@@ -310,7 +291,6 @@ const defaultCMSData: CMSData = {
     },
   ],
   faqs: DEFAULT_FAQS,
-  pastEvents: [],
   pastClientBookings: [],
   policies: DEFAULT_POLICIES,
   eventVenueContract: {
@@ -358,10 +338,6 @@ const defaultContextValue: CMSContextType = {
   updatePolicy: () => {},
   deletePolicy: () => {},
 
-  addPastEvent: () => {},
-  updatePastEvent: () => {},
-  deletePastEvent: () => {},
-
   pastClientBookings: [],
   addPastClientBooking: () => {},
   updatePastClientBooking: () => {},
@@ -380,22 +356,6 @@ function createLocalId(prefix: string) {
   }
 
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`
-}
-
-function normalizePastEvent(event: any): PastEvent {
-  return {
-    id: event?.id || createLocalId("past-client-booking"),
-    title: event?.title || "",
-    clientName: event?.clientName || "",
-    description: event?.description || "",
-    eventDate: event?.eventDate || "",
-    venueName: event?.venueName || "One Estela Place",
-    image: event?.image || "/placeholder.jpg",
-    isFeatured: event?.isFeatured ?? true,
-    hasClientConsent: event?.hasClientConsent === true,
-    createdAt: event?.createdAt || new Date().toISOString(),
-    updatedAt: event?.updatedAt,
-  }
 }
 
 function normalizePastClientBooking(event: any): PastClientBooking {
@@ -456,9 +416,6 @@ function normalizeCMSData(parsed: Partial<CMSData> | null): CMSData {
     venues: Array.isArray(parsed.venues) ? parsed.venues : defaultCMSData.venues,
     offices: Array.isArray(parsed.offices) ? parsed.offices : defaultCMSData.offices,
     faqs: mergedFaqs,
-    pastEvents: Array.isArray(parsed.pastEvents)
-      ? parsed.pastEvents.map(normalizePastEvent)
-      : defaultCMSData.pastEvents,
     pastClientBookings: Array.isArray(parsed.pastClientBookings)
       ? parsed.pastClientBookings.map(normalizePastClientBooking)
       : defaultCMSData.pastClientBookings,
@@ -475,45 +432,29 @@ export const CMSProvider = ({ children }: { children: React.ReactNode }) => {
   const { toast } = useToast()
 
   useEffect(() => {
-    const loadCMSData = async () => {
-      try {
-        const docSnap = await getDoc(cmsDocRef)
+    const unsub = onSnapshot(
+      cmsDocRef,
+      (docSnap) => {
         if (docSnap.exists()) {
           const parsed = docSnap.data() as CMSData
           const normalized = normalizeCMSData(parsed)
-          console.log("=== CMS CONTEXT ===", {
-heroTitle: normalized.homepage.heroTitle,
-heroSubtitle: normalized.homepage.heroSubtitle,
-address: normalized.footer.address,
-phone: normalized.footer.phone,
-email: normalized.footer.email,
-})
           setCmsData(normalized)
           try { setCachedPolicies(normalized.policies) } catch (e) { console.error("FAILED setCachedPolicies", e) }
           try { setCachedVenuesAndOffices(normalized.venues, normalized.offices) } catch (e) { console.error("FAILED setCachedVenuesAndOffices", e) }
         } else {
-          console.log("=== CMS CONTEXT (default) ===", {
-heroTitle: defaultCMSData.homepage.heroTitle,
-heroSubtitle: defaultCMSData.homepage.heroSubtitle,
-address: defaultCMSData.footer.address,
-phone: defaultCMSData.footer.phone,
-email: defaultCMSData.footer.email,
-})
           setCmsData(defaultCMSData)
-          await setDoc(cmsDocRef, defaultCMSData)
+          setDoc(cmsDocRef, defaultCMSData).catch(console.error)
           setCachedPolicies(defaultCMSData.policies)
           setCachedVenuesAndOffices(defaultCMSData.venues, defaultCMSData.offices)
         }
-      } catch (error) {
-        console.error("CMS LOAD ERROR", error)
-        if (error instanceof Error) {
-          console.error(error.stack)
-        }
+      },
+      (error) => {
+        console.error("CMS SNAPSHOT ERROR", error)
         setCmsData(defaultCMSData)
       }
-    }
+    )
 
-    loadCMSData()
+    return () => unsub()
   }, [])
 
   const saveCMSData = async (newData: CMSData) => {
@@ -524,14 +465,6 @@ email: defaultCMSData.footer.email,
     setCachedVenuesAndOffices(normalizedData.venues, normalizedData.offices)
 
     try {
-      console.log("=== CMS WRITE ===", {
-heroTitle: normalizedData.homepage.heroTitle,
-heroSubtitle: normalizedData.homepage.heroSubtitle,
-address: normalizedData.footer.address,
-phone: normalizedData.footer.phone,
-email: normalizedData.footer.email,
-})
-
       await setDoc(cmsDocRef, normalizedData)
 
       toast({
@@ -642,53 +575,6 @@ email: normalizedData.footer.email,
     saveCMSData({
       ...cmsData,
       offices: cmsData.offices.filter((office) => office.id !== id),
-    })
-  }
-
-  const addPastEvent = (
-    data: Omit<PastEvent, "id" | "createdAt" | "updatedAt">
-  ) => {
-    const newPastEvent: PastEvent = {
-      id: createLocalId("past-client-booking"),
-      title: data.title,
-      clientName: data.clientName || "",
-      description: data.description,
-      eventDate: data.eventDate,
-      venueName: data.venueName,
-      image: data.image,
-      isFeatured: data.isFeatured ?? true,
-      hasClientConsent: data.hasClientConsent === true,
-      createdAt: new Date().toISOString(),
-    }
-
-    saveCMSData({
-      ...cmsData,
-      pastEvents: [newPastEvent, ...cmsData.pastEvents],
-    })
-  }
-
-  const updatePastEvent = (id: string, data: Partial<PastEvent>) => {
-    const updatedPastEvents = cmsData.pastEvents.map((event) =>
-      event.id === id
-        ? {
-            ...event,
-            ...data,
-            hasClientConsent: data.hasClientConsent ?? event.hasClientConsent ?? false,
-            updatedAt: new Date().toISOString(),
-          }
-        : event
-    )
-
-    saveCMSData({
-      ...cmsData,
-      pastEvents: updatedPastEvents,
-    })
-  }
-
-  const deletePastEvent = (id: string) => {
-    saveCMSData({
-      ...cmsData,
-      pastEvents: cmsData.pastEvents.filter((event) => event.id !== id),
     })
   }
 
@@ -893,10 +779,6 @@ email: normalizedData.footer.email,
         addPolicy,
         updatePolicy,
         deletePolicy,
-
-        addPastEvent,
-        updatePastEvent,
-        deletePastEvent,
 
         pastClientBookings: cmsData.pastClientBookings,
         addPastClientBooking,

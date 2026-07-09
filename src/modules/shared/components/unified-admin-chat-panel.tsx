@@ -90,7 +90,7 @@ export function UnifiedAdminChatPanel() {
       oscillator.start(audioContext.currentTime)
       oscillator.stop(audioContext.currentTime + 0.5)
     } catch (error) {
-      console.log("Audio notification not supported")
+      console.warn("Audio notification not supported")
     }
   }
 

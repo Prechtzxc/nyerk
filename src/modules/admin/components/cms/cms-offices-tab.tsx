@@ -10,12 +10,11 @@ import { useCMS } from "@admin/contexts/cms-context"
 import { CMSSectionHeader } from "./cms-section-header"
 import { CMSImageUpload, CMSPanoramaUpload } from "./cms-image-upload"
 import { CMSStatusBadge, EmptyState } from "./cms-status-badge"
+import { toPrice } from "@/src/modules/shared/lib/number-utils"
+import { getImageSource } from "@/src/modules/shared/lib/file-utils"
 
 type OfficeForm = { name: string; capacity: string; price: number | string; description: string; image: string; panoImage: string; floor: string }
 const EMPTY_FORM: OfficeForm = { name: "", capacity: "", price: "", description: "", image: "", panoImage: "", floor: "ground" }
-
-function getImageSource(v?: string) { return v?.trim() ? v : "/placeholder.jpg" }
-function toPrice(v: string | number | undefined) { const n = Number(v || 0); return Number.isFinite(n) ? n : 0 }
 
 export function CMSOfficesTab({ onNavigate }: { onNavigate: (tab: string) => void }) {
   const { offices, updateOffice, addOffice, deleteOffice } = useCMS()

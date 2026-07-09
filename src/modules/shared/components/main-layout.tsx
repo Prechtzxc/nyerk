@@ -33,8 +33,8 @@ export function MainLayout({ children }: MainLayoutProps) {
   
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
-  const hasPendingBookings = bookings?.some((b: any) => b.status === "pending")
-  const pendingPayments = bookings?.filter((b: any) => b.status === "verifying").length || 0
+  const hasPendingBookings = bookings?.some((b) => b.status === "pending")
+  const pendingPayments = bookings?.filter((b) => b.status === "verifying").length || 0
 
   useEffect(() => {
     if (!isLoading) {

@@ -2301,6 +2301,7 @@ function MaintenanceCalendarModal({
     maintenanceRecords,
     addMaintenanceRecord,
     removeMaintenanceRecord,
+    bookings: allBookings,
   } = useBookings()
   const { toast } = useToast()
 
@@ -2359,6 +2360,44 @@ function MaintenanceCalendarModal({
     return dates
   }, [maintenanceRecords, selectedSpaceId])
 
+  const getDayStatus = (day: number) => {
+    const dateStr = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    const todayStr = new Date().toISOString().split("T")[0]
+    if (dateStr < todayStr) return "past"
+    if (spaceMaintDates.has(dateStr)) return "maintenance"
+
+    const spaceName = currentSpaces.find(s => s.id === selectedSpaceId)?.name || ""
+    const dayBookings = (allBookings || []).filter(b =>
+      b.date === dateStr &&
+      (b.venueId === selectedSpaceId || b.venue === spaceName) &&
+      ["approved", "confirmed", "completed", "contract_signing_required", "reservation_secured", "active_rental"].includes(b.status?.toLowerCase() || "")
+    )
+    const pendingBookings = (allBookings || []).filter(b =>
+      b.date === dateStr &&
+      (b.venueId === selectedSpaceId || b.venue === spaceName) &&
+      ["pending", "verifying"].includes(b.status?.toLowerCase() || "")
+    )
+    const modRequestBookings = (allBookings || []).filter(b =>
+      b.date === dateStr &&
+      (b.venueId === selectedSpaceId || b.venue === spaceName) &&
+      ["modification_under_review", "cancellation_requested"].includes(b.status?.toLowerCase() || "")
+    )
+
+    if (modRequestBookings.length > 0) return "modification_request"
+    if (pendingBookings.length > 0) return "pending"
+    if (maintType === "office") {
+      if (dayBookings.length >= 1) return "booked"
+    } else {
+      if (dayBookings.length >= 2) return "booked"
+      if (dayBookings.length === 1) {
+        const hasReserved = dayBookings.some(b => ["reservation_secured", "contract_signing_required"].includes(b.status?.toLowerCase() || ""))
+        return hasReserved ? "reserved" : "booked"
+      }
+    }
+
+    return "available"
+  }
+
   const handleSave = () => {
     const dateToUse = useRange ? startDate : selectedDate
     if (!dateToUse) {
@@ -2374,12 +2413,30 @@ function MaintenanceCalendarModal({
       return
     }
 
-    setIsSaving(true)
-    const space = currentSpaces.find(s => s.id === selectedSpaceId)
-
     const datesToAdd = useRange && startDate && endDate
       ? getDatesInRange(startDate, endDate)
       : [dateToUse]
+
+    const spaceName = currentSpaces.find(s => s.id === selectedSpaceId)?.name || ""
+    const bookedDates = datesToAdd.filter(d => {
+      const dayBookings = (allBookings || []).filter(b =>
+        b.date === d &&
+        (b.venueId === selectedSpaceId || b.venue === spaceName) &&
+        ["approved", "confirmed", "completed", "contract_signing_required", "reservation_secured", "active_rental"].includes(b.status?.toLowerCase() || "")
+      )
+      return dayBookings.length > 0
+    })
+    if (bookedDates.length > 0) {
+      toast({
+        title: "Date(s) Already Booked",
+        description: `Cannot schedule maintenance on booked date(s): ${bookedDates.join(", ")}.`,
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsSaving(true)
+    const space = currentSpaces.find(s => s.id === selectedSpaceId)
 
     for (const d of datesToAdd) {
       const exists = maintenanceRecords.some(
@@ -2556,36 +2613,43 @@ function MaintenanceCalendarModal({
                     ))}
                     {daysInMonthArray.map((day) => {
                       const dateStr = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-                      const isPast = dateStr < todayStr
-                      const isMaint = spaceMaintDates.has(dateStr)
                       const isSel = selectedDate === dateStr
+                      const status = getDayStatus(day)
 
-                      let dayClass = "border-slate-200 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-50"
-                      let dayTitle = "Available"
-                      let isDisabled = false
-
-                      if (isPast) {
-                        dayClass = "cursor-not-allowed border-slate-100 bg-slate-100 text-slate-300 opacity-60"
-                        isDisabled = true
-                        dayTitle = "Past date"
-                      } else if (isMaint) {
-                        dayClass = "cursor-not-allowed border-slate-900 bg-slate-900 text-slate-400"
-                        isDisabled = true
-                        dayTitle = "Maintenance"
+                      const statusStyles: Record<string, string> = {
+                        booked: "cursor-not-allowed border-rose-300 bg-rose-100 text-rose-700",
+                        pending: "cursor-not-allowed border-amber-300 bg-amber-100 text-amber-700",
+                        modification_request: "cursor-not-allowed border-purple-300 bg-purple-100 text-purple-700",
+                        reserved: "cursor-not-allowed border-blue-300 bg-blue-100 text-blue-700",
+                        maintenance: "cursor-not-allowed border-slate-900 bg-slate-900 text-slate-400",
+                        past: "cursor-not-allowed border-slate-100 bg-slate-100 text-slate-300 opacity-60",
+                        available: "border-slate-200 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-50",
                       }
+                      const statusTitles: Record<string, string> = {
+                        booked: "Fully Booked",
+                        pending: "Pending",
+                        modification_request: "Modification Request",
+                        reserved: "Reserved",
+                        maintenance: "Maintenance",
+                        past: "Past date",
+                        available: "Available",
+                      }
+
+                      const isDisabled = status !== "available"
+
+                      let dayClass = statusStyles[status] || statusStyles.available
 
                       if (isSel && !isDisabled) {
                         dayClass = "border-orange-600 bg-orange-600 text-white shadow-md shadow-orange-200 scale-105"
-                        dayTitle = "Selected date"
                       }
 
                       return (
                         <button
                           key={day}
                           type="button"
-                          title={dayTitle}
+                          title={statusTitles[status] || "Available"}
                           disabled={isDisabled}
-                          onClick={() => setSelectedDate(dateStr)}
+                          onClick={() => !isDisabled && setSelectedDate(dateStr)}
                           className={`flex h-7 w-7 2xl:h-8 2xl:w-8 items-center justify-center rounded-full border text-[10px] xl:text-[11px] font-black outline-none transition-all focus-visible:ring-2 focus-visible:ring-orange-300 ${dayClass}`}
                         >
                           {day}
@@ -2595,14 +2659,26 @@ function MaintenanceCalendarModal({
                   </div>
 
                   {/* Legend */}
-                  <div className="mt-3 grid grid-cols-4 gap-1 border-t border-slate-100 pt-2.5">
+                  <div className="mt-3 grid grid-cols-4 gap-x-2 gap-y-1.5 border-t border-slate-100 pt-2.5">
                     <div className="flex items-center justify-center gap-1.5">
                       <div className="h-2.5 w-2.5 rounded-full border border-slate-200 bg-white" />
                       <span className="text-[7px] font-black uppercase tracking-[0.08em] text-slate-400">Available</span>
                     </div>
                     <div className="flex items-center justify-center gap-1.5">
-                      <div className="h-2.5 w-2.5 rounded-full bg-orange-600 shadow-sm shadow-orange-200" />
-                      <span className="text-[7px] font-black uppercase tracking-[0.08em] text-orange-600">Selected</span>
+                      <div className="h-2.5 w-2.5 rounded-full bg-rose-300" />
+                      <span className="text-[7px] font-black uppercase tracking-[0.08em] text-rose-600">Booked</span>
+                    </div>
+                    <div className="flex items-center justify-center gap-1.5">
+                      <div className="h-2.5 w-2.5 rounded-full bg-amber-300" />
+                      <span className="text-[7px] font-black uppercase tracking-[0.08em] text-amber-600">Pending</span>
+                    </div>
+                    <div className="flex items-center justify-center gap-1.5">
+                      <div className="h-2.5 w-2.5 rounded-full bg-purple-300" />
+                      <span className="text-[7px] font-black uppercase tracking-[0.08em] text-purple-600">Mod. Request</span>
+                    </div>
+                    <div className="flex items-center justify-center gap-1.5">
+                      <div className="h-2.5 w-2.5 rounded-full bg-blue-300" />
+                      <span className="text-[7px] font-black uppercase tracking-[0.08em] text-blue-600">Reserved</span>
                     </div>
                     <div className="flex items-center justify-center gap-1.5">
                       <div className="h-2.5 w-2.5 rounded-full bg-slate-900" />
@@ -2611,6 +2687,10 @@ function MaintenanceCalendarModal({
                     <div className="flex items-center justify-center gap-1.5">
                       <div className="h-2.5 w-2.5 rounded-full bg-slate-100 border border-slate-200" />
                       <span className="text-[7px] font-black uppercase tracking-[0.08em] text-slate-300">Past Date</span>
+                    </div>
+                    <div className="flex items-center justify-center gap-1.5">
+                      <div className="h-2.5 w-2.5 rounded-full bg-orange-600 shadow-sm shadow-orange-200" />
+                      <span className="text-[7px] font-black uppercase tracking-[0.08em] text-orange-600">Selected</span>
                     </div>
                   </div>
 

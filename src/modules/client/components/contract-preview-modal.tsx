@@ -7,17 +7,16 @@ import { type Booking } from "@/src/modules/client/contexts/booking-context"
 import { useCMS } from "@/src/modules/admin/contexts/cms-context"
 import { renderAsync } from "docx-preview"
 import { Button } from "@/src/modules/shared/components/ui/button"
+import { isPDF, isImage, isDOCX } from "@/src/modules/shared/lib/file-utils"
 
 function isOfficeBooking(booking: Booking) {
-  const text = [
-    (booking as any)?.bookingType,
-    (booking as any)?.rentalType,
-    booking?.venue,
-    booking?.eventType,
-  ]
-    .join(" ")
-    .toLowerCase()
-  return text.includes("office")
+  return (
+    booking.isOfficeRental === true ||
+    booking.bookingCategory === "office" ||
+    String(booking.venue || "")
+      .toLowerCase()
+      .includes("office")
+  )
 }
 
 export function ContractPreviewModal({
@@ -31,8 +30,6 @@ export function ContractPreviewModal({
 }) {
   const { cmsData } = useCMS()
 
-  console.log("[ContractPreviewModal] open:", open, "booking:", booking?.id)
-
   if (!booking) return null
 
   const officeBooking = isOfficeBooking(booking)
@@ -41,29 +38,16 @@ export function ContractPreviewModal({
     : cmsData?.eventVenueContract
   const hasContract = contractFile?.fileUrl && contractFile?.fileName
 
-  console.log("[ContractPreviewModal]", {
-    open,
-    bookingId: booking.id,
-    venue: booking.venue,
-    officeBooking,
-    contractFile,
-    hasContract,
-    fileUrl: contractFile?.fileUrl?.slice(0, 100),
-    fileType: contractFile?.fileType,
-    fileName: contractFile?.fileName,
-    cmsDataPresent: !!cmsData,
-  })
-
-  const isPDF = hasContract && contractFile.fileType === "application/pdf"
-  const isImage = hasContract && contractFile.fileType.startsWith("image/")
-  const isDOCX = hasContract && contractFile.fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+  const isPdf = hasContract && isPDF(contractFile.fileType)
+  const isImg = hasContract && isImage(contractFile.fileType)
+  const isDocx = hasContract && isDOCX(contractFile.fileType)
 
   const docxContainerRef = useRef<HTMLDivElement>(null)
   const [docxLoading, setDocxLoading] = useState(false)
   const [docxError, setDocxError] = useState(false)
 
   useEffect(() => {
-    if (!open || !hasContract || !isDOCX || !docxContainerRef.current) return
+    if (!open || !hasContract || !isDocx || !docxContainerRef.current) return
 
     setDocxLoading(true)
     setDocxError(false)
@@ -84,7 +68,7 @@ export function ContractPreviewModal({
     }
 
     loadDocx()
-  }, [open, hasContract, isDOCX, contractFile?.fileUrl])
+  }, [open, hasContract, isDocx, contractFile?.fileUrl])
 
   const handleDownload = () => {
     if (!contractFile) return
@@ -123,13 +107,13 @@ export function ContractPreviewModal({
         <div className="flex-1 overflow-y-auto px-4 py-4 pb-4 sm:px-6 sm:py-5 sm:pb-6">
           {hasContract ? (
             <>
-              {isPDF ? (
+              {isPdf ? (
                 <iframe
                   src={contractFile.fileUrl}
                   className="h-[70vh] w-full rounded-lg border border-slate-200"
                   title="Contract PDF"
                 />
-              ) : isImage ? (
+              ) : isImg ? (
                 <div className="flex items-center justify-center">
                   <img
                     src={contractFile.fileUrl}
@@ -137,7 +121,7 @@ export function ContractPreviewModal({
                     className="max-h-[70vh] w-auto max-w-full rounded-lg object-contain"
                   />
                 </div>
-              ) : isDOCX ? (
+              ) : isDocx ? (
                 <div className="flex items-center justify-center">
                   {docxLoading && (
                     <div className="flex flex-col items-center gap-3 py-12">

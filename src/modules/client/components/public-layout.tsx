@@ -46,15 +46,6 @@ interface PublicLayoutProps {
 export function PublicLayout({ children }: PublicLayoutProps) {
   const { user, logout, isLoading } = useAuth()
   const { cmsData } = useCMS()
-  console.log("=== PUBLIC LAYOUT RENDER ===", {
-    address: cmsData?.footer?.address,
-    phone: cmsData?.footer?.phone,
-    email: cmsData?.footer?.email,
-    brandName: cmsData?.footer?.brandName,
-    footerDescription: cmsData?.footer?.footerDescription,
-    footerKeys: cmsData?.footer ? Object.keys(cmsData.footer) : "footer is undefined",
-    cmsDataKeys: cmsData ? Object.keys(cmsData) : "cmsData is undefined",
-  })
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
 

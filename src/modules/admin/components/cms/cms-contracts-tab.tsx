@@ -6,6 +6,8 @@ import { Button } from "@shared/components/ui/button"
 import { useToast } from "@shared/hooks/use-toast"
 import { useCMS } from "@admin/contexts/cms-context"
 import { CMSSectionHeader } from "./cms-section-header"
+import { ContractFileViewer } from "@/src/modules/client/components/contract-file-viewer"
+import { isImage, isPDF } from "@/src/modules/shared/lib/file-utils"
 
 type AvailableContract = {
   fileName: string
@@ -27,7 +29,7 @@ function formatDate(ms: number) {
 }
 
 function getFileIcon(fileType: string) {
-  if (fileType.startsWith("image/")) return <ImageIcon className="h-5 w-5 text-purple-500" />
+  if (isImage(fileType)) return <ImageIcon className="h-5 w-5 text-purple-500" />
   return <FileText className="h-5 w-5 text-red-500" />
 }
 
@@ -46,6 +48,7 @@ function FileUploader({
   const [available, setAvailable] = useState<AvailableContract[]>([])
   const [loading, setLoading] = useState(false)
   const [fetchError, setFetchError] = useState(false)
+  const [showPreview, setShowPreview] = useState(false)
 
   const fetchAvailable = useCallback(async () => {
     setLoading(true)
@@ -83,9 +86,9 @@ function FileUploader({
     available.length > 0 &&
     !available.some((a) => a.fileUrl === contract.fileUrl)
 
-  const fileTypeLabel = contract.fileType.startsWith("image/")
+  const fileTypeLabel = isImage(contract.fileType)
     ? "Image"
-    : contract.fileType === "application/pdf"
+    : isPDF(contract.fileType)
       ? "PDF"
       : "DOCX"
 
@@ -125,7 +128,7 @@ function FileUploader({
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => window.open(contract.fileUrl, "_blank")}
+                onClick={() => setShowPreview(true)}
                 className="h-8 flex-1 rounded-lg border-slate-200 text-[10px] font-bold"
               >
                 <FileText className="mr-1 h-3 w-3" /> Preview
@@ -156,6 +159,13 @@ function FileUploader({
             </div>
           </div>
         ) : null}
+
+        <ContractFileViewer
+          open={showPreview}
+          onClose={() => setShowPreview(false)}
+          file={contract}
+          label={label}
+        />
 
         {loading ? (
           <div className="flex items-center justify-center gap-2 py-6">
@@ -204,9 +214,9 @@ function FileUploader({
                       <p className="truncate text-sm font-bold text-slate-900">{file.fileName}</p>
                       <div className="flex items-center gap-2">
                         <p className="text-[10px] font-semibold text-slate-500">
-                          {file.fileType.startsWith("image/")
+                          {isImage(file.fileType)
                             ? "Image"
-                            : file.fileType === "application/pdf"
+                            : isPDF(file.fileType)
                               ? "PDF"
                               : "DOCX"}
                         </p>

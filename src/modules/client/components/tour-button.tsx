@@ -21,6 +21,7 @@ import {
   DialogTrigger,
 } from "@/src/modules/shared/components/ui/dialog"
 import { useCMS } from "@/src/modules/admin/contexts/cms-context"
+import { getImageSource } from "@/src/modules/shared/lib/file-utils"
 
 type SpaceType = "venues" | "offices"
 
@@ -48,10 +49,6 @@ declare global {
 
 const PANNELLUM_CSS_ID = "pannellum-css"
 const PANNELLUM_SCRIPT_ID = "pannellum-script"
-
-function getImageSource(value?: string) {
-  return value && value.trim() ? value : "/placeholder.jpg"
-}
 
 function normalizeSpaces(spaces?: any[]): TourSpace[] {
   if (!Array.isArray(spaces)) return []

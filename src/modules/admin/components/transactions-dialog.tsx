@@ -7,7 +7,7 @@ import { Badge } from "@shared/components/ui/badge"
 import { Calendar, Clock, Users, Download, Upload, CheckCircle, AlertCircle, Check } from "lucide-react"
 import { useToast } from "@shared/hooks/use-toast"
 import { useAuth } from "@/src/modules/shared/auth/auth-context"
-import { useBookings } from "@client/contexts/booking-context"
+import { useBookings, type Booking } from "@client/contexts/booking-context"
 import { usePaymentProof } from "@admin/contexts/payment-proof-context"
 import { CancellationDialog } from "@admin/components/cancellation-dialog"
 import { ModifyBookingDialog } from "@admin/components/modify-booking-dialog"
@@ -28,7 +28,7 @@ export function TransactionsDialog({ open, onOpenChange }: TransactionsDialogPro
   const [showCancellationDialog, setShowCancellationDialog] = useState(false)
   const [showModifyDialog, setShowModifyDialog] = useState(false)
   const [showPaymentUpload, setShowPaymentUpload] = useState(false)
-  const [selectedBooking, setSelectedBooking] = useState<any>(null)
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
 
   // PHASE 4.2: Admin sees ALL bookings, not just user bookings
   const displayBookings = bookings || []
@@ -66,17 +66,17 @@ export function TransactionsDialog({ open, onOpenChange }: TransactionsDialogPro
     }
   }
 
-  const handleCancelBooking = (booking: any) => {
+  const handleCancelBooking = (booking: Booking) => {
     setSelectedBooking(booking)
     setShowCancellationDialog(true)
   }
 
-  const handleModifyBooking = (booking: any) => {
+  const handleModifyBooking = (booking: Booking) => {
     setSelectedBooking(booking)
     setShowModifyDialog(true)
   }
 
-  const handleUploadPaymentProof = (booking: any) => {
+  const handleUploadPaymentProof = (booking: Booking) => {
     setSelectedBooking(booking)
     setShowPaymentUpload(true)
   }
@@ -92,7 +92,7 @@ export function TransactionsDialog({ open, onOpenChange }: TransactionsDialogPro
     }
   }
 
-  const saveModifiedBooking = (updatedBooking: any) => {
+  const saveModifiedBooking = (updatedBooking: Booking) => {
     modifyBooking(updatedBooking.id, updatedBooking)
     toast({
       title: "Booking updated",
@@ -101,7 +101,7 @@ export function TransactionsDialog({ open, onOpenChange }: TransactionsDialogPro
     setShowModifyDialog(false)
   }
 
-  const getPaymentStatus = (booking: any) => {
+  const getPaymentStatus = (booking: Booking) => {
     const paymentProof = getPaymentProofByBooking(booking.id)
     if (!paymentProof) return null
 
@@ -226,14 +226,14 @@ export function TransactionsDialog({ open, onOpenChange }: TransactionsDialogPro
       <CancellationDialog
         open={showCancellationDialog}
         onOpenChange={setShowCancellationDialog}
-        booking={selectedBooking}
+        booking={selectedBooking!}
         onConfirm={confirmCancellation}
       />
 
       <ModifyBookingDialog
         open={showModifyDialog}
         onOpenChange={setShowModifyDialog}
-        booking={selectedBooking}
+        booking={selectedBooking!}
         onSave={saveModifiedBooking}
       />
 

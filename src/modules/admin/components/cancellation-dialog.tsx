@@ -13,11 +13,12 @@ import { Button } from "@/src/modules/shared/components/ui/button"
 import { Checkbox } from "@/src/modules/shared/components/ui/checkbox"
 import { Label } from "@/src/modules/shared/components/ui/label"
 import { AlertTriangle } from "lucide-react"
+import { type Booking } from "@/src/modules/client/contexts/booking-context"
 
 interface CancellationDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  booking: any
+  booking: Booking
   onConfirm: () => void
 }
 
