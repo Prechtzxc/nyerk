@@ -2666,15 +2666,7 @@ function MaintenanceCalendarModal({
                     </div>
                     <div className="flex items-center justify-center gap-1.5">
                       <div className="h-2.5 w-2.5 rounded-full bg-rose-300" />
-                      <span className="text-[7px] font-black uppercase tracking-[0.08em] text-rose-600">Booked</span>
-                    </div>
-                    <div className="flex items-center justify-center gap-1.5">
-                      <div className="h-2.5 w-2.5 rounded-full bg-amber-300" />
-                      <span className="text-[7px] font-black uppercase tracking-[0.08em] text-amber-600">Pending</span>
-                    </div>
-                    <div className="flex items-center justify-center gap-1.5">
-                      <div className="h-2.5 w-2.5 rounded-full bg-purple-300" />
-                      <span className="text-[7px] font-black uppercase tracking-[0.08em] text-purple-600">Mod. Request</span>
+                      <span className="text-[7px] font-black uppercase tracking-[0.08em] text-rose-600">Full Slot / Booked</span>
                     </div>
                     <div className="flex items-center justify-center gap-1.5">
                       <div className="h-2.5 w-2.5 rounded-full bg-blue-300" />
@@ -2683,14 +2675,6 @@ function MaintenanceCalendarModal({
                     <div className="flex items-center justify-center gap-1.5">
                       <div className="h-2.5 w-2.5 rounded-full bg-slate-900" />
                       <span className="text-[7px] font-black uppercase tracking-[0.08em] text-slate-600">Maintenance</span>
-                    </div>
-                    <div className="flex items-center justify-center gap-1.5">
-                      <div className="h-2.5 w-2.5 rounded-full bg-slate-100 border border-slate-200" />
-                      <span className="text-[7px] font-black uppercase tracking-[0.08em] text-slate-300">Past Date</span>
-                    </div>
-                    <div className="flex items-center justify-center gap-1.5">
-                      <div className="h-2.5 w-2.5 rounded-full bg-orange-600 shadow-sm shadow-orange-200" />
-                      <span className="text-[7px] font-black uppercase tracking-[0.08em] text-orange-600">Selected</span>
                     </div>
                   </div>
 

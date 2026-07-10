@@ -24,14 +24,14 @@ export function ContractFileViewer({
   file: ContractFile | null
   label?: string
 }) {
-  if (!file || !file.fileUrl) return null
-
   const docxContainerRef = useRef<HTMLDivElement>(null)
   const [docxLoading, setDocxLoading] = useState(false)
   const [docxError, setDocxError] = useState(false)
 
+  const hasFile = file && file.fileUrl
+
   useEffect(() => {
-    if (!open || !file || !isDOCX(file.fileType) || !docxContainerRef.current) return
+    if (!open || !hasFile || !isDOCX(file.fileType)) return
 
     setDocxLoading(true)
     setDocxError(false)
@@ -52,7 +52,9 @@ export function ContractFileViewer({
     }
 
     loadDocx()
-  }, [open, file?.fileUrl, file?.fileType])
+  }, [open, hasFile, file?.fileUrl, file?.fileType])
+
+  if (!hasFile) return null
 
   const handleDownload = () => {
     const a = document.createElement("a")
