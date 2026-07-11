@@ -334,7 +334,8 @@ function CurrentTransactionCard({
   const isDownpaymentActive =
     booking.status === "confirmed" && booking.paymentType === "downpayment" && !["cancelled", "declined"].includes(String(booking.status).toLowerCase()) && remaining > 0 && paymentStatus !== "paid";
   const hasRemainingPaymentDue =
-    remaining > 0 && (
+    remaining > 0 &&
+    !["cancelled", "declined"].includes(String(booking.status).toLowerCase()) && (
       paymentStatus === "partial" ||
       paymentStatus === "incomplete" ||
       balanceStatus === "with remaining balance" ||
@@ -346,6 +347,7 @@ function CurrentTransactionCard({
   const isCashPending = booking.paymentMethod === "cash" && booking.paymentStatus === "cash_pending";
   const isUnderReview = (booking as any).hasActivePaymentSubmission || paymentStatus === "for_review";
   const isPendingRemainingDP = isUnderReview &&
+    !["cancelled", "declined"].includes(String(booking.status).toLowerCase()) &&
     booking.paymentType === "downpayment" &&
     Number((booking as any).downpaymentPaid || 0) > 0;
 
@@ -984,6 +986,14 @@ function TransactionsContent() {
     };
 
     const handleSubmitPayment = () => {
+      if (["cancelled", "declined"].includes(String(booking.status).toLowerCase())) {
+        toast({
+          title: "Booking Cancelled",
+          description: "This booking has been cancelled and no longer accepts payments.",
+          variant: "destructive",
+        });
+        return;
+      }
       if ((booking as any).hasActivePaymentSubmission || String(booking.paymentStatus || "").toLowerCase() === "for_review") {
         toast({
           title: "Payment Already Submitted",
