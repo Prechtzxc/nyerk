@@ -165,5 +165,31 @@ export function isCancellationRequested(booking: Record<string, unknown>): boole
 }
 
 export function isModificationUnderReview(booking: Record<string, unknown>): boolean {
-  return normalizeStatus(booking.status) === "modification_under_review"
+  return normalizeStatus(booking.modificationStatus) === "modification_under_review"
+}
+
+const ACTIVE_BOOKING_STATUSES = [
+  "pending",
+  "verifying",
+  "approved",
+  "confirmed",
+  "contract_signing_required",
+  "reservation_secured",
+  "active_rental",
+  "modification_under_review",
+  "cancellation_requested",
+]
+
+export function isActiveBooking(booking: Record<string, unknown>): boolean {
+  const status = normalizeStatus(String(booking.status || booking.bookingStatus || ""))
+  return (ACTIVE_BOOKING_STATUSES as readonly string[]).includes(status)
+}
+
+export function getCurrentBooking<T extends Record<string, unknown>>(bookings: T[]): T | null {
+  const sorted = [...bookings].sort(
+    (a, b) =>
+      new Date(String(b.createdAt || 0)).getTime() - new Date(String(a.createdAt || 0)).getTime(),
+  )
+  const active = sorted.filter(isActiveBooking)
+  return active.length > 0 ? active[0] : sorted[0] || null
 }

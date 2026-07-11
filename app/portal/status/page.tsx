@@ -412,7 +412,7 @@ function StatusCard({ booking, cmsData }: { booking: StatusBooking; cmsData?: an
                   Cancellation Status: {booking.cancellationStatus || "Approved"}
                 </p>
                 <p className="text-[10px] font-semibold text-rose-700 pl-6">
-                  Refund Status: {booking.refundStatus || "Not Applicable"}
+                  Refund Status: {(booking as any).amountPaid > 0 ? (booking.refundStatus || "Not Applicable") : "Not Applicable"}
                 </p>
                 {booking.refundClaimNote && (
                   <p className="text-[10px] font-semibold pl-6 mt-1"

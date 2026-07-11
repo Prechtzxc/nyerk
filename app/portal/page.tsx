@@ -16,6 +16,7 @@ import Link from "next/link"
 
 import { UserAvatar } from "@/src/modules/shared/components/user-avatar"
 import { useBookings, type Booking } from "@/src/modules/client/contexts/booking-context"
+import { getCurrentBooking } from "@/src/modules/shared/lib/booking-helpers"
 import { cn } from "@/src/modules/shared/lib/utils"
 
 function isOfficeBooking(booking: Booking) {
@@ -98,11 +99,10 @@ export default function ClientDashboardPage() {
   const activeRental = useMemo(() => officeBookings.find(b => b.status === "active_rental"), [officeBookings])
   const contractSigning = useMemo(() => officeBookings.find(b => b.status === "contract_signing_required"), [officeBookings])
   const expiredRental = useMemo(() => officeBookings.find(b => b.status === "rental_expired"), [officeBookings])
-  const otherActive = useMemo(() => myBookings.filter(b => {
-    if (isOfficeBooking(b)) return false
-    return !["completed", "cancelled", "declined"].includes(b.status)
-  }), [myBookings])
-  const topOther = otherActive[0] || null
+  const topOther = useMemo(() => {
+    const nonOffice = myBookings.filter((b) => !isOfficeBooking(b))
+    return getCurrentBooking(nonOffice)
+  }, [myBookings])
 
   const recentPayments = useMemo(() => myBookings.filter(b => {
     const ps = String(b.paymentStatus || "").toLowerCase()

@@ -58,6 +58,7 @@ import {
   type ReceiptPaperData,
 } from "@/src/modules/shared/components/receipt-paper"
 import { cn } from "@/src/modules/shared/lib/utils"
+import { getCurrentBooking, isActiveBooking } from "@/src/modules/shared/lib/booking-helpers"
 import { useCMS } from "@/src/modules/admin/contexts/cms-context"
 import { getPublicSpacesFromData } from "@/src/modules/client/lib/venue-data"
 import { Progress } from "@/src/modules/shared/components/ui/progress"
@@ -764,6 +765,7 @@ function BookingDetailsModal({
   const balanceStatus = String((booking as any).balanceStatus || "").toLowerCase()
   const paymentStage = String((booking as any).paymentStage || "").toLowerCase()
   const remainingBalance = Number((booking as any).remainingBalance || 0)
+  const amountPaid = Number((booking as any)?.amountPaid || 0)
   const hasRemainingPayment =
     remainingBalance > 0 && (
       payStatus === "partial" ||
@@ -889,9 +891,14 @@ function BookingDetailsModal({
                     <span className="inline-block rounded-md border border-amber-100 bg-amber-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-amber-700">
                       Cancel: {booking.cancellationStatus}
                     </span>
-                    {booking.refundStatus && (
+                    {amountPaid > 0 && booking.refundStatus && (
                       <span className="inline-block rounded-md border border-blue-100 bg-blue-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-blue-700">
                         Refund: {booking.refundStatus}
+                      </span>
+                    )}
+                    {amountPaid <= 0 && (
+                      <span className="inline-block rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                        No Payment Made
                       </span>
                     )}
                   </>
@@ -1121,7 +1128,7 @@ function BookingDetailsModal({
                   <div className="flex justify-between">
                     <span className="text-slate-400">Refund</span>
                     <span className="font-bold text-slate-900">
-                      {booking.refundStatus || "Not Applicable"}
+                      {amountPaid > 0 ? (booking.refundStatus || "Not Applicable") : "Not Applicable"}
                     </span>
                   </div>
                   {booking.refundEligibilityNote && (
@@ -2627,17 +2634,14 @@ export default function MyBookingsPage() {
   )
 
   const { currentBooking, otherActiveBookings, historyBookings } = useMemo(() => {
-    const allCurrent = sortedBookings.filter(isCurrentBooking)
-
-    const sortedCurrent = [...allCurrent]
-      .sort((a, b) => getBookingTime(b) - getBookingTime(a))
-
-    const current = sortedCurrent[0] || null
+    const current = getCurrentBooking(sortedBookings)
     const currentId = current ? getBookingId(current) : ""
 
     return {
       currentBooking: current,
-      otherActiveBookings: sortedCurrent.filter((b) => getBookingId(b) !== currentId),
+      otherActiveBookings: sortedBookings.filter(
+        (b) => isActiveBooking(b) && getBookingId(b) !== currentId,
+      ),
       historyBookings: sortedBookings.filter(isPastBooking),
     }
   }, [sortedBookings])

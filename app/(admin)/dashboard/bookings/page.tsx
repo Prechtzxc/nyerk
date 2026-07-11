@@ -907,9 +907,14 @@ function BookingDetailsModal({
                 <span className="inline-block rounded-md border border-amber-100 bg-amber-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-amber-700">
                   Cancel: {booking.cancellationStatus}
                 </span>
-                {booking.refundStatus && (
+                {amountPaid > 0 && booking.refundStatus && (
                   <span className="inline-block rounded-md border border-blue-100 bg-blue-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-blue-700">
                     Refund: {booking.refundStatus}
+                  </span>
+                )}
+                {amountPaid <= 0 && (
+                  <span className="inline-block rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    No Payment Made
                   </span>
                 )}
               </>
@@ -1024,7 +1029,7 @@ function BookingDetailsModal({
                 )}
                 <div className="flex justify-between">
                   <span className="text-slate-400">Refund</span>
-                  <span className="font-bold text-slate-900">{booking.refundStatus || "Not Applicable"}</span>
+                  <span className="font-bold text-slate-900">{amountPaid > 0 ? (booking.refundStatus || "Not Applicable") : "Not Applicable"}</span>
                 </div>
                 {booking.refundEligibilityNote && (
                   <div className="flex justify-between">
