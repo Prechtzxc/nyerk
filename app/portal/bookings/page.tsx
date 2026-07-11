@@ -644,6 +644,9 @@ function PaymentSummaryCard({
   const paymentStage = String((booking as any).paymentStage || "")
   const isDownpayment = String(booking.paymentType || "").toLowerCase() === "downpayment"
   const showDP = isDownpayment && selectedDP > 0
+  const isTerminal = ["cancelled", "declined", "completed", "rental_expired"].includes(
+    String(booking.status || "").toLowerCase(),
+  )
 
   return (
     <div>
@@ -683,7 +686,7 @@ function PaymentSummaryCard({
             <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{formatMoney(downpaymentPaid)}</p>
           </div>
         )}
-        {showDP && downpaymentRemaining > 0 && (
+        {!isTerminal && showDP && downpaymentRemaining > 0 && (
           <div className="min-w-0">
             <p className="text-[9px] font-bold uppercase tracking-wider text-amber-600">Downpayment Remaining</p>
             <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-amber-700">{formatMoney(downpaymentRemaining)}</p>
@@ -693,13 +696,13 @@ function PaymentSummaryCard({
           <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Amount Paid</p>
           <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{hasPaid ? formatMoney(amountPaid) : "—"}</p>
         </div>
-        {remaining !== null && remaining > 0 && (
+        {!isTerminal && remaining !== null && remaining > 0 && (
           <div className="min-w-0">
             <p className="text-[9px] font-bold uppercase tracking-wider text-amber-600">Remaining Balance</p>
             <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-amber-700">{formatMoney(remaining)}</p>
           </div>
         )}
-        {paymentStage && (
+        {!isTerminal && paymentStage && (
           <div className="min-w-0">
             <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Payment Stage</p>
             <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{paymentStage}</p>
@@ -1271,7 +1274,7 @@ function BookingDetailsModal({
 
           <footer className="shrink-0 border-t border-slate-100 bg-white px-5 py-4">
             <div className="space-y-3">
-              {isPayUnderReview && (
+              {isPayUnderReview && !["cancelled", "declined"].includes(String(booking.status || "").toLowerCase()) && (
                 <div className="rounded-xl bg-amber-50 p-3 text-center">
                   <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">Payment Under Review</p>
                   <p className="mt-1 text-xs font-semibold text-amber-700">
