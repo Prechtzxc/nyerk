@@ -403,7 +403,7 @@ function CurrentTransactionCard({
               className={cn(
                 "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest",
                 getStatusBadgeClass(booking.paymentStatus, booking.status, (booking as any).paymentStage, (booking as any).remainingBalance),
-              )
+              )}
             >
               {getStatusLabel(booking.paymentStatus, booking.status, (booking as any).paymentStage, (booking as any).remainingBalance)}
             </span>
