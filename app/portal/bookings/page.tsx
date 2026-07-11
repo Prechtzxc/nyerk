@@ -346,7 +346,12 @@ function getStatusLabel(status?: string) {
   return formatTextLabel(status || "Unknown")
 }
 
-function getPaymentStatusLabel(paymentStatus?: string, paymentStage?: string, remainingBalance?: number) {
+function getPaymentStatusLabel(paymentStatus?: string, paymentStage?: string, remainingBalance?: number, status?: string) {
+  const bookingStatus = String(status || "").toLowerCase()
+  if (["cancelled", "declined"].includes(bookingStatus)) return "Cancelled"
+  if (bookingStatus === "completed") return "Completed"
+  if (bookingStatus === "rental_expired") return "Expired"
+
   const v = String(paymentStatus || "").toLowerCase()
   const stage = String(paymentStage || "").toLowerCase()
   const hasRemaining = typeof remainingBalance === "number" ? remainingBalance > 0 : false
@@ -365,7 +370,12 @@ function getPaymentStatusLabel(paymentStatus?: string, paymentStage?: string, re
   return formatTextLabel(paymentStatus)
 }
 
-function getPaymentBadgeClass(paymentStatus?: string, paymentStage?: string, remainingBalance?: number) {
+function getPaymentBadgeClass(paymentStatus?: string, paymentStage?: string, remainingBalance?: number, status?: string) {
+  const bookingStatus = String(status || "").toLowerCase()
+  if (["cancelled", "declined"].includes(bookingStatus)) return "border-rose-100 bg-rose-50 text-rose-700"
+  if (bookingStatus === "completed") return "border-blue-100 bg-blue-50 text-blue-700"
+  if (bookingStatus === "rental_expired") return "border-red-100 bg-red-50 text-red-700"
+
   const v = String(paymentStatus || "").toLowerCase()
   const stage = String(paymentStage || "").toLowerCase()
   const hasRemaining = typeof remainingBalance === "number" ? remainingBalance > 0 : false
@@ -768,7 +778,8 @@ function BookingDetailsModal({
   const remainingBalance = Number((booking as any).remainingBalance || 0)
   const amountPaid = Number((booking as any)?.amountPaid || 0)
   const hasRemainingPayment =
-    remainingBalance > 0 && (
+    remainingBalance > 0 &&
+    !["cancelled", "declined"].includes(String(booking.status || "").toLowerCase()) && (
       payStatus === "partial" ||
       payStatus === "incomplete" ||
       balanceStatus === "with remaining balance" ||
@@ -881,10 +892,10 @@ function BookingDetailsModal({
               <span
                 className={cn(
                   "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
-                  getPaymentBadgeClass(booking.paymentStatus, (booking as any).paymentStage, remainingBalance),
+                  getPaymentBadgeClass(booking.paymentStatus, (booking as any).paymentStage, remainingBalance, booking.status),
                 )}
               >
-                {getPaymentStatusLabel(booking.paymentStatus, (booking as any).paymentStage, remainingBalance)}
+                {getPaymentStatusLabel(booking.paymentStatus, (booking as any).paymentStage, remainingBalance, booking.status)}
               </span>
               {booking.cancellationStatus &&
                 booking.cancellationStatus !== "None" && (

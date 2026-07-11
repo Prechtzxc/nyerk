@@ -247,7 +247,12 @@ function isDateInRange(value: string, from?: string, to?: string) {
   return true;
 }
 
-function getStatusBadgeClass(paymentStatus?: string, paymentStage?: string, remainingBalance?: number) {
+function getStatusBadgeClass(paymentStatus?: string, status?: string, paymentStage?: string, remainingBalance?: number) {
+  const bookingStatus = String(status || "").toLowerCase();
+  if (["cancelled", "declined"].includes(bookingStatus)) return "border-rose-100 bg-rose-50 text-rose-700";
+  if (bookingStatus === "completed") return "border-blue-100 bg-blue-50 text-blue-700";
+  if (bookingStatus === "rental_expired") return "border-red-100 bg-red-50 text-red-700";
+
   const v = String(paymentStatus || "").toLowerCase();
   const stage = String(paymentStage || "").toLowerCase();
   const hasRemaining = typeof remainingBalance === "number" ? remainingBalance > 0 : false;
@@ -264,6 +269,11 @@ function getStatusBadgeClass(paymentStatus?: string, paymentStage?: string, rema
 }
 
 function getStatusLabel(paymentStatus?: string, status?: string, paymentStage?: string, remainingBalance?: number) {
+  const bookingStatus = String(status || "").toLowerCase();
+  if (["cancelled", "declined"].includes(bookingStatus)) return "Cancelled";
+  if (bookingStatus === "completed") return "Completed";
+  if (bookingStatus === "rental_expired") return "Expired";
+
   const v = String(paymentStatus || "").toLowerCase();
   const stage = String(paymentStage || "").toLowerCase();
   const hasRemaining = typeof remainingBalance === "number" ? remainingBalance > 0 : false;
@@ -278,7 +288,6 @@ function getStatusLabel(paymentStatus?: string, status?: string, paymentStage?: 
   if (v === "incomplete") return "Incomplete Payment";
   if (v === "unpaid") return "Pending Onsite Payment";
   if (v === "rejected") return "Rejected";
-  if (status === "cancelled") return "Cancelled";
   if (status === "pending" && !v) return "Pending";
   if (!v && !status) return "Pending";
   return v ? v.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "Pending";
@@ -393,8 +402,8 @@ function CurrentTransactionCard({
             <span
               className={cn(
                 "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest",
-                getStatusBadgeClass(booking.paymentStatus, (booking as any).paymentStage, (booking as any).remainingBalance),
-              )}
+                getStatusBadgeClass(booking.paymentStatus, booking.status, (booking as any).paymentStage, (booking as any).remainingBalance),
+              )
             >
               {getStatusLabel(booking.paymentStatus, booking.status, (booking as any).paymentStage, (booking as any).remainingBalance)}
             </span>
@@ -513,7 +522,7 @@ function HistoryRow({
           <span
             className={cn(
               "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest",
-              getStatusBadgeClass(booking.paymentStatus, (booking as any).paymentStage, (booking as any).remainingBalance),
+              getStatusBadgeClass(booking.paymentStatus, booking.status, (booking as any).paymentStage, (booking as any).remainingBalance),
             )}
           >
             {getStatusLabel(booking.paymentStatus, booking.status, (booking as any).paymentStage, (booking as any).remainingBalance)}
@@ -1706,7 +1715,7 @@ function TransactionsContent() {
                         <span
                           className={cn(
                             "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest",
-                            getStatusBadgeClass(booking.paymentStatus, (booking as any).paymentStage, (booking as any).remainingBalance),
+                getStatusBadgeClass(booking.paymentStatus, booking.status, (booking as any).paymentStage, (booking as any).remainingBalance),
                           )}
                         >
                           {getStatusLabel(booking.paymentStatus, booking.status, (booking as any).paymentStage, (booking as any).remainingBalance)}
