@@ -180,12 +180,19 @@ const ACTIVE_BOOKING_STATUSES = [
   "cancellation_requested",
 ]
 
-export function isActiveBooking(booking: Record<string, unknown>): boolean {
+export function isActiveBooking(booking: {
+  status?: string
+  bookingStatus?: string
+}): boolean {
   const status = normalizeStatus(String(booking.status || booking.bookingStatus || ""))
   return (ACTIVE_BOOKING_STATUSES as readonly string[]).includes(status)
 }
 
-export function getCurrentBooking<T extends Record<string, unknown>>(bookings: T[]): T | null {
+export function getCurrentBooking<T extends {
+  status?: string
+  bookingStatus?: string
+  createdAt?: string
+}>(bookings: T[]): T | null {
   const sorted = [...bookings].sort(
     (a, b) =>
       new Date(String(b.createdAt || 0)).getTime() - new Date(String(a.createdAt || 0)).getTime(),
