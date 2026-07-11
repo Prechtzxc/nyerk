@@ -154,7 +154,8 @@ function getBookingTime(booking: any) {
 }
 
 function isPastBooking(booking: any) {
-  return getBookingStatus(booking) === "completed"
+  const statuses = ["completed", "cancelled", "declined", "rental_expired"]
+  return statuses.includes(getBookingStatus(booking))
 }
 
 function isCurrentBooking(booking: any) {

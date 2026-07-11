@@ -663,6 +663,11 @@ function TransactionsContent() {
     );
   }, [localBookings, user?.id]);
 
+  const transactionsWithPayment = useMemo(
+    () => myTransactions.filter(hasPaymentRecord),
+    [myTransactions],
+  );
+
   useEffect(() => {
     if (!isHydrated) return;
 
@@ -730,8 +735,8 @@ function TransactionsContent() {
   };
 
   const currentTransactions = useMemo(
-    () => myTransactions.filter(isCurrentTransaction),
-    [myTransactions],
+    () => transactionsWithPayment.filter(isCurrentTransaction),
+    [transactionsWithPayment],
   );
 
   const currentTransaction = useMemo(
@@ -745,8 +750,8 @@ function TransactionsContent() {
   );
 
   const historyTransactions = useMemo(
-    () => myTransactions.filter((b) => !isCurrentTransaction(b)),
-    [myTransactions],
+    () => transactionsWithPayment.filter((b) => !isCurrentTransaction(b)),
+    [transactionsWithPayment],
   );
 
   const hasHistoryRecords = useMemo(
