@@ -28,7 +28,23 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       )
     }
-    return NextResponse.json({ ok: true, hasFields: !!email })
+
+    console.log("[POST /api/staff] STEP 2: initializing Firebase Admin SDK")
+    let auth
+    try {
+      auth = getAdminAuth()
+    } catch (initError) {
+      console.error("[POST /api/staff] STEP 2 FAILED: getAdminAuth() threw", initError)
+      return NextResponse.json(
+        {
+          error: initError instanceof Error ? initError.message : String(initError),
+          step: "getAdminAuth",
+        },
+        { status: 500 },
+      )
+    }
+    console.log("[POST /api/staff] STEP 2 OK: got Admin Auth instance")
+    return NextResponse.json({ ok: true, hasAuth: !!auth })
   } catch (error) {
     console.error("[POST /api/staff] UNCAUGHT error:", error)
     const message = error instanceof Error ? error.message : "Failed to create staff"
