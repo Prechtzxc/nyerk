@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import "server-only"
-import { initializeApp, getApps, cert } from "firebase-admin/app"
-import { getAuth } from "firebase-admin/auth"
+import { initializeApp, getApps } from "firebase-admin/app"
 import type { Auth } from "firebase-admin/auth"
 
 let authInstance: Auth | null = null
 
-function getAdminAuth(): Auth {
+async function getAdminAuth(): Promise<Auth> {
   if (authInstance) return authInstance
 
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
@@ -21,11 +20,10 @@ function getAdminAuth(): Auth {
   }
 
   if (!getApps().length) {
-    initializeApp({
-      credential: cert({} as any),
-    })
+    initializeApp()
   }
 
+  const { getAuth } = await import("firebase-admin/auth")
   authInstance = getAuth()
   return authInstance
 }
