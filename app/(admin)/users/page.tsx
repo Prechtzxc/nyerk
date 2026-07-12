@@ -2,17 +2,14 @@
 
 import { useState, useEffect } from "react"
 import { Users } from "lucide-react"
-import { db } from "@/lib/firebase"
-import { collection, onSnapshot } from "firebase/firestore"
 
 interface UserRecord {
-  id: string
-  name?: string
-  email?: string
-  phone?: string
-  role?: string
-  createdAt?: string
-  lastLogin?: string
+  uid: string
+  displayName: string
+  email: string
+  phoneNumber: string
+  disabled: boolean
+  creationTime: string
 }
 
 export default function UsersPage() {
@@ -20,42 +17,22 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const unsub = onSnapshot(
-      collection(db, "users"),
-      (snapshot) => {
-        const loaded: UserRecord[] = []
-        snapshot.forEach((docSnap) => {
-          const data = docSnap.data()
-          loaded.push({
-            id: docSnap.id,
-            name: data.name || data.displayName || data.fullName || "",
-            email: data.email || "",
-            phone: data.phone || data.phoneNumber || "",
-            role: data.role || "customer",
-            createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt || "",
-            lastLogin: data.lastLogin?.toDate?.()?.toISOString() || data.lastLogin || "",
-          })
-        })
-        loaded.sort((a, b) => {
-          const tA = a.createdAt ? new Date(a.createdAt).getTime() : 0
-          const tB = b.createdAt ? new Date(b.createdAt).getTime() : 0
-          return tB - tA
-        })
-        setUsers(loaded)
-        setLoading(false)
-      },
-      (error) => {
-        console.error("[UsersPage] Firestore snapshot error:", error)
-        setLoading(false)
-      },
-    )
+    let cancelled = false
 
-    const timeout = setTimeout(() => setLoading(false), 10000)
+    fetch("/api/users")
+      .then((res) => res.json())
+      .then((data) => {
+        if (cancelled) return
+        setUsers(data.users || [])
+        setLoading(false)
+      })
+      .catch((err) => {
+        if (cancelled) return
+        console.error("[UsersPage] API fetch error:", err)
+        setLoading(false)
+      })
 
-    return () => {
-      unsub()
-      clearTimeout(timeout)
-    }
+    return () => { cancelled = true }
   }, [])
 
   return (
@@ -90,14 +67,14 @@ export default function UsersPage() {
         ) : (
           <div className="mt-5 space-y-3">
             {users.map((u) => (
-              <div key={u.id} className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div key={u.uid} className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600 font-black text-sm uppercase">
-                  {(u.name || u.email || "?").charAt(0)}
+                  {(u.displayName || u.email || "?").charAt(0)}
                 </div>
                 <div className="min-w-0 flex-1 grid grid-cols-2 gap-x-3 gap-y-1.5 sm:grid-cols-4 sm:gap-x-4">
                   <div className="min-w-0">
                     <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Name</p>
-                    <p className="text-xs font-black text-slate-800 truncate">{u.name || "—"}</p>
+                    <p className="text-xs font-black text-slate-800 truncate">{u.displayName || "—"}</p>
                   </div>
                   <div className="min-w-0">
                     <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Email</p>
@@ -105,11 +82,13 @@ export default function UsersPage() {
                   </div>
                   <div className="min-w-0">
                     <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Phone</p>
-                    <p className="text-xs font-bold text-slate-800 truncate">{u.phone || "—"}</p>
+                    <p className="text-xs font-bold text-slate-800 truncate">{u.phoneNumber || "—"}</p>
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Role</p>
-                    <p className="text-xs font-bold text-slate-800 truncate capitalize">{u.role}</p>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Status</p>
+                    <p className={`text-xs font-bold truncate ${u.disabled ? "text-red-600" : "text-emerald-600"}`}>
+                      {u.disabled ? "Disabled" : "Active"}
+                    </p>
                   </div>
                 </div>
               </div>
