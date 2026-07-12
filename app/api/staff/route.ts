@@ -3,6 +3,7 @@ import "server-only"
 import { initializeApp, getApps, cert } from "firebase-admin/app"
 import { getAuth } from "firebase-admin/auth"
 import type { Auth } from "firebase-admin/auth"
+import type { ServiceAccount } from "firebase-admin"
 
 let authInstance: Auth | null = null
 
@@ -20,7 +21,20 @@ function getAdminAuth(): Auth {
     )
   }
 
-  return authInstance!
+  const serviceAccount: ServiceAccount = {
+    projectId,
+    clientEmail,
+    privateKey: privateKey.replace(/\\n/g, "\n"),
+  }
+
+  if (!getApps().length) {
+    initializeApp({
+      credential: cert(serviceAccount),
+    })
+  }
+
+  authInstance = getAuth()
+  return authInstance
 }
 
 export const dynamic = "force-dynamic"
