@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import "server-only"
-import { initializeApp, getApps } from "firebase-admin/app"
+import { initializeApp, getApps, cert } from "firebase-admin/app"
 import type { Auth } from "firebase-admin/auth"
 
 let authInstance: Auth | null = null
@@ -20,7 +20,13 @@ async function getAdminAuth(): Promise<Auth> {
   }
 
   if (!getApps().length) {
-    initializeApp()
+    initializeApp({
+      credential: cert({
+        projectId,
+        clientEmail,
+        privateKey: privateKey.replace(/\\n/g, "\n"),
+      }),
+    })
   }
 
   const { getAuth } = await import("firebase-admin/auth")
@@ -36,13 +42,97 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    return NextResponse.json({ ok: true, bodyReceived: !!body })
-  } catch (parseError) {
-    console.error("body parse error", parseError)
+    console.log("[POST /api/staff] STEP 1: parsing request body")
+    let body: Record<string, unknown>
+    try {
+      body = await request.json()
+    } catch (parseError) {
+      console.error("[POST /api/staff] STEP 1 FAILED: body parse error", parseError)
+      return NextResponse.json(
+        { error: "Invalid JSON in request body" },
+        { status: 400 },
+      )
+    }
+
+    const { email, password, fullName } = body as {
+      email?: string
+      password?: string
+      fullName?: string
+    }
+
+    if (!email || !password || !fullName) {
+      console.log("[POST /api/staff] STEP 1b: missing fields")
+      return NextResponse.json(
+        { error: "Missing required fields: email, password, fullName" },
+        { status: 400 },
+      )
+    }
+
+    console.log("[POST /api/staff] STEP 2: getting Firebase Admin Auth instance")
+    let auth: Auth
+    try {
+      auth = await getAdminAuth()
+    } catch (initError) {
+      console.error("[POST /api/staff] STEP 2 FAILED: getAdminAuth() threw", initError)
+      return NextResponse.json(
+        {
+          error:
+            initError instanceof Error
+              ? initError.message
+              : "Failed to initialize Firebase Admin SDK",
+          step: "getAdminAuth",
+        },
+        { status: 500 },
+      )
+    }
+
+    console.log("[POST /api/staff] STEP 3: creating Firebase user")
+    let userRecord
+    try {
+      userRecord = await auth.createUser({
+        email,
+        password,
+        displayName: fullName,
+      })
+    } catch (createError) {
+      console.error("[POST /api/staff] STEP 3 FAILED: createUser threw", createError)
+      const errorCode =
+        createError instanceof Error && "code" in createError
+          ? (createError as any).code
+          : undefined
+      return NextResponse.json(
+        {
+          error:
+            createError instanceof Error
+              ? createError.message
+              : "Failed to create user",
+          step: "createUser",
+          code: errorCode,
+        },
+        { status: 409 },
+      )
+    }
+
+    console.log(
+      "[POST /api/staff] STEP 3 OK: user created with uid",
+      userRecord.uid,
+    )
+    return NextResponse.json({ uid: userRecord.uid })
+  } catch (error) {
+    console.error("[POST /api/staff] UNCAUGHT error:", error)
+    const message =
+      error instanceof Error ? error.message : "Failed to create staff"
     return NextResponse.json(
-      { error: "Invalid JSON in request body" },
-      { status: 400 },
+      {
+        error: message,
+        stack:
+          process.env.NODE_ENV === "development"
+            ? error instanceof Error
+              ? error.stack
+              : null
+            : undefined,
+      },
+      { status: 500 },
     )
   }
 }
