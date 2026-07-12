@@ -6,6 +6,7 @@ import { db } from "@/lib/firebase"
 import {
   collection,
   query,
+  where,
   orderBy,
   onSnapshot,
   addDoc,
@@ -176,35 +177,45 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   )
 
   const markAsRead = useCallback(async (clientId: string) => {
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.clientId === clientId && m.sender === "client"
+          ? { ...m, isRead: true }
+          : m
+      )
+    )
     const q = query(
       messagesRef,
-      orderBy("timestamp", "asc"),
-      limit(500)
+      where("clientId", "==", clientId),
+      where("sender", "==", "client"),
+      where("isRead", "==", false)
     )
     const snapshot = await getDocs(q)
     const updates: Promise<void>[] = []
     snapshot.forEach((docSnap) => {
-      const data = docSnap.data()
-      if (data.clientId === clientId && data.sender === "client" && !data.isRead) {
-        updates.push(updateDoc(doc(db, "chatMessages", docSnap.id), { isRead: true }))
-      }
+      updates.push(updateDoc(doc(db, "chatMessages", docSnap.id), { isRead: true }))
     })
     await Promise.all(updates)
   }, [])
 
   const markAsReadByClient = useCallback(async (clientId: string) => {
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.clientId === clientId && m.sender === "admin"
+          ? { ...m, isReadByClient: true }
+          : m
+      )
+    )
     const q = query(
       messagesRef,
-      orderBy("timestamp", "asc"),
-      limit(500)
+      where("clientId", "==", clientId),
+      where("sender", "==", "admin"),
+      where("isReadByClient", "==", false)
     )
     const snapshot = await getDocs(q)
     const updates: Promise<void>[] = []
     snapshot.forEach((docSnap) => {
-      const data = docSnap.data()
-      if (data.clientId === clientId && data.sender === "admin" && !data.isReadByClient) {
-        updates.push(updateDoc(doc(db, "chatMessages", docSnap.id), { isReadByClient: true }))
-      }
+      updates.push(updateDoc(doc(db, "chatMessages", docSnap.id), { isReadByClient: true }))
     })
     await Promise.all(updates)
   }, [])

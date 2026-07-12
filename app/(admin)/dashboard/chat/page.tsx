@@ -22,25 +22,25 @@ export default function AdminSupportChatPage() {
     const clientsMap = new Map()
     messages.forEach((m: any) => {
       if (m.clientId) {
-        const existing = clientsMap.get(m.clientId) || { id: m.clientId, name: m.clientName || "Unknown Client", unread: 0, lastMsgId: 0 }
-        existing.lastMsgId = m.id
-        // ✨ BILANGIN ANG UNREAD NG CLIENT ✨
+        const existing = clientsMap.get(m.clientId) || { id: m.clientId, name: m.clientName || "Unknown Client", unread: 0, lastTimestamp: 0 }
+        const msgTime = new Date(m.timestamp || 0).getTime()
+        if (msgTime > existing.lastTimestamp) { existing.lastTimestamp = msgTime }
         if (m.sender === "client" && !m.isRead) { existing.unread += 1 }
         clientsMap.set(m.clientId, existing)
       }
     })
-    return Array.from(clientsMap.values()).sort((a: any, b: any) => b.lastMsgId - a.lastMsgId)
+    return Array.from(clientsMap.values()).sort((a: any, b: any) => b.lastTimestamp - a.lastTimestamp)
   }
 
   const clientsList = getDynamicClients()
   const activeClient = clientsList.find(c => c.id === activeClientId) || clientsList[0] || null
   const activeClientMessages = activeClient ? messages.filter((m: any) => m.clientId === activeClient.id) : []
 
-  useEffect(() => { if (!activeClientId && clientsList.length > 0) { setActiveClientId(clientsList[0].id) } }, [clientsList.length])
+  useEffect(() => { if (!activeClientId && clientsList.length > 0) { setActiveClientId(clientsList[0].id) } }, [clientsList.map(c => c.id).join(",")])
   
   useEffect(() => { 
-    if (activeClientId) { markAsRead(activeClientId) } 
-  }, [messages.length, activeClientId])
+    if (activeClientId) { markAsRead(activeClientId) }
+  }, [activeClientId])
   
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }) }, [activeClientMessages])
 

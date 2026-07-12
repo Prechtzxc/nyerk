@@ -1,12 +1,50 @@
 "use client"
 
-import { Users } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Users, Mail, Phone, Calendar, Clock } from "lucide-react"
+import { db } from "@/lib/firebase"
+import { collection, query, orderBy, onSnapshot } from "firebase/firestore"
+
+interface UserRecord {
+  id: string
+  name?: string
+  email?: string
+  phone?: string
+  role?: string
+  createdAt?: string
+  lastLogin?: string
+}
 
 export default function UsersPage() {
+  const [users, setUsers] = useState<UserRecord[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const q = query(collection(db, "users"), orderBy("createdAt", "desc"))
+    const unsub = onSnapshot(q, (snapshot) => {
+      const loaded: UserRecord[] = []
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data()
+        loaded.push({
+          id: docSnap.id,
+          name: data.name || data.displayName || data.fullName || "",
+          email: data.email || "",
+          phone: data.phone || data.phoneNumber || "",
+          role: data.role || "customer",
+          createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt || "",
+          lastLogin: data.lastLogin?.toDate?.()?.toISOString() || data.lastLogin || "",
+        })
+      })
+      setUsers(loaded)
+      setLoading(false)
+    })
+    return () => unsub()
+  }, [])
+
   return (
     <div className="w-full min-w-0 max-w-full overflow-x-hidden">
       <div className="mx-auto w-full max-w-[1180px] px-3 py-4 sm:px-5 lg:px-6">
-        <section className="border-b border-slate-200 pb-5">
+        <section className="border-b border-slate-200 pb-5 mb-6">
           <p className="text-[11px] font-black uppercase tracking-[0.22em] text-orange-600">
             Admin Users Information
           </p>
@@ -18,15 +56,49 @@ export default function UsersPage() {
           </p>
         </section>
 
-        <div className="flex min-h-[230px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center mt-5">
-          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-white text-slate-400 shadow-sm">
-            <Users className="h-6 w-6" />
+        {loading ? (
+          <div className="flex min-h-[230px] items-center justify-center">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-orange-600" />
           </div>
-          <h3 className="text-sm font-black text-slate-700">No users found</h3>
-          <p className="mt-1 max-w-sm text-xs leading-5 text-slate-500">
-            Registered customers will appear here once Firebase Authentication is connected.
-          </p>
-        </div>
+        ) : users.length === 0 ? (
+          <div className="flex min-h-[230px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center mt-5">
+            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-white text-slate-400 shadow-sm">
+              <Users className="h-6 w-6" />
+            </div>
+            <h3 className="text-sm font-black text-slate-700">No users found</h3>
+            <p className="mt-1 max-w-sm text-xs leading-5 text-slate-500">
+              Registered customers will appear here once Firebase Authentication is connected.
+            </p>
+          </div>
+        ) : (
+          <div className="mt-5 space-y-3">
+            {users.map((u) => (
+              <div key={u.id} className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600 font-black text-sm uppercase">
+                  {(u.name || u.email || "?").charAt(0)}
+                </div>
+                <div className="min-w-0 flex-1 grid grid-cols-2 gap-x-3 gap-y-1.5 sm:grid-cols-4 sm:gap-x-4">
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Name</p>
+                    <p className="text-xs font-black text-slate-800 truncate">{u.name || "—"}</p>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Email</p>
+                    <p className="text-xs font-bold text-slate-800 truncate">{u.email || "—"}</p>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Phone</p>
+                    <p className="text-xs font-bold text-slate-800 truncate">{u.phone || "—"}</p>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Role</p>
+                    <p className="text-xs font-bold text-slate-800 truncate capitalize">{u.role}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
