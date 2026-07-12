@@ -25,7 +25,7 @@ import {
 
 import { Button } from "@/src/modules/shared/components/ui/button"
 import { Input } from "@/src/modules/shared/components/ui/input"
-import { getUnreadCount, subscribeScopeUnread } from "@/src/modules/shared/lib/chat-unread"
+
 import { cn } from "@/src/modules/shared/lib/utils"
 import { LogoutConfirmDialog } from "@/src/modules/shared/components/logout-confirm-dialog"
 import { UserAvatar } from "@/src/modules/shared/components/user-avatar"
@@ -56,17 +56,9 @@ export default function AdminLayout({
   const [chatUnread, setChatUnread] = useState(0)
 
   useEffect(() => {
-    getUnreadCount("admin").then(setChatUnread)
-    return subscribeScopeUnread("admin", setChatUnread)
-  }, [])
-
-  useEffect(() => {
-    const unreadFromMessages =
-      messages?.filter((m: any) => m.sender === "client" && !m.isRead).length || 0
-    if (unreadFromMessages > 0 && chatUnread === 0) {
-      setChatUnread(unreadFromMessages)
-    }
-  }, [messages, chatUnread])
+    const count = messages?.filter((m) => m.sender === "client" && !m.isRead).length || 0
+    setChatUnread(count)
+  }, [messages])
 
   useEffect(() => {
     if (isLoading) return

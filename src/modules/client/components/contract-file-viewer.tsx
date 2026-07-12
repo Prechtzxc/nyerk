@@ -69,7 +69,7 @@ export function ContractFileViewer({
         showCloseButton={false}
         className="flex max-h-[calc(100vh-2rem)] w-[calc(100vw-2rem)] max-w-[900px] flex-col gap-0 overflow-hidden rounded-2xl border-0 bg-white p-0 shadow-xl"
       >
-        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-100 bg-white px-6 pt-6 pb-4">
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-100 bg-white px-4 pt-4 pb-3 sm:px-6 sm:pt-6 sm:pb-4">
           <div className="min-w-0">
             <p className="text-[10px] font-black uppercase tracking-widest text-orange-600">
               Contract Preview
@@ -92,31 +92,31 @@ export function ContractFileViewer({
           </DialogClose>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 sm:px-6 sm:py-5">
           {isPDF(file.fileType) ? (
             <iframe
               src={file.fileUrl}
-              className="h-[70vh] w-full rounded-lg border border-slate-200"
+              className="h-[50vh] w-full rounded-lg border border-slate-200 sm:h-[60vh] md:h-[70vh]"
               title="Contract PDF"
             />
           ) : isImage(file.fileType) ? (
-            <div className="flex items-center justify-center">
+            <div className="flex items-center justify-center overflow-x-hidden">
               <img
                 src={file.fileUrl}
                 alt="Contract"
-                className="max-h-[70vh] w-auto max-w-full rounded-lg object-contain"
+                className="max-h-[50vh] w-auto max-w-full rounded-lg object-contain sm:max-h-[60vh] md:max-h-[70vh]"
               />
             </div>
           ) : isDOCX(file.fileType) ? (
             <div className="flex items-center justify-center">
               {docxLoading && (
-                <div className="flex flex-col items-center gap-3 py-12">
+                <div className="flex flex-col items-center gap-3 py-10 sm:py-12">
                   <Loader2 className="h-8 w-8 animate-spin text-orange-600" />
                   <p className="text-sm font-semibold text-slate-500">Loading document...</p>
                 </div>
               )}
               {docxError && (
-                <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 p-12 text-center">
+                <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 p-6 text-center sm:p-12">
                   <AlertCircle className="mb-3 h-12 w-12 text-amber-500" />
                   <h3 className="text-lg font-black text-slate-700">
                     Preview is not available for this file type.
@@ -125,11 +125,11 @@ export function ContractFileViewer({
               )}
               <div
                 ref={docxContainerRef}
-                className={docxLoading || docxError ? "hidden" : "w-full"}
+                className={docxLoading || docxError ? "hidden" : "w-full max-w-full overflow-x-auto [&_.docx-wrapper]:max-w-full [&_.docx-wrapper>img]:max-w-full [&_.docx-wrapper>img]:h-auto [&_.docx-wrapper_table]:max-w-full"}
               />
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 p-12 text-center">
+            <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 p-6 text-center sm:p-12">
               <AlertCircle className="mb-3 h-12 w-12 text-amber-500" />
               <h3 className="text-lg font-black text-slate-700">
                 Preview is not available for this file type.

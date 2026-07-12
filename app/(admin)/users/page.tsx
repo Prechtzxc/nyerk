@@ -107,7 +107,7 @@ export default function UsersPage() {
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600 font-black text-sm uppercase">
                   {(u.fullName || u.email || "?").charAt(0)}
                 </div>
-                <div className="min-w-0 flex-1 grid grid-cols-2 gap-x-3 gap-y-1.5 sm:grid-cols-4 sm:gap-x-4">
+                <div className="min-w-0 flex-1 grid grid-cols-2 gap-x-3 gap-y-1.5 sm:grid-cols-3 sm:gap-x-4">
                   <div className="min-w-0">
                     <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Name</p>
                     <p className="text-xs font-black text-slate-800 truncate">{u.fullName || "—"}</p>
@@ -119,12 +119,6 @@ export default function UsersPage() {
                   <div className="min-w-0">
                     <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Phone</p>
                     <p className="text-xs font-bold text-slate-800 truncate">{u.phone || "—"}</p>
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Status</p>
-                    <p className={`text-xs font-bold truncate ${u.status === "active" ? "text-emerald-600" : "text-red-600"}`}>
-                      {u.status === "active" ? "Active" : "Disabled"}
-                    </p>
                   </div>
                 </div>
               </div>
