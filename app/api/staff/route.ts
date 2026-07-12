@@ -6,6 +6,11 @@ import type { Auth } from "firebase-admin/auth"
 
 let authInstance: Auth | null = null
 
+function getAdminAuth(): Auth {
+  if (authInstance) return authInstance
+  return authInstance!
+}
+
 export const dynamic = "force-dynamic"
 
 export async function GET() {
