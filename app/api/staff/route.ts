@@ -25,7 +25,9 @@ function getAdminAuth(): Auth {
       credential: cert({} as any),
     })
   }
-  return authInstance!
+
+  authInstance = getAuth()
+  return authInstance
 }
 
 export const dynamic = "force-dynamic"
