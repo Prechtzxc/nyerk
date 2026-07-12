@@ -20,20 +20,10 @@ function getAdminAuth(): Auth {
     )
   }
 
-  const serviceAccount = {
-    projectId,
-    clientEmail,
-    privateKey: privateKey.replace(/\\n/g, "\n"),
+  if (getApps().length === 0) {
+    // placeholder
   }
-
-  if (!getApps().length) {
-    initializeApp({
-      credential: cert(serviceAccount),
-    })
-  }
-
-  authInstance = getAuth()
-  return authInstance
+  return authInstance!
 }
 
 export const dynamic = "force-dynamic"
