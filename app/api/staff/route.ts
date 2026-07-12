@@ -3,7 +3,6 @@ import "server-only"
 import { initializeApp, getApps, cert } from "firebase-admin/app"
 import { getAuth } from "firebase-admin/auth"
 import type { Auth } from "firebase-admin/auth"
-import type { ServiceAccount } from "firebase-admin"
 
 let authInstance: Auth | null = null
 
@@ -21,7 +20,7 @@ function getAdminAuth(): Auth {
     )
   }
 
-  const serviceAccount: ServiceAccount = {
+  const serviceAccount = {
     projectId,
     clientEmail,
     privateKey: privateKey.replace(/\\n/g, "\n"),
