@@ -20,8 +20,8 @@ function getAdminAuth(): Auth {
     )
   }
 
-  if (getApps().length === 0) {
-    // placeholder
+  if (!getApps().length) {
+    initializeApp()
   }
   return authInstance!
 }
