@@ -21,7 +21,9 @@ function getAdminAuth(): Auth {
   }
 
   if (!getApps().length) {
-    initializeApp()
+    initializeApp({
+      credential: cert({} as any),
+    })
   }
   return authInstance!
 }
