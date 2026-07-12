@@ -1,16 +1,25 @@
 import { NextResponse } from "next/server"
+import type { UserRecord } from "firebase-admin/auth"
+
 import { adminAuth } from "@/lib/firebase-admin"
 
 export async function GET() {
   try {
     const result = await adminAuth.listUsers(1000)
-    const users = result.users.map((u) => ({
+    const users: Array<{
+      uid: string
+      displayName: string
+      email: string
+      phoneNumber: string
+      disabled: boolean
+      creationTime: string
+    }> = result.users.map((u: UserRecord) => ({
       uid: u.uid,
-      displayName: u.displayName || "",
-      email: u.email || "",
-      phoneNumber: u.phoneNumber || "",
+      displayName: u.displayName ?? "",
+      email: u.email ?? "",
+      phoneNumber: u.phoneNumber ?? "",
       disabled: u.disabled,
-      creationTime: u.metadata.creationTime || "",
+      creationTime: u.metadata.creationTime,
     }))
     users.sort((a, b) => {
       const tA = a.creationTime ? new Date(a.creationTime).getTime() : 0
