@@ -2,35 +2,63 @@
 
 import { useState, useEffect } from "react"
 import { Users } from "lucide-react"
+import { db } from "@/lib/firebase"
+import { collection, getDocs } from "firebase/firestore"
 
 interface UserRecord {
   uid: string
-  displayName: string
+  fullName: string
   email: string
-  phoneNumber: string
-  disabled: boolean
-  creationTime: string
+  phone: string
+  role: string
+  status: string
+  createdAt: string
 }
 
 export default function UsersPage() {
   const [users, setUsers] = useState<UserRecord[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
 
-    fetch("/api/users")
-      .then((res) => res.json())
-      .then((data) => {
-        if (cancelled) return
-        setUsers(data.users || [])
-        setLoading(false)
-      })
-      .catch((err) => {
-        if (cancelled) return
-        console.error("[UsersPage] API fetch error:", err)
-        setLoading(false)
-      })
+    async function fetchUsers() {
+      try {
+        const snapshot = await getDocs(collection(db, "users"))
+        console.log("[UsersPage] snapshot size:", snapshot.size)
+        console.log("[UsersPage] document IDs:", snapshot.docs.map((d) => d.id))
+
+        const loaded: UserRecord[] = []
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data()
+          loaded.push({
+            uid: docSnap.id,
+            fullName: data.fullName || "",
+            email: data.email || "",
+            phone: data.phone || "",
+            role: data.role || "",
+            status: data.status || "",
+            createdAt: data.createdAt || "",
+          })
+        })
+        console.log("[UsersPage] users loaded:", loaded.length)
+        console.log("[UsersPage] final array:", JSON.stringify(loaded.map((u) => ({ uid: u.uid, email: u.email }))))
+
+        if (!cancelled) {
+          setUsers(loaded)
+          setLoading(false)
+        }
+      } catch (err) {
+        console.error("[UsersPage] Firestore getDocs error:", err)
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load users")
+          setLoading(false)
+        }
+      }
+    }
+
+    fetchUsers()
 
     return () => { cancelled = true }
   }, [])
@@ -54,6 +82,14 @@ export default function UsersPage() {
           <div className="flex min-h-[230px] items-center justify-center">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-orange-600" />
           </div>
+        ) : error ? (
+          <div className="flex min-h-[230px] flex-col items-center justify-center rounded-2xl border border-dashed border-red-300 bg-red-50 px-6 py-10 text-center mt-5">
+            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-white text-red-400 shadow-sm">
+              <Users className="h-6 w-6" />
+            </div>
+            <h3 className="text-sm font-black text-red-700">Failed to load users</h3>
+            <p className="mt-1 max-w-sm text-xs leading-5 text-red-500">{error}</p>
+          </div>
         ) : users.length === 0 ? (
           <div className="flex min-h-[230px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center mt-5">
             <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-white text-slate-400 shadow-sm">
@@ -61,7 +97,7 @@ export default function UsersPage() {
             </div>
             <h3 className="text-sm font-black text-slate-700">No users found</h3>
             <p className="mt-1 max-w-sm text-xs leading-5 text-slate-500">
-              Registered customers will appear here once Firebase Authentication is connected.
+              The users collection exists but contains no documents.
             </p>
           </div>
         ) : (
@@ -69,12 +105,12 @@ export default function UsersPage() {
             {users.map((u) => (
               <div key={u.uid} className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600 font-black text-sm uppercase">
-                  {(u.displayName || u.email || "?").charAt(0)}
+                  {(u.fullName || u.email || "?").charAt(0)}
                 </div>
                 <div className="min-w-0 flex-1 grid grid-cols-2 gap-x-3 gap-y-1.5 sm:grid-cols-4 sm:gap-x-4">
                   <div className="min-w-0">
                     <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Name</p>
-                    <p className="text-xs font-black text-slate-800 truncate">{u.displayName || "—"}</p>
+                    <p className="text-xs font-black text-slate-800 truncate">{u.fullName || "—"}</p>
                   </div>
                   <div className="min-w-0">
                     <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Email</p>
@@ -82,12 +118,12 @@ export default function UsersPage() {
                   </div>
                   <div className="min-w-0">
                     <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Phone</p>
-                    <p className="text-xs font-bold text-slate-800 truncate">{u.phoneNumber || "—"}</p>
+                    <p className="text-xs font-bold text-slate-800 truncate">{u.phone || "—"}</p>
                   </div>
                   <div className="min-w-0">
                     <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Status</p>
-                    <p className={`text-xs font-bold truncate ${u.disabled ? "text-red-600" : "text-emerald-600"}`}>
-                      {u.disabled ? "Disabled" : "Active"}
+                    <p className={`text-xs font-bold truncate ${u.status === "active" ? "text-emerald-600" : "text-red-600"}`}>
+                      {u.status === "active" ? "Active" : "Disabled"}
                     </p>
                   </div>
                 </div>
