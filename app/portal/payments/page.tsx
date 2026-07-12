@@ -422,7 +422,7 @@ function CurrentTransactionCard({
             <Button
               variant="outline"
               onClick={() => onView(booking)}
-              className="h-9 shrink-0 whitespace-nowrap rounded-lg border-slate-200 px-3 text-[11px] font-bold text-slate-700 hover:bg-slate-50"
+              className="h-8 shrink-0 whitespace-nowrap rounded-lg border-slate-200 px-2.5 text-[10px] font-bold text-slate-700 hover:bg-slate-50"
             >
               View Details
             </Button>
@@ -521,8 +521,8 @@ function HistoryRow({
         <div className="flex items-center gap-1.5">
           <span
             className={cn(
-              "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest",
-              getStatusBadgeClass(booking.paymentStatus, booking.status, (booking as any).paymentStage, (booking as any).remainingBalance),
+                "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest whitespace-nowrap",
+                getStatusBadgeClass(booking.paymentStatus, booking.status, (booking as any).paymentStage, (booking as any).remainingBalance),
             )}
           >
             {getStatusLabel(booking.paymentStatus, booking.status, (booking as any).paymentStage, (booking as any).remainingBalance)}
@@ -1177,7 +1177,7 @@ function TransactionsContent() {
                 </div>
               </div>
 
-              <footer className="shrink-0 flex justify-end gap-2 border-t border-slate-100 bg-slate-50 px-5 py-4">
+              <footer className="shrink-0 flex justify-end gap-2 border-t border-slate-100 bg-white px-5 py-4">
                 <Button
                 type="button"
                 variant="outline"

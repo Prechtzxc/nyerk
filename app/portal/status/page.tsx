@@ -599,7 +599,10 @@ export default function StatusPage() {
         <section className="border-b border-slate-200 pb-5 mb-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h1 className="text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
+              <p className="text-[11px] font-black uppercase tracking-[0.24em] text-orange-600">
+                Reservations
+              </p>
+              <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
                 Status
               </h1>
               <p className="mt-1 text-sm text-slate-500">
@@ -638,7 +641,7 @@ export default function StatusPage() {
         </section>
 
       {visible.length === 0 ? (
-        <div className="flex flex-col items-center rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
+        <div className="flex flex-col items-center rounded-2xl border border-dashed border-slate-300 bg-white p-8 mt-3 text-center">
           <Calendar className="mb-3 h-10 w-10 text-slate-300" />
           <h3 className="text-sm font-black text-slate-900">No status to show</h3>
           <p className="mt-1 max-w-sm text-xs text-slate-500">

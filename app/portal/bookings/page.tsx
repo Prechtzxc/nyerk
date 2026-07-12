@@ -348,9 +348,10 @@ function getStatusLabel(status?: string) {
 
 function getPaymentStatusLabel(paymentStatus?: string, paymentStage?: string, remainingBalance?: number, status?: string) {
   const bookingStatus = String(status || "").toLowerCase()
-  if (["cancelled", "declined"].includes(bookingStatus)) return "Cancelled"
+  if (bookingStatus === "cancelled") return "Cancelled"
+  if (bookingStatus === "declined") return "Declined"
   if (bookingStatus === "completed") return "Completed"
-  if (bookingStatus === "rental_expired") return "Expired"
+  if (bookingStatus === "rental_expired") return "Rental Expired"
 
   const v = String(paymentStatus || "").toLowerCase()
   const stage = String(paymentStage || "").toLowerCase()
@@ -538,8 +539,8 @@ function HistoryRow({
   const startDate = formatDate(booking.date)
 
   return (
-    <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-3 transition hover:border-orange-200 sm:gap-3">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-orange-50 text-orange-600">
+    <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-orange-200 hover:shadow-md sm:gap-3">
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
         {isOfficeRental ? <FileText className="h-4 w-4" /> : <Calendar className="h-4 w-4" />}
       </div>
       <div className="min-w-0 flex-1">
@@ -659,58 +660,58 @@ function PaymentSummaryCard({
 
       <div className="space-y-3">
         <div className="min-w-0">
-          <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Method</p>
+          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Method</p>
           <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">
             {booking.paymentMethod ? getPaymentMethodLabel(booking.paymentMethod) : "—"}
           </p>
         </div>
         <div className="min-w-0">
-          <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Type</p>
+          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Type</p>
           <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">
             {booking.paymentType ? formatTextLabel(booking.paymentType) : "—"}
           </p>
         </div>
         <div className="min-w-0">
-          <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Total Amount</p>
+          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Total Amount</p>
           <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{hasTotal ? formatMoney(totalPrice) : "—"}</p>
         </div>
         {showDP && (
           <div className="min-w-0">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Selected Downpayment</p>
+            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Selected Downpayment</p>
             <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{formatMoney(selectedDP)}</p>
           </div>
         )}
         {showDP && (
           <div className="min-w-0">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Downpayment Paid</p>
+            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Downpayment Paid</p>
             <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{formatMoney(downpaymentPaid)}</p>
           </div>
         )}
         {!isTerminal && showDP && downpaymentRemaining > 0 && (
           <div className="min-w-0">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-amber-600">Downpayment Remaining</p>
+            <p className="text-[9px] font-black uppercase tracking-widest text-amber-600">Downpayment Remaining</p>
             <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-amber-700">{formatMoney(downpaymentRemaining)}</p>
           </div>
         )}
         <div className="min-w-0">
-          <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Amount Paid</p>
+          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Amount Paid</p>
           <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{hasPaid ? formatMoney(amountPaid) : "—"}</p>
         </div>
         {!isTerminal && remaining !== null && remaining > 0 && (
           <div className="min-w-0">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-amber-600">Remaining Balance</p>
+            <p className="text-[9px] font-black uppercase tracking-widest text-amber-600">Remaining Balance</p>
             <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-amber-700">{formatMoney(remaining)}</p>
           </div>
         )}
         {!isTerminal && paymentStage && (
           <div className="min-w-0">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Payment Stage</p>
+            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Payment Stage</p>
             <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{paymentStage}</p>
           </div>
         )}
         {bankRef && (
           <div className="min-w-0">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Bank Reference</p>
+            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Bank Reference</p>
             <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-900">{bankRef}</p>
           </div>
         )}
@@ -782,7 +783,7 @@ function BookingDetailsModal({
   const amountPaid = Number((booking as any)?.amountPaid || 0)
   const hasRemainingPayment =
     remainingBalance > 0 &&
-    !["cancelled", "declined"].includes(String(booking.status || "").toLowerCase()) && (
+    !["cancelled", "declined", "completed", "rental_expired"].includes(String(booking.status || "").toLowerCase()) && (
       payStatus === "partial" ||
       payStatus === "incomplete" ||
       balanceStatus === "with remaining balance" ||
@@ -798,8 +799,7 @@ function BookingDetailsModal({
     payStatus !== "verified" &&
     payStatus !== "paid" &&
     payStatus !== "slot_verified" &&
-    booking.status !== "completed" &&
-    booking.status !== "cancelled"
+    !["cancelled", "declined", "completed", "rental_expired"].includes(String(booking.status || "").toLowerCase())
 
   const hasActiveCancellationRequest =
     normalizeStatus(booking.cancellationStatus) === "under review" ||
@@ -823,14 +823,12 @@ function BookingDetailsModal({
 
   const showCancelAction =
     onCancel &&
-    booking.status !== "completed" &&
-    booking.status !== "cancelled" &&
+    !["cancelled", "declined", "completed", "rental_expired"].includes(String(booking.status || "").toLowerCase()) &&
     booking.cancellationStatus !== "Approved" &&
     !hasCancellationHistory
 
   const showModify =
-    booking.status !== "completed" &&
-    booking.status !== "cancelled" &&
+    !["cancelled", "declined", "completed", "rental_expired"].includes(String(booking.status || "").toLowerCase()) &&
     booking.cancellationStatus !== "Approved" &&
     !hasCancellationHistory
 
@@ -1056,7 +1054,7 @@ function BookingDetailsModal({
 
               {booking.specialRequests && (
                 <section className="rounded-2xl border border-slate-200 p-4">
-                  <div className="mb-2 flex items-center gap-2">
+                  <div className="mb-3 flex items-center gap-2">
                     <div className="h-1.5 w-1.5 rounded-full bg-slate-400" />
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                       Special Requests
@@ -1073,7 +1071,7 @@ function BookingDetailsModal({
                   <div className="flex gap-3">
                     <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
                     <div className="text-xs font-semibold leading-5 text-amber-800">
-                      <p className="mb-1.5 font-black uppercase tracking-wider">
+                      <p className="mb-1.5 font-black uppercase tracking-widest">
                         Important Notice
                       </p>
                       <ul className="list-disc space-y-1 pl-4 text-[11px]">
@@ -1125,7 +1123,7 @@ function BookingDetailsModal({
                     Cancellation / Refund Status
                   </p>
                 </div>
-                <div className="space-y-2.5 text-sm font-semibold text-slate-700">
+                <div className="space-y-3 text-sm font-semibold text-slate-700">
                   <div className="flex justify-between">
                     <span className="text-slate-400">Cancellation</span>
                     <span className="font-bold text-slate-900">
@@ -1274,7 +1272,7 @@ function BookingDetailsModal({
 
           <footer className="shrink-0 border-t border-slate-100 bg-white px-5 py-4">
             <div className="space-y-3">
-              {isPayUnderReview && !["cancelled", "declined"].includes(String(booking.status || "").toLowerCase()) && (
+              {isPayUnderReview && !["cancelled", "declined", "completed", "rental_expired"].includes(String(booking.status || "").toLowerCase()) && (
                 <div className="rounded-xl bg-amber-50 p-3 text-center">
                   <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">Payment Under Review</p>
                   <p className="mt-1 text-xs font-semibold text-amber-700">
@@ -1390,7 +1388,7 @@ function BookingDetailsModal({
                     }
                   }}
                   className={cn(
-                    "h-11 w-full rounded-xl border-rose-200 px-4 text-xs font-bold",
+                    "h-10 w-full rounded-lg border-rose-200 px-4 text-xs font-bold",
                     isPendingAction
                       ? "text-rose-300 opacity-60 cursor-not-allowed"
                       : "text-rose-600 hover:bg-rose-50 hover:text-rose-700"
@@ -1608,7 +1606,7 @@ const WriteReviewModal = ({
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
-      <DialogContent className="w-[95vw] max-w-md rounded-2xl border-0 bg-white p-6 shadow-2xl">
+      <DialogContent className="w-[95vw] max-w-md rounded-3xl border-0 bg-white p-6 shadow-2xl">
         <div className="flex h-full min-h-0 flex-col overflow-hidden">
           <DialogTitle className="shrink-0 text-xl font-black text-slate-900">
             Write a Review
@@ -1619,7 +1617,7 @@ const WriteReviewModal = ({
           </p>
           <div className="min-h-0 flex-1 overflow-y-auto mt-5 space-y-5">
           <div>
-            <Label className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">
+            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
               Rating
             </Label>
             <div className="mt-2 flex gap-1">
@@ -1643,7 +1641,7 @@ const WriteReviewModal = ({
             </div>
           </div>
           <div>
-            <Label className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">
+            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
               Review
             </Label>
             <Textarea
@@ -1742,7 +1740,7 @@ const CancellationDialog = ({
 
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
             <div className="space-y-3">
-              <div className="rounded-xl border border-slate-100 bg-white px-4 py-3">
+              <div className="rounded-2xl border border-slate-100 bg-white p-4">
                 <div className="flex items-center justify-between gap-4">
                   <span className="truncate text-sm font-black text-slate-900">{booking.eventName || "Untitled"}</span>
                   <span className="shrink-0 text-[11px] font-bold text-slate-400">#{booking.id}</span>
@@ -1752,7 +1750,7 @@ const CancellationDialog = ({
                 </p>
               </div>
 
-              <div className="rounded-xl bg-amber-50 px-4 py-3">
+              <div className="rounded-2xl bg-amber-50 p-4">
                 <div className="flex items-start gap-2">
                   <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
                   <p className="text-[11px] font-semibold leading-5 text-amber-800">
@@ -1763,7 +1761,7 @@ const CancellationDialog = ({
 
               <div
                 className={cn(
-                  "rounded-xl px-4 py-3",
+                  "rounded-2xl p-4",
                   allowed
                     ? refundEligible
                       ? "bg-emerald-50"
@@ -1799,7 +1797,7 @@ const CancellationDialog = ({
 
               {allowed && (
                 <div>
-                  <Label className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
                     Reason for Cancellation *
                   </Label>
                   <Textarea
@@ -2168,7 +2166,7 @@ function ModifyBookingFlowModal({
           <button
             type="button"
             onClick={onClose}
-            className="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full bg-white text-slate-500 hover:bg-rose-100 hover:text-rose-500 transition-colors border border-slate-200 shadow-sm"
+            className="h-8 w-8 flex items-center justify-center rounded-full bg-white text-slate-400 hover:bg-slate-100 hover:text-slate-900 transition-colors border border-slate-200"
             aria-label="Close"
           >
             <X className="w-3.5 h-3.5 md:w-5 md:h-5" />

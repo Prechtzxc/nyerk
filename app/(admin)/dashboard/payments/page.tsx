@@ -741,7 +741,7 @@ function PaymentCard({
 function getContractStatusBadge(b: BookingRecord) {
   const status = b.contractStatus
   const baseClass =
-    "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest"
+    "inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest"
 
   if (status === "Signed") {
     return (
@@ -849,7 +849,7 @@ function PaymentReviewModal({
           {!childModalOpen && (
             <button
               onClick={onClose}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 transition hover:bg-slate-100 hover:text-slate-900"
             >
               <X className="h-4 w-4" />
             </button>
@@ -1087,40 +1087,40 @@ function PaymentBadge({ payment }: { payment: BookingRecord }) {
   const remainingBalance = getSafePrice(
     (payment as any).remainingBalance || Math.max(totalAmount - amountPaid, 0)
   )
-  const baseClass = "inline-flex w-fit items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest"
+  const baseClass = "inline-flex w-fit items-center gap-1 rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest"
 
   if (paymentStatus === "rejected") {
-    return <span className={`${baseClass} border-rose-100 bg-rose-50 text-rose-600`}><XCircle className="h-3 w-3" />Rejected</span>
+    return <span className={`${baseClass} border-rose-100 bg-rose-50 text-rose-700`}><XCircle className="h-3 w-3" />Rejected</span>
   }
 
   if (isForReviewPayment(payment)) {
-    return <span className={`${baseClass} border-purple-100 bg-purple-50 text-purple-600`}><ShieldCheck className="h-3 w-3" />For Review</span>
+    return <span className={`${baseClass} border-amber-100 bg-amber-50 text-amber-700`}><ShieldCheck className="h-3 w-3" />For Review</span>
   }
 
   if (remainingBalance > 0 && amountPaid > 0) {
-    return <span className={`${baseClass} border-amber-100 bg-amber-50 text-amber-600`}><AlertCircle className="h-3 w-3" />Partial Payment</span>
+    return <span className={`${baseClass} border-amber-100 bg-amber-50 text-amber-700`}><AlertCircle className="h-3 w-3" />Partial Payment</span>
   }
 
   if (paymentStatus === "incomplete") {
-    return <span className={`${baseClass} border-amber-100 bg-amber-50 text-amber-600`}><AlertCircle className="h-3 w-3" />Incomplete Payment</span>
+    return <span className={`${baseClass} border-amber-100 bg-amber-50 text-amber-700`}><AlertCircle className="h-3 w-3" />Incomplete Payment</span>
   }
 
   const isRemainingZero = remainingBalance === 0
   const isAmountSufficient = totalAmount > 0 && amountPaid >= totalAmount
 
   if ((paymentStage === "fully paid" || paymentStatus === "paid" || paymentStatus === "completed") && isRemainingZero && isAmountSufficient) {
-    return <span className={`${baseClass} border-emerald-100 bg-emerald-50 text-emerald-600`}><CheckCircle2 className="h-3 w-3" />Fully Paid</span>
+    return <span className={`${baseClass} border-emerald-100 bg-emerald-50 text-emerald-700`}><CheckCircle2 className="h-3 w-3" />Fully Paid</span>
   }
 
   if (isVerifiedPayment(payment)) {
-    return <span className={`${baseClass} border-emerald-100 bg-emerald-50 text-emerald-600`}><CheckCircle2 className="h-3 w-3" />Verified</span>
+    return <span className={`${baseClass} border-emerald-100 bg-emerald-50 text-emerald-700`}><CheckCircle2 className="h-3 w-3" />Verified</span>
   }
 
   if (amountPaid === 0) {
-    return <span className={`${baseClass} border-slate-200 bg-slate-50 text-slate-600`}>Unpaid</span>
+    return <span className={`${baseClass} border-slate-200 bg-slate-50 text-slate-700`}>Unpaid</span>
   }
 
-  return <span className={`${baseClass} border-slate-200 bg-slate-50 text-slate-600`}>{paymentStatus || "Unknown"}</span>
+  return <span className={`${baseClass} border-slate-200 bg-slate-50 text-slate-700`}>{paymentStatus || "Unknown"}</span>
 }
 
 function InfoLine({ label, value }: { label: string; value: string }) {

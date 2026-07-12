@@ -146,7 +146,12 @@ function BalanceReminderModal({
   )
 }
 
-function getPaymentBadgeClass(paymentStatus?: string) {
+function getPaymentBadgeClass(paymentStatus?: string, status?: string) {
+  const bookingStatus = String(status || "").toLowerCase()
+  if (["cancelled", "declined"].includes(bookingStatus)) return "border-rose-100 bg-rose-50 text-rose-700"
+  if (bookingStatus === "completed") return "border-blue-100 bg-blue-50 text-blue-700"
+  if (bookingStatus === "rental_expired") return "border-red-100 bg-red-50 text-red-700"
+
   const v = String(paymentStatus || "").toLowerCase()
   if (["verified", "paid", "slot_verified"].includes(v)) return "border-emerald-100 bg-emerald-50 text-emerald-700"
   if (v === "partial") return "border-amber-100 bg-amber-50 text-amber-700"
@@ -172,7 +177,12 @@ function getStatusLabel(status?: string) {
   return String(status || "Unknown").replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
-function getPaymentStatusLabel(paymentStatus?: string) {
+function getPaymentStatusLabel(paymentStatus?: string, status?: string) {
+  const bookingStatus = String(status || "").toLowerCase()
+  if (["cancelled", "declined"].includes(bookingStatus)) return "Cancelled"
+  if (bookingStatus === "completed") return "Completed"
+  if (bookingStatus === "rental_expired") return "Rental Expired"
+
   const v = String(paymentStatus || "").toLowerCase()
   if (v === "verified" || v === "paid" || v === "slot_verified") return "Verified"
   if (v === "for_review" || v === "cash_pending" || v === "slot_pending") return "For Review"
@@ -897,10 +907,10 @@ function BookingDetailsModal({
             <span
               className={cn(
                 "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
-                getPaymentBadgeClass(booking.paymentStatus),
+                getPaymentBadgeClass(booking.paymentStatus, booking.status),
               )}
             >
-              {getPaymentStatusLabel(booking.paymentStatus)}
+              {getPaymentStatusLabel(booking.paymentStatus, booking.status)}
             </span>
             {booking.cancellationStatus && booking.cancellationStatus !== "None" && (
               <>
