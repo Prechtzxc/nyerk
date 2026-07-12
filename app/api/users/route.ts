@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server"
 import type { UserRecord } from "firebase-admin/auth"
 
-import { adminAuth } from "@/lib/firebase-admin"
+import { getAdminAuth } from "@/lib/firebase-admin"
 
 export async function GET() {
   try {
+    const adminAuth = getAdminAuth()
     const result = await adminAuth.listUsers(1000)
     const users: Array<{
       uid: string
