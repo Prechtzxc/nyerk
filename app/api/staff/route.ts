@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getAdminAuth } from "@/lib/firebase-admin"
+// import { getAdminAuth } from "@/lib/firebase-admin"
+import { initializeApp, getApps, cert } from "firebase-admin/app"
+import { getAuth } from "firebase-admin/auth"
 
 export async function GET() {
   return NextResponse.json({ ok: true })
@@ -29,8 +31,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log("[POST /api/staff] STEP 2: typeof getAdminAuth =", typeof getAdminAuth)
-    return NextResponse.json({ ok: true, getAdminAuthType: typeof getAdminAuth })
+    console.log("[POST /api/staff] STEP 2: typeof initializeApp =", typeof initializeApp)
+    return NextResponse.json({ ok: true, firebaseImportsLoaded: true })
   } catch (error) {
     console.error("[POST /api/staff] UNCAUGHT error:", error)
     const message = error instanceof Error ? error.message : "Failed to create staff"
