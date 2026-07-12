@@ -107,6 +107,13 @@ export const StaffProvider = ({ children }: { children: React.ReactNode }) => {
           fullName,
         }),
       })
+      const contentType = res.headers.get("content-type") || ""
+      console.log("[StaffContext] addStaff response:", { status: res.status, contentType })
+      if (!contentType.includes("application/json")) {
+        const text = await res.text()
+        console.error("[StaffContext] addStaff non-JSON response body:", text)
+        throw new Error(`Expected JSON but got ${contentType} (${res.status}): ${text.slice(0, 500)}`)
+      }
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || "Failed to create staff")
 
