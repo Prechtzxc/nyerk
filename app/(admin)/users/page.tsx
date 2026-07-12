@@ -1,9 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Users, Mail, Phone, Calendar, Clock } from "lucide-react"
+import { Users } from "lucide-react"
 import { db } from "@/lib/firebase"
-import { collection, query, orderBy, onSnapshot } from "firebase/firestore"
+import { collection, onSnapshot } from "firebase/firestore"
 
 interface UserRecord {
   id: string
@@ -20,25 +20,42 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const q = query(collection(db, "users"), orderBy("createdAt", "desc"))
-    const unsub = onSnapshot(q, (snapshot) => {
-      const loaded: UserRecord[] = []
-      snapshot.forEach((docSnap) => {
-        const data = docSnap.data()
-        loaded.push({
-          id: docSnap.id,
-          name: data.name || data.displayName || data.fullName || "",
-          email: data.email || "",
-          phone: data.phone || data.phoneNumber || "",
-          role: data.role || "customer",
-          createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt || "",
-          lastLogin: data.lastLogin?.toDate?.()?.toISOString() || data.lastLogin || "",
+    const unsub = onSnapshot(
+      collection(db, "users"),
+      (snapshot) => {
+        const loaded: UserRecord[] = []
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data()
+          loaded.push({
+            id: docSnap.id,
+            name: data.name || data.displayName || data.fullName || "",
+            email: data.email || "",
+            phone: data.phone || data.phoneNumber || "",
+            role: data.role || "customer",
+            createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt || "",
+            lastLogin: data.lastLogin?.toDate?.()?.toISOString() || data.lastLogin || "",
+          })
         })
-      })
-      setUsers(loaded)
-      setLoading(false)
-    })
-    return () => unsub()
+        loaded.sort((a, b) => {
+          const tA = a.createdAt ? new Date(a.createdAt).getTime() : 0
+          const tB = b.createdAt ? new Date(b.createdAt).getTime() : 0
+          return tB - tA
+        })
+        setUsers(loaded)
+        setLoading(false)
+      },
+      (error) => {
+        console.error("[UsersPage] Firestore snapshot error:", error)
+        setLoading(false)
+      },
+    )
+
+    const timeout = setTimeout(() => setLoading(false), 10000)
+
+    return () => {
+      unsub()
+      clearTimeout(timeout)
+    }
   }, [])
 
   return (
