@@ -132,7 +132,7 @@ export const StaffProvider = ({ children }: { children: React.ReactNode }) => {
       return uid
     } catch (error) {
       console.error("[StaffContext] addStaff error:", error)
-      return null
+      throw error
     }
   }
 

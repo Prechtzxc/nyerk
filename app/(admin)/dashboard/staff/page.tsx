@@ -243,32 +243,42 @@ export default function StaffManagementPage() {
     if (!payload) return
 
     setIsSaving(true)
-    const uid = await addStaff({
-      firstName: payload.firstName,
-      lastName: payload.lastName,
-      email: payload.email,
-      password: payload.password,
-      position: payload.position,
-      permissions: formData.permissions,
-    })
-    setIsSaving(false)
+    try {
+      const uid = await addStaff({
+        firstName: payload.firstName,
+        lastName: payload.lastName,
+        email: payload.email,
+        password: payload.password,
+        position: payload.position,
+        permissions: formData.permissions,
+      })
+      setIsSaving(false)
 
-    if (!uid) {
+      if (!uid) {
+        toast({
+          title: "Failed to add staff",
+          description: "An error occurred while creating the staff account. Check the console for details.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      toast({
+        title: "Staff added",
+        description: `${payload.firstName} ${payload.lastName} has been added as Staff.`,
+      })
+
+      resetForm()
+      setIsAddDialogOpen(false)
+    } catch (error) {
+      setIsSaving(false)
+      const message = error instanceof Error ? error.message : "An unexpected error occurred"
       toast({
         title: "Failed to add staff",
-        description: "An error occurred while creating the staff account. Check the console for details.",
+        description: message,
         variant: "destructive",
       })
-      return
     }
-
-    toast({
-      title: "Staff added",
-      description: `${payload.firstName} ${payload.lastName} has been added as Staff.`,
-    })
-
-    resetForm()
-    setIsAddDialogOpen(false)
   }
 
   const handleEditStaff = async () => {
