@@ -1,97 +1,223 @@
 "use client"
-import React, { createContext, useContext, useState } from "react"
+import React, { createContext, useContext, useEffect, useState } from "react"
+import {
+  collection,
+  query,
+  where,
+  onSnapshot,
+  doc,
+  updateDoc,
+  deleteDoc,
+  setDoc,
+  serverTimestamp,
+} from "firebase/firestore"
+import { db } from "@/lib/firebase"
+import type { StaffPermissions } from "@/src/modules/shared/types/permissions"
+import { DEFAULT_STAFF_PERMISSIONS } from "@/src/modules/shared/types/permissions"
 
 export type StaffAccount = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone?: string;
-  position: string;
-  role: "admin" | "staff" | "manager";
-  status: "active" | "inactive";
-  lastActive: string;
-}
-
-const mockStaffData: { staff: StaffAccount[] } = {
-  staff: [
-    {
-      id: "1",
-      firstName: "System",
-      lastName: "Admin",
-      email: "admin@oneestela.com",
-      position: "Administrator",
-      role: "admin",
-      status: "active",
-      lastActive: "Just now"
-    },
-    {
-      id: "2",
-      firstName: "Front",
-      lastName: "Desk",
-      email: "frontdesk@oneestela.com",
-      position: "Front Desk Officer",
-      role: "staff",
-      status: "active",
-      lastActive: "2 hours ago"
-    }
-  ]
+  id: string
+  uid: string
+  firstName: string
+  lastName: string
+  fullName: string
+  email: string
+  phone?: string
+  position: string
+  role: "staff"
+  status: "active" | "inactive"
+  permissions: StaffPermissions
+  createdAt: string
+  lastActive?: string
 }
 
 type StaffContextValue = {
   staff: StaffAccount[]
-  setStaff: React.Dispatch<React.SetStateAction<StaffAccount[]>>
-  addStaff: (data: Omit<StaffAccount, "id" | "role" | "lastActive"> & { status: "active" | "inactive" }) => void
-  updateStaff: (id: string, data: Partial<StaffAccount>) => void
-  deactivateStaff: (id: string) => void
-  activateStaff: (id: string) => void
+  loading: boolean
+  addStaff: (data: {
+    firstName: string
+    lastName: string
+    email: string
+    password: string
+    position: string
+    phone?: string
+    permissions: StaffPermissions
+  }) => Promise<string | null>
+  updateStaff: (uid: string, data: Partial<StaffAccount>) => Promise<void>
+  deactivateStaff: (uid: string) => Promise<void>
+  activateStaff: (uid: string) => Promise<void>
+  deleteStaff: (uid: string) => Promise<void>
+  toggleStaffPermission: (uid: string, permission: keyof StaffPermissions) => Promise<void>
 }
 
 const StaffContext = createContext<StaffContextValue | null>(null)
 
 export const StaffProvider = ({ children }: { children: React.ReactNode }) => {
-  const [staff, setStaff] = useState<StaffAccount[]>(mockStaffData.staff)
+  const [staff, setStaff] = useState<StaffAccount[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const addStaff: StaffContextValue["addStaff"] = (data) => {
-    const entry: StaffAccount = {
-      id: `staff-${Date.now()}`,
-      firstName: data.firstName,
-      lastName: data.lastName,
-      email: data.email,
-      phone: data.phone,
-      position: data.position,
-      role: "staff",
-      status: data.status,
-      lastActive: "Just now",
+  useEffect(() => {
+    const q = query(collection(db, "users"), where("role", "==", "staff"))
+    const unsub = onSnapshot(
+      q,
+      (snapshot) => {
+        const loaded: StaffAccount[] = []
+        snapshot.forEach((docSnap) => {
+          const d = docSnap.data()
+          const permissions: StaffPermissions = {
+            ...DEFAULT_STAFF_PERMISSIONS,
+            ...(d.permissions || {}),
+          }
+          loaded.push({
+            id: docSnap.id,
+            uid: docSnap.id,
+            firstName: d.firstName || "",
+            lastName: d.lastName || "",
+            fullName: d.fullName || "",
+            email: d.email || "",
+            phone: d.phone || "",
+            position: d.position || "",
+            role: "staff",
+            status: d.status === "inactive" ? "inactive" : "active",
+            permissions,
+            createdAt: d.createdAt || "",
+            lastActive: d.lastActive || "",
+          })
+        })
+        setStaff(loaded)
+        setLoading(false)
+      },
+      (error) => {
+        console.error("[StaffContext] Firestore snapshot error:", error)
+        setLoading(false)
+      },
+    )
+    return () => unsub()
+  }, [])
+
+  const addStaff: StaffContextValue["addStaff"] = async (data) => {
+    try {
+      const fullName = `${data.firstName} ${data.lastName}`.trim()
+      const res = await fetch("/api/staff", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password,
+          fullName,
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || "Failed to create staff")
+
+      const uid: string = json.uid
+      const now = new Date().toISOString()
+      const userDocRef = doc(db, "users", uid)
+      await setDoc(userDocRef, {
+        uid,
+        email: data.email.toLowerCase().trim(),
+        fullName,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        phone: data.phone || "",
+        position: data.position,
+        role: "staff",
+        status: "active",
+        permissions: data.permissions,
+        createdAt: now,
+        lastActive: now,
+        createdAtServer: serverTimestamp(),
+      })
+
+      return uid
+    } catch (error) {
+      console.error("[StaffContext] addStaff error:", error)
+      return null
     }
-    setStaff((current) => [...current, entry])
   }
 
-  const updateStaff: StaffContextValue["updateStaff"] = (id, data) => {
-    setStaff((current) =>
-      current.map((member) => (member.id === id ? { ...member, ...data } : member))
-    )
+  const updateStaff: StaffContextValue["updateStaff"] = async (uid, data) => {
+    try {
+      const userDocRef = doc(db, "users", uid)
+      const updateData: Record<string, any> = {}
+      if (data.firstName !== undefined) updateData.firstName = data.firstName
+      if (data.lastName !== undefined) updateData.lastName = data.lastName
+      if (data.fullName !== undefined) updateData.fullName = data.fullName
+      if (data.email !== undefined) updateData.email = data.email
+      if (data.phone !== undefined) updateData.phone = data.phone
+      if (data.position !== undefined) updateData.position = data.position
+      if (data.permissions !== undefined) updateData.permissions = data.permissions
+      await updateDoc(userDocRef, updateData)
+    } catch (error) {
+      console.error("[StaffContext] updateStaff error:", error)
+      throw error
+    }
   }
 
-  const deactivateStaff = (id: string) => {
-    setStaff((current) =>
-      current.map((member) => (member.id === id ? { ...member, status: "inactive" } : member))
-    )
+  const deactivateStaff: StaffContextValue["deactivateStaff"] = async (uid) => {
+    try {
+      const userDocRef = doc(db, "users", uid)
+      await updateDoc(userDocRef, { status: "inactive" })
+      await fetch("/api/staff", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uid, disabled: true }),
+      })
+    } catch (error) {
+      console.error("[StaffContext] deactivateStaff error:", error)
+      throw error
+    }
   }
 
-  const activateStaff = (id: string) => {
-    setStaff((current) =>
-      current.map((member) => (member.id === id ? { ...member, status: "active" } : member))
-    )
+  const activateStaff: StaffContextValue["activateStaff"] = async (uid) => {
+    try {
+      const userDocRef = doc(db, "users", uid)
+      await updateDoc(userDocRef, { status: "active" })
+      await fetch("/api/staff", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uid, disabled: false }),
+      })
+    } catch (error) {
+      console.error("[StaffContext] activateStaff error:", error)
+      throw error
+    }
+  }
+
+  const deleteStaff: StaffContextValue["deleteStaff"] = async (uid) => {
+    try {
+      await fetch(`/api/staff?uid=${uid}`, { method: "DELETE" })
+      const userDocRef = doc(db, "users", uid)
+      await deleteDoc(userDocRef)
+    } catch (error) {
+      console.error("[StaffContext] deleteStaff error:", error)
+      throw error
+    }
+  }
+
+  const toggleStaffPermission: StaffContextValue["toggleStaffPermission"] = async (uid, permission) => {
+    try {
+      const userDocRef = doc(db, "users", uid)
+      const member = staff.find((s) => s.uid === uid)
+      if (!member) return
+      const current = member.permissions[permission]
+      const updatePath = `permissions.${permission}`
+      await updateDoc(userDocRef, { [updatePath]: !current })
+    } catch (error) {
+      console.error("[StaffContext] toggleStaffPermission error:", error)
+      throw error
+    }
   }
 
   const value: StaffContextValue = {
     staff,
-    setStaff,
+    loading,
     addStaff,
     updateStaff,
     deactivateStaff,
     activateStaff,
+    deleteStaff,
+    toggleStaffPermission,
   }
 
   return <StaffContext.Provider value={value}>{children}</StaffContext.Provider>
@@ -99,8 +225,6 @@ export const StaffProvider = ({ children }: { children: React.ReactNode }) => {
 
 export const useStaff = (): StaffContextValue => {
   const context = useContext(StaffContext)
-  if (!context) {
-    throw new Error("useStaff must be used within a StaffProvider")
-  }
+  if (!context) throw new Error("useStaff must be used within a StaffProvider")
   return context
 }

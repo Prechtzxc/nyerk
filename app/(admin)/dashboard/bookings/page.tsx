@@ -45,6 +45,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/src/modules/shared/components/ui/select"
+import { useAuth } from "@/src/modules/shared/auth/auth-context"
 import { useToast } from "@/src/modules/shared/hooks/use-toast"
 import { cn } from "@/src/modules/shared/lib/utils"
 import { useBookings, type Booking } from "@/src/modules/client/contexts/booking-context"
@@ -209,6 +210,8 @@ function isOfficeBooking(booking: Booking) {
 }
 
 export default function AdminBookingsPage() {
+  const { user } = useAuth()
+  const router = useRouter()
   const { toast } = useToast()
   const bookingCtx = useBookings()
   const bookings = bookingCtx?.bookings || []
@@ -220,6 +223,12 @@ export default function AdminBookingsPage() {
     updateBookingStatus,
   } = bookingCtx || {}
   const [searchQuery, setSearchQuery] = useState("")
+
+  useEffect(() => {
+    if (user && user.role === "staff" && !user.permissions?.bookings) {
+      router.replace("/dashboard")
+    }
+  }, [user, router])
   const [statusFilter, setStatusFilter] = useState("all")
   const [venueFilter, setVenueFilter] = useState("all")
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)

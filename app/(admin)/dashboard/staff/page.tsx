@@ -1,6 +1,8 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
+import { useAuth } from "@/src/modules/shared/auth/auth-context"
 import { useStaff, type StaffAccount } from "@admin/contexts/staff-context"
 import { Button } from "@shared/components/ui/button"
 import {
@@ -22,6 +24,7 @@ import {
   SelectValue,
 } from "@shared/components/ui/select"
 import { useToast } from "@shared/hooks/use-toast"
+import { Checkbox } from "@shared/components/ui/checkbox"
 import {
   Edit2,
   Plus,
@@ -30,7 +33,10 @@ import {
   Search,
   ShieldCheck,
   Users,
+  Trash2,
 } from "lucide-react"
+import type { StaffPermissions } from "@/src/modules/shared/types/permissions"
+import { DEFAULT_STAFF_PERMISSIONS, PERMISSION_LABELS } from "@/src/modules/shared/types/permissions"
 
 type StaffStatus = "Active" | "Inactive"
 
@@ -39,7 +45,9 @@ type StaffFormData = {
   lastName: string
   email: string
   position: string
+  password: string
   status: StaffStatus
+  permissions: StaffPermissions
 }
 
 const DEFAULT_FORM: StaffFormData = {
@@ -47,7 +55,9 @@ const DEFAULT_FORM: StaffFormData = {
   lastName: "",
   email: "",
   position: "",
+  password: "",
   status: "Active",
+  permissions: { ...DEFAULT_STAFF_PERMISSIONS },
 }
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -81,12 +91,30 @@ function getStatusBadgeClass(status: string) {
 }
 
 export default function StaffManagementPage() {
-  const { staff, addStaff, updateStaff, deactivateStaff, activateStaff } = useStaff()
+  const { user } = useAuth()
+  const router = useRouter()
+  const {
+    staff,
+    loading,
+    addStaff,
+    updateStaff,
+    deactivateStaff,
+    activateStaff,
+    deleteStaff,
+    toggleStaffPermission,
+  } = useStaff()
+
+  useEffect(() => {
+    if (user && user.role !== "admin") {
+      router.replace("/dashboard")
+    }
+  }, [user, router])
   const { toast } = useToast()
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [editingStaff, setEditingStaff] = useState<StaffAccount | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
 
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<"all" | StaffStatus>("all")
@@ -141,18 +169,29 @@ export default function StaffManagementPage() {
     setEditingStaff(null)
   }
 
-  const updateForm = (key: keyof StaffFormData, value: string) => {
+  const updateForm = (key: keyof StaffFormData, value: string | StaffPermissions) => {
     setFormData((current) => ({
       ...current,
       [key]: value,
     }))
   }
 
-  const validateForm = () => {
+  const toggleFormPermission = (permission: keyof StaffPermissions) => {
+    setFormData((current) => ({
+      ...current,
+      permissions: {
+        ...current.permissions,
+        [permission]: !current.permissions[permission],
+      },
+    }))
+  }
+
+  const validateForm = (mode: "add" | "edit") => {
     const firstName = cleanText(formData.firstName)
     const lastName = cleanText(formData.lastName)
     const email = normalizeEmail(formData.email)
     const position = cleanText(formData.position)
+    const password = formData.password
 
     if (!firstName || !lastName || !email || !position) {
       toast({
@@ -172,9 +211,18 @@ export default function StaffManagementPage() {
       return null
     }
 
+    if (mode === "add" && (!password || password.length < 6)) {
+      toast({
+        title: "Invalid password",
+        description: "Temporary password must be at least 6 characters.",
+        variant: "destructive",
+      })
+      return null
+    }
+
     const duplicateEmail = staff.some((staffMember: StaffAccount) => {
       const sameEmail = normalizeEmail(staffMember.email) === email
-      const notCurrentStaff = !editingStaff || staffMember.id !== editingStaff.id
+      const notCurrentStaff = !editingStaff || staffMember.uid !== editingStaff.uid
       return sameEmail && notCurrentStaff
     })
 
@@ -187,22 +235,32 @@ export default function StaffManagementPage() {
       return null
     }
 
-    return {
-      firstName,
-      lastName,
-      email,
-      position,
-    }
+    return { firstName, lastName, email, position, password }
   }
 
-  const handleAddStaff = () => {
-    const payload = validateForm()
+  const handleAddStaff = async () => {
+    const payload = validateForm("add")
     if (!payload) return
 
-    addStaff({
-      ...payload,
-      status: "active",
+    setIsSaving(true)
+    const uid = await addStaff({
+      firstName: payload.firstName,
+      lastName: payload.lastName,
+      email: payload.email,
+      password: payload.password,
+      position: payload.position,
+      permissions: formData.permissions,
     })
+    setIsSaving(false)
+
+    if (!uid) {
+      toast({
+        title: "Failed to add staff",
+        description: "An error occurred while creating the staff account. Check the console for details.",
+        variant: "destructive",
+      })
+      return
+    }
 
     toast({
       title: "Staff added",
@@ -213,21 +271,36 @@ export default function StaffManagementPage() {
     setIsAddDialogOpen(false)
   }
 
-  const handleEditStaff = () => {
+  const handleEditStaff = async () => {
     if (!editingStaff) return
 
-    const payload = validateForm()
+    const payload = validateForm("edit")
     if (!payload) return
 
-    updateStaff(editingStaff.id, payload)
+    try {
+      const fullName = `${payload.firstName} ${payload.lastName}`
+      await updateStaff(editingStaff.uid, {
+        firstName: payload.firstName,
+        lastName: payload.lastName,
+        fullName,
+        position: payload.position,
+        permissions: formData.permissions,
+      })
 
-    toast({
-      title: "Staff updated",
-      description: `${payload.firstName} ${payload.lastName}'s information has been updated.`,
-    })
+      toast({
+        title: "Staff updated",
+        description: `${payload.firstName} ${payload.lastName}'s information has been updated.`,
+      })
 
-    resetForm()
-    setIsEditDialogOpen(false)
+      resetForm()
+      setIsEditDialogOpen(false)
+    } catch {
+      toast({
+        title: "Failed to update staff",
+        description: "An error occurred. Please try again.",
+        variant: "destructive",
+      })
+    }
   }
 
   const handleOpenEditDialog = (staffMember: StaffAccount) => {
@@ -237,34 +310,101 @@ export default function StaffManagementPage() {
       lastName: staffMember.lastName || "",
       email: staffMember.email || "",
       position: staffMember.position || "",
+      password: "",
       status: normalizeStaffStatus(staffMember.status),
+      permissions: { ...staffMember.permissions },
     })
     setIsEditDialogOpen(true)
   }
 
-  const handleToggleStatus = (staffMember: StaffAccount) => {
+  const handleToggleStatus = async (staffMember: StaffAccount) => {
     const fullName = getFullName(staffMember)
     const normalizedStatus = normalizeStaffStatus(staffMember.status)
 
-    if (normalizedStatus === "Active") {
-      deactivateStaff(staffMember.id)
-
+    try {
+      if (normalizedStatus === "Active") {
+        await deactivateStaff(staffMember.uid)
+        toast({
+          title: "Staff deactivated",
+          description: `${fullName} can no longer access staff functions.`,
+          variant: "destructive",
+        })
+      } else {
+        await activateStaff(staffMember.uid)
+        toast({
+          title: "Staff activated",
+          description: `${fullName} can access staff functions again.`,
+        })
+      }
+    } catch {
       toast({
-        title: "Staff deactivated",
-        description: `${fullName} can no longer access staff functions.`,
+        title: "Failed to update status",
+        description: "An error occurred. Please try again.",
         variant: "destructive",
       })
-
-      return
     }
-
-    activateStaff(staffMember.id)
-
-    toast({
-      title: "Staff activated",
-      description: `${fullName} can access staff functions again.`,
-    })
   }
+
+  const handleDeleteStaff = async (staffMember: StaffAccount) => {
+    const fullName = getFullName(staffMember)
+    if (!window.confirm(`Delete ${fullName}? This action cannot be undone.`)) return
+
+    try {
+      await deleteStaff(staffMember.uid)
+      toast({
+        title: "Staff deleted",
+        description: `${fullName} has been permanently removed.`,
+        variant: "destructive",
+      })
+    } catch {
+      toast({
+        title: "Failed to delete staff",
+        description: "An error occurred. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleTogglePermission = async (uid: string, permission: keyof StaffPermissions) => {
+    try {
+      await toggleStaffPermission(uid, permission)
+    } catch {
+      toast({
+        title: "Failed to update permission",
+        description: "An error occurred. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const renderPermissionsSection = useCallback(
+    (prefix: string) => (
+      <div className="space-y-3">
+        <p className="text-xs font-black uppercase tracking-widest text-slate-500">
+          Module Permissions
+        </p>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 sm:grid-cols-3">
+          {(Object.keys(PERMISSION_LABELS) as Array<keyof StaffPermissions>).map((key) => (
+            <label
+              key={key}
+              className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-slate-200 px-3 py-2.5 transition hover:border-orange-200 hover:bg-orange-50/30 has-[:checked]:border-orange-300 has-[:checked]:bg-orange-50 has-[:checked]:ring-1 has-[:checked]:ring-orange-300"
+            >
+              <Checkbox
+                id={`${prefix}-perm-${key}`}
+                checked={formData.permissions[key]}
+                onCheckedChange={() => toggleFormPermission(key)}
+                className="h-4 w-4 rounded data-[state=checked]:bg-orange-600 data-[state=checked]:border-orange-600"
+              />
+              <span className="text-[11px] font-bold text-slate-700 leading-tight">
+                {PERMISSION_LABELS[key]}
+              </span>
+            </label>
+          ))}
+        </div>
+      </div>
+    ),
+    [formData.permissions],
+  )
 
   const renderStaffForm = (mode: "add" | "edit") => {
     const prefix = mode === "add" ? "add" : "edit"
@@ -273,10 +413,7 @@ export default function StaffManagementPage() {
       <div className="space-y-5">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="grid gap-2">
-            <Label
-              htmlFor={`${prefix}-firstName`}
-              className="text-xs font-semibold text-slate-600"
-            >
+            <Label htmlFor={`${prefix}-firstName`} className="text-xs font-semibold text-slate-600">
               First Name *
             </Label>
             <Input
@@ -289,10 +426,7 @@ export default function StaffManagementPage() {
           </div>
 
           <div className="grid gap-2">
-            <Label
-              htmlFor={`${prefix}-lastName`}
-              className="text-xs font-semibold text-slate-600"
-            >
+            <Label htmlFor={`${prefix}-lastName`} className="text-xs font-semibold text-slate-600">
               Last Name *
             </Label>
             <Input
@@ -306,10 +440,7 @@ export default function StaffManagementPage() {
         </div>
 
         <div className="grid gap-2">
-          <Label
-            htmlFor={`${prefix}-email`}
-            className="text-xs font-semibold text-slate-600"
-          >
+          <Label htmlFor={`${prefix}-email`} className="text-xs font-semibold text-slate-600">
             Email *
           </Label>
           <Input
@@ -322,11 +453,24 @@ export default function StaffManagementPage() {
           />
         </div>
 
+        {mode === "add" && (
+          <div className="grid gap-2">
+            <Label htmlFor={`${prefix}-password`} className="text-xs font-semibold text-slate-600">
+              Temporary Password *
+            </Label>
+            <Input
+              id={`${prefix}-password`}
+              type="text"
+              placeholder="Minimum 6 characters"
+              value={formData.password}
+              onChange={(event) => updateForm("password", event.target.value)}
+              className="h-11 rounded-xl"
+            />
+          </div>
+        )}
+
         <div className="grid gap-2">
-          <Label
-            htmlFor={`${prefix}-position`}
-            className="text-xs font-semibold text-slate-600"
-          >
+          <Label htmlFor={`${prefix}-position`} className="text-xs font-semibold text-slate-600">
             Position *
           </Label>
           <Input
@@ -338,6 +482,8 @@ export default function StaffManagementPage() {
           />
         </div>
 
+        {renderPermissionsSection(prefix)}
+
         <div className="rounded-xl border border-amber-200/60 bg-amber-50/70 px-4 py-3.5">
           <p className="flex items-start gap-2 text-xs font-semibold text-amber-800">
             <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" />
@@ -345,6 +491,16 @@ export default function StaffManagementPage() {
               Role is automatically set to <b>Staff</b> and cannot be changed from this page.
             </span>
           </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (loading) {
+    return (
+      <div className="mx-auto w-full max-w-[1180px] px-3 py-4 sm:px-5 lg:px-6">
+        <div className="flex min-h-[300px] items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-orange-600" />
         </div>
       </div>
     )
@@ -381,7 +537,7 @@ export default function StaffManagementPage() {
             </Button>
           </DialogTrigger>
 
-          <DialogContent className="sm:max-w-[480px]">
+          <DialogContent className="sm:max-w-[560px]">
             <DialogHeader className="shrink-0 px-6 pt-6 pb-0">
               <DialogTitle className="text-xl font-black text-slate-950">
                 Add New Staff
@@ -391,7 +547,7 @@ export default function StaffManagementPage() {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="flex-1 overflow-y-auto min-h-0 px-6 py-5">
+            <div className="flex-1 overflow-y-auto min-h-0 px-6 py-5 max-h-[60vh]">
               {renderStaffForm("add")}
             </div>
 
@@ -405,9 +561,10 @@ export default function StaffManagementPage() {
               </Button>
               <Button
                 onClick={handleAddStaff}
-                className="rounded-xl bg-orange-600 px-5 font-bold text-white hover:bg-orange-700"
+                disabled={isSaving}
+                className="rounded-xl bg-orange-600 px-5 font-bold text-white hover:bg-orange-700 disabled:opacity-60"
               >
-                Add Staff
+                {isSaving ? "Creating..." : "Add Staff"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -460,10 +617,11 @@ export default function StaffManagementPage() {
             {paginatedStaff.map((staffMember: StaffAccount) => {
               const fullName = getFullName(staffMember)
               const normalizedStatus = normalizeStaffStatus(staffMember.status)
+              const grantedCount = Object.values(staffMember.permissions).filter(Boolean).length
 
               return (
                 <div
-                  key={staffMember.id}
+                  key={staffMember.uid}
                   className="group flex w-full max-w-full min-w-0 flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-orange-200 hover:shadow-md sm:flex-row sm:items-center sm:gap-4"
                 >
                   <div className="flex shrink-0 items-center gap-3 sm:w-[200px]">
@@ -492,6 +650,9 @@ export default function StaffManagementPage() {
                     <p className="break-words whitespace-normal text-xs font-black text-slate-800">
                       {staffMember.email}
                     </p>
+                    <p className="mt-1 text-[10px] font-semibold text-slate-400">
+                      {grantedCount}/{Object.keys(staffMember.permissions).length} modules
+                    </p>
                   </div>
 
                   <div className="flex shrink-0 items-center justify-between gap-2 sm:flex-col sm:items-end sm:gap-1">
@@ -502,7 +663,7 @@ export default function StaffManagementPage() {
                     >
                       {normalizedStatus}
                     </span>
-                    <div className="flex gap-2">
+                    <div className="flex gap-1.5">
                       <Button
                         variant="outline"
                         size="sm"
@@ -532,6 +693,14 @@ export default function StaffManagementPage() {
                           Activate
                         </Button>
                       )}
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="h-8 shrink-0 whitespace-nowrap rounded-lg px-2.5 text-[10px] font-bold"
+                        onClick={() => handleDeleteStaff(staffMember)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -583,15 +752,15 @@ export default function StaffManagementPage() {
           if (!open) resetForm()
         }}
       >
-        <DialogContent className="sm:max-w-[480px]">
+        <DialogContent className="sm:max-w-[560px]">
           <DialogHeader className="shrink-0 px-6 pt-6 pb-0">
             <DialogTitle className="text-xl font-black text-slate-950">Edit Staff</DialogTitle>
             <DialogDescription className="text-sm font-medium text-slate-500">
-              Update staff information. Staff role remains permanent.
+              Update staff information and permissions.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto min-h-0 px-6 py-5">
+          <div className="flex-1 overflow-y-auto min-h-0 px-6 py-5 max-h-[60vh]">
             {renderStaffForm("edit")}
           </div>
 

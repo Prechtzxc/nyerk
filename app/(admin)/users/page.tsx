@@ -1,7 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Users } from "lucide-react"
+import { useAuth } from "@/src/modules/shared/auth/auth-context"
 import { db } from "@/lib/firebase"
 import { collection, getDocs } from "firebase/firestore"
 
@@ -16,7 +18,15 @@ interface UserRecord {
 }
 
 export default function UsersPage() {
+  const { user } = useAuth()
+  const router = useRouter()
   const [users, setUsers] = useState<UserRecord[]>([])
+
+  useEffect(() => {
+    if (user && user.role === "staff" && !user.permissions?.users) {
+      router.replace("/dashboard")
+    }
+  }, [user, router])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 

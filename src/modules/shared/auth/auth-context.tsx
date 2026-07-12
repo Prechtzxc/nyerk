@@ -17,17 +17,20 @@ import {
 } from "firebase/auth"
 import { doc, getDoc, setDoc } from "firebase/firestore"
 import { auth, db } from "@/lib/firebase"
+import type { StaffPermissions } from "@/src/modules/shared/types/permissions"
+import { DEFAULT_STAFF_PERMISSIONS } from "@/src/modules/shared/types/permissions"
 
 export interface AppUser {
   id: string
   fullName: string
   name: string
   email: string
-  role: "admin" | "client"
+  role: "admin" | "client" | "staff"
   profilePicture: string
   createdAt: string
   status: "active" | "inactive"
   phone?: string
+  permissions?: StaffPermissions
 }
 
 export type AppRole = AppUser["role"]
@@ -92,11 +95,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const data = userDocSnap.data()
             const rawRole: string = String(data.role || "").toLowerCase().trim()
 
-            if (rawRole !== "admin" && rawRole !== "client") {
+            if (rawRole !== "admin" && rawRole !== "client" && rawRole !== "staff") {
               console.error("[Auth:onAuthStateChanged] INVALID ROLE:", rawRole, "- not setting user")
               setUser(null)
             } else {
-              const validRole = rawRole as "admin" | "client"
+              const validRole = rawRole as AppUser["role"]
+              const permissions: StaffPermissions | undefined =
+                validRole === "staff"
+                  ? { ...DEFAULT_STAFF_PERMISSIONS, ...(data.permissions || {}) }
+                  : undefined
               setUser({
                 id: firebaseUser.uid,
                 fullName: data.fullName || "",
@@ -107,6 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 createdAt: data.createdAt || new Date().toISOString(),
                 status: data.status || "active",
                 phone: data.phone || "",
+                permissions,
               })
             }
           }
@@ -172,7 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = userDocSnap.data()
       const rawRole: string = String(data.role || "").toLowerCase().trim()
 
-      if (rawRole !== "admin" && rawRole !== "client") {
+      if (rawRole !== "admin" && rawRole !== "client" && rawRole !== "staff") {
         console.error("[Auth] Login FAILED — invalid or missing role:", JSON.stringify(data.role), "at", userDocRef.path)
         return {
           success: false,
@@ -180,18 +188,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      const role = rawRole
+      const role = rawRole as AppUser["role"]
+      const permissions: StaffPermissions | undefined =
+        role === "staff"
+          ? { ...DEFAULT_STAFF_PERMISSIONS, ...(data.permissions || {}) }
+          : undefined
 
       setUser({
         id: credential.user.uid,
         fullName: data.fullName || "",
         name: data.fullName || "",
         email: data.email || credential.user.email || email,
-        role: role as AppUser["role"],
+        role,
         profilePicture: data.profilePicture || "",
         createdAt: data.createdAt || new Date().toISOString(),
         status: data.status || "active",
         phone: data.phone || "",
+        permissions,
       })
 
       return { success: true, role }
@@ -293,21 +306,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (userDocSnap.exists()) {
         const data = userDocSnap.data()
         const rawRole: string = String(data.role || "").toLowerCase().trim()
-        if (rawRole !== "admin" && rawRole !== "client") {
+        if (rawRole !== "admin" && rawRole !== "client" && rawRole !== "staff") {
           console.error("[Auth:refreshUser] Invalid role:", rawRole)
           setUser(null)
           return
         }
+        const refreshedRole = rawRole as AppUser["role"]
+        const refreshedPermissions: StaffPermissions | undefined =
+          refreshedRole === "staff"
+            ? { ...DEFAULT_STAFF_PERMISSIONS, ...(data.permissions || {}) }
+            : undefined
         setUser({
           id: auth.currentUser.uid,
           fullName: data.fullName || "",
           name: data.fullName || "",
           email: data.email || auth.currentUser.email || "",
-          role: rawRole as AppUser["role"],
+          role: refreshedRole,
           profilePicture: data.profilePicture || "",
           createdAt: data.createdAt || new Date().toISOString(),
           status: data.status || "active",
           phone: data.phone || "",
+          permissions: refreshedPermissions,
         })
       }
     } catch {

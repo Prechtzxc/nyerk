@@ -1,7 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 
+import { useAuth } from "@/src/modules/shared/auth/auth-context"
 import { CMSHomepageTab } from "@admin/components/cms/cms-homepage-tab"
 import { CMSVenuesTab } from "@admin/components/cms/cms-venues-tab"
 import { CMSOfficesTab } from "@admin/components/cms/cms-offices-tab"
@@ -11,7 +13,15 @@ import { CMSPastClientsTab } from "@admin/components/cms/cms-past-clients-tab"
 import { CMSContractsTab } from "@admin/components/cms/cms-contracts-tab"
 
 export default function CMSPage() {
+  const { user } = useAuth()
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState("homepage")
+
+  useEffect(() => {
+    if (user && user.role === "staff" && !user.permissions?.cms) {
+      router.replace("/dashboard")
+    }
+  }, [user, router])
 
   return (
     <div className="mx-auto w-full max-w-[1400px] px-6 py-6 sm:px-8 lg:px-10">

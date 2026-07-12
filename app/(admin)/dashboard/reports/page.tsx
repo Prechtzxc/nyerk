@@ -1,6 +1,7 @@
 "use client"
 
-import React, { useMemo, useState } from "react"
+import React, { useEffect, useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
 import {
   BarChart3,
   CalendarDays,
@@ -10,6 +11,7 @@ import {
   Search,
   TrendingUp,
 } from "lucide-react"
+import { useAuth } from "@/src/modules/shared/auth/auth-context"
 import { Button } from "@/src/modules/shared/components/ui/button"
 import {
   Select,
@@ -148,8 +150,16 @@ function getStatusBadgeClass(status?: string) {
 }
 
 export default function ReportsPage() {
+  const { user } = useAuth()
+  const router = useRouter()
   const { toast } = useToast()
   const { bookings = [] } = useBookings()
+
+  useEffect(() => {
+    if (user && user.role === "staff" && !user.permissions?.reports) {
+      router.replace("/dashboard")
+    }
+  }, [user, router])
 
   const [filterMonth, setFilterMonth] = useState("all")
   const [filterStatus, setFilterStatus] = useState("all")

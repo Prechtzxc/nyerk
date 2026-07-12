@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { useAuth } from "@/src/modules/shared/auth/auth-context"
 import { useChat } from "@/src/modules/shared/contexts/chat-context"
 import { Button } from "@/src/modules/shared/components/ui/button"
@@ -8,7 +9,14 @@ import { Paperclip, Send, ShieldCheck, Search, X } from "lucide-react"
 
 export default function AdminSupportChatPage() {
   const { user } = useAuth()
-  const { messages, sendMessage, markAsRead } = useChat() 
+  const router = useRouter()
+  const { messages, sendMessage, markAsRead } = useChat()
+
+  useEffect(() => {
+    if (user && user.role === "staff" && !user.permissions?.chat) {
+      router.replace("/dashboard")
+    }
+  }, [user, router])
   
   const [activeClientId, setActiveClientId] = useState<any>(null)
   const [inputValue, setInputValue] = useState("")

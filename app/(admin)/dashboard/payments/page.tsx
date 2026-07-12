@@ -2,6 +2,7 @@
 
 import type React from "react"
 import { useEffect, useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
 import {
   AlertCircle,
   Banknote,
@@ -18,6 +19,7 @@ import {
   XCircle,
 } from "lucide-react"
 
+import { useAuth } from "@/src/modules/shared/auth/auth-context"
 import { Button } from "@/src/modules/shared/components/ui/button"
 import { Input } from "@/src/modules/shared/components/ui/input"
 import { Textarea } from "@/src/modules/shared/components/ui/textarea"
@@ -58,8 +60,16 @@ type PendingPaymentAction = {
 } | null
 
 export default function AdminPaymentsPage() {
+  const { user } = useAuth()
+  const router = useRouter()
   const { toast } = useToast()
   const bookingCtx = useBookings()
+
+  useEffect(() => {
+    if (user && user.role === "staff" && !user.permissions?.payments) {
+      router.replace("/dashboard")
+    }
+  }, [user, router])
   const [paymentRecords, setPaymentRecords] = useState<any[]>([])
   const [statusFilter, setStatusFilter] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")

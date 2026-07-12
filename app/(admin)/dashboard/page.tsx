@@ -17,7 +17,9 @@ import {
   Activity,
 } from "lucide-react"
 
+import { useAuth } from "@/src/modules/shared/auth/auth-context"
 import { useBookings } from "@/src/modules/client/contexts/booking-context"
+import { useRouter } from "next/navigation"
 import { cn } from "@/src/modules/shared/lib/utils"
 
 const ROUTES = {
@@ -30,8 +32,16 @@ const ROUTES = {
 }
 
 export default function AdminDashboardPage() {
+  const { user } = useAuth()
+  const router = useRouter()
   const bookingCtx = useBookings()
   const bookings = bookingCtx?.bookings || []
+
+  useEffect(() => {
+    if (user && user.role === "staff" && !user.permissions?.dashboard) {
+      router.replace("/dashboard")
+    }
+  }, [user, router])
 
   const stats = useMemo(() => {
     const totalRevenue = bookings

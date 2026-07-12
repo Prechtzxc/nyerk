@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useAuth } from "@/src/modules/shared/auth/auth-context"
@@ -30,6 +30,19 @@ import { cn } from "@/src/modules/shared/lib/utils"
 import { LogoutConfirmDialog } from "@/src/modules/shared/components/logout-confirm-dialog"
 import { UserAvatar } from "@/src/modules/shared/components/user-avatar"
 
+import type { StaffPermissions } from "@/src/modules/shared/types/permissions"
+
+const PERMISSION_MAP: Record<string, keyof StaffPermissions> = {
+  dashboard: "dashboard",
+  bookings: "bookings",
+  chat: "chat",
+  payments: "payments",
+  reports: "reports",
+  cms: "cms",
+  users: "users",
+  staff: "staff",
+}
+
 const ADMIN_MENU = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, key: "dashboard", exact: true },
   { name: "Booking Management", href: "/dashboard/bookings", icon: BookOpen, key: "bookings" },
@@ -55,6 +68,17 @@ export default function AdminLayout({
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const [chatUnread, setChatUnread] = useState(0)
 
+  const visibleMenu = useMemo(() => {
+    if (!user) return []
+    if (user.role === "admin") return ADMIN_MENU
+    const perms = user.permissions
+    if (!perms) return []
+    return ADMIN_MENU.filter((item) => {
+      const permKey = PERMISSION_MAP[item.key]
+      return permKey ? perms[permKey] === true : false
+    })
+  }, [user])
+
   useEffect(() => {
     const count = messages?.filter((m) => m.sender === "client" && !m.isRead).length || 0
     setChatUnread(count)
@@ -68,8 +92,8 @@ export default function AdminLayout({
     }
     const role = user.role?.toLowerCase() ?? ""
     console.log("[AdminLayout] Route guard check — role:", role)
-    if (role !== "admin") {
-      console.log("[AdminLayout] Non-admin role:", role, "redirecting to /")
+    if (role !== "admin" && role !== "staff") {
+      console.log("[AdminLayout] Non-admin/staff role:", role, "redirecting to /")
       router.replace("/")
     } else {
       console.log("[AdminLayout] Auth OK", { userId: user.id, role })
@@ -175,7 +199,7 @@ export default function AdminLayout({
           >
             {/* Scrollable navigation - no admin user block at top */}
             <nav className="flex-1 space-y-1 overflow-y-auto p-3 pt-6">
-              {ADMIN_MENU.map((item) => {
+              {visibleMenu.map((item) => {
                 const isActive = item.exact
                   ? pathname === item.href
                   : pathname.startsWith(item.href)
