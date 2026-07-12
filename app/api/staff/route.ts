@@ -19,7 +19,16 @@ export async function POST(request: NextRequest) {
       )
     }
     console.log("[POST /api/staff] STEP 1 OK: body parsed", { hasEmail: !!body.email, hasPassword: !!body.password, hasFullName: !!body.fullName })
-    return NextResponse.json({ ok: true, body: !!body })
+    const { email, password, fullName } = body as { email?: string; password?: string; fullName?: string }
+
+    if (!email || !password || !fullName) {
+      console.log("[POST /api/staff] STEP 1b: missing fields")
+      return NextResponse.json(
+        { error: "Missing required fields: email, password, fullName" },
+        { status: 400 },
+      )
+    }
+    return NextResponse.json({ ok: true, hasFields: !!email })
   } catch (error) {
     console.error("[POST /api/staff] UNCAUGHT error:", error)
     const message = error instanceof Error ? error.message : "Failed to create staff"
