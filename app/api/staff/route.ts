@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import "server-only"
 import { initializeApp, getApps, cert } from "firebase-admin/app"
+import { getFirestore } from "firebase-admin/firestore"
 import type { Auth } from "firebase-admin/auth"
 
 let authInstance: Auth | null = null
@@ -54,10 +55,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { email, password, fullName } = body as {
+    const { email, password, fullName, position } = body as {
       email?: string
       password?: string
       fullName?: string
+      position?: string
     }
 
     if (!email || !password || !fullName) {
@@ -117,6 +119,38 @@ export async function POST(request: NextRequest) {
       "[POST /api/staff] STEP 3 OK: user created with uid",
       userRecord.uid,
     )
+
+    console.log("[POST /api/staff] STEP 4: creating Firestore profile")
+    try {
+      const firestore = getFirestore()
+      const now = new Date().toISOString()
+      const profileData: Record<string, unknown> = {
+        uid: userRecord.uid,
+        email,
+        fullName,
+        role: "staff",
+        status: "active",
+        createdAt: now,
+        profilePicture: "",
+        phone: "",
+      }
+      if (position) {
+        profileData.position = position
+      }
+      await firestore.collection("users").doc(userRecord.uid).set(profileData)
+      console.log("[POST /api/staff] STEP 4 OK: Firestore profile created")
+    } catch (firestoreError) {
+      console.error("[POST /api/staff] STEP 4 FAILED: Firestore write error", firestoreError)
+      return NextResponse.json(
+        {
+          uid: userRecord.uid,
+          warning: "User created in Auth but profile document failed to write to Firestore",
+          error: firestoreError instanceof Error ? firestoreError.message : String(firestoreError),
+        },
+        { status: 201 },
+      )
+    }
+
     return NextResponse.json({ uid: userRecord.uid })
   } catch (error) {
     console.error("[POST /api/staff] UNCAUGHT error:", error)
