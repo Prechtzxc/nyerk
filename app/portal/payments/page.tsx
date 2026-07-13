@@ -322,6 +322,84 @@ function getBookingStatusLabel(status?: string) {
   return v ? v.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "—";
 }
 
+function PaymentActionButtons({
+  booking,
+  onPay,
+  onSettle,
+  compact,
+}: {
+  booking: Booking;
+  onPay: (b: Booking) => void;
+  onSettle: (b: Booking) => void;
+  compact?: boolean;
+}) {
+  const total = (booking as any).totalPrice || 0;
+  const amountPaid = (booking as any).amountPaid ?? 0;
+  const remaining = (booking as any).remainingBalance ?? Math.max(total - amountPaid, 0);
+  const paymentStatus = String(booking.paymentStatus || "").toLowerCase();
+  const balanceStatus = String((booking as any).balanceStatus || "").toLowerCase();
+  const paymentStage = String((booking as any).paymentStage || "").toLowerCase();
+  const remainingMs = getRemainingMs(booking);
+  const isExpired = booking.status === "pending" && remainingMs <= 0;
+  const isCashPending = booking.paymentMethod === "cash" && booking.paymentStatus === "cash_pending";
+  const isUnderReview = (booking as any).hasActivePaymentSubmission || paymentStatus === "for_review";
+  const isDownpaymentActive =
+    booking.status === "confirmed" && booking.paymentType === "downpayment" && !["cancelled", "declined"].includes(String(booking.status).toLowerCase()) && remaining > 0 && paymentStatus !== "paid";
+  const hasRemainingPaymentDue =
+    remaining > 0 &&
+    !["cancelled", "declined"].includes(String(booking.status).toLowerCase()) && (
+      paymentStatus === "partial" ||
+      paymentStatus === "incomplete" ||
+      balanceStatus === "with remaining balance" ||
+      paymentStage === "complete downpayment" ||
+      paymentStage === "settle remaining balance"
+    );
+  const isPendingRemainingDP = isUnderReview &&
+    !["cancelled", "declined"].includes(String(booking.status).toLowerCase()) &&
+    booking.paymentType === "downpayment" &&
+    Number((booking as any).downpaymentPaid || 0) > 0;
+
+  return (
+    <>
+      {booking.status === "pending" && !isCashPending && !isExpired && (
+        <Button
+          onClick={() => onPay(booking)}
+          disabled={isUnderReview}
+          className={cn(
+            compact
+              ? "h-8 rounded-lg px-2.5 text-[10px] font-bold"
+              : "h-9 rounded-lg px-3 text-[11px] font-bold shadow-sm",
+            isUnderReview
+              ? "bg-orange-300 text-white cursor-not-allowed opacity-60"
+              : "bg-orange-600 text-white hover:bg-orange-700"
+          )}
+        >
+          <CreditCard className={cn("mr-1", compact ? "h-3 w-3" : "h-3.5 w-3.5")} />
+          {isUnderReview ? "Payment Submitted" : "Pay Now"}
+        </Button>
+      )}
+      {(isDownpaymentActive || hasRemainingPaymentDue || isPendingRemainingDP) && (
+        <Button
+          onClick={() => onSettle(booking)}
+          disabled={isUnderReview}
+          className={cn(
+            compact
+              ? "h-8 rounded-lg px-2.5 text-[10px] font-bold"
+              : "h-9 rounded-lg px-3 text-[11px] font-bold shadow-sm",
+            isUnderReview
+              ? "bg-emerald-300 text-white cursor-not-allowed opacity-60"
+              : "bg-emerald-600 text-white hover:bg-emerald-700"
+          )}
+        >
+          {isUnderReview
+            ? "Payment Submitted"
+            : "Settle Remaining Balance"}
+        </Button>
+      )}
+    </>
+  );
+}
+
 function CurrentTransactionCard({
   booking,
   onPay,
@@ -427,37 +505,7 @@ function CurrentTransactionCard({
               View Details
             </Button>
           )}
-          {booking.status === "pending" && !isCashPending && !isExpired && (
-            <Button
-              onClick={() => onPay(booking)}
-              disabled={isUnderReview}
-              className={cn(
-                "h-9 rounded-lg px-3 text-[11px] font-bold shadow-sm",
-                isUnderReview
-                  ? "bg-orange-300 text-white cursor-not-allowed opacity-60"
-                  : "bg-orange-600 text-white hover:bg-orange-700"
-              )}
-            >
-              <CreditCard className="mr-1 h-3.5 w-3.5" />
-              {isUnderReview ? "Payment Submitted" : "Pay Now"}
-            </Button>
-          )}
-          {(isDownpaymentActive || hasRemainingPaymentDue || isPendingRemainingDP) && (
-            <Button
-              onClick={() => onSettle(booking)}
-              disabled={isUnderReview}
-              className={cn(
-                "h-9 rounded-lg px-3 text-[11px] font-bold shadow-sm",
-                isUnderReview
-                  ? "bg-emerald-300 text-white cursor-not-allowed opacity-60"
-                  : "bg-emerald-600 text-white hover:bg-emerald-700"
-              )}
-            >
-              {isUnderReview
-                ? "Payment Submitted"
-                : "Settle Remaining Balance"}
-            </Button>
-          )}
+          <PaymentActionButtons booking={booking} onPay={onPay} onSettle={onSettle} />
         </div>
       </div>
     </div>
@@ -1711,7 +1759,7 @@ function TransactionsContent() {
                           </span>
                         </p>
                       </div>
-                      <div className="flex shrink-0 items-center gap-1.5">
+                        <div className="flex shrink-0 items-center gap-1.5">
                         <span
                           className={cn(
                             "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest",
@@ -1729,6 +1777,12 @@ function TransactionsContent() {
                             View Details
                           </Button>
                         )}
+                        <PaymentActionButtons
+                          booking={booking}
+                          onPay={(b) => setSelectedBookingToPay(b.id)}
+                          onSettle={(b) => setSelectedBookingToPay(b.id)}
+                          compact
+                        />
                       </div>
                     </div>
                   );

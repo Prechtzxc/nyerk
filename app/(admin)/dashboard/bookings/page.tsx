@@ -2329,8 +2329,8 @@ function MaintenanceCalendarModal({
   } = useBookings()
   const { toast } = useToast()
 
-  const venues = getAllVenues()
-  const offices = getAllOffices()
+  const venues = useMemo(() => getAllVenues(), [])
+  const offices = useMemo(() => getAllOffices(), [])
 
   const [maintType, setMaintType] = useState<"venue" | "office">("venue")
   const [officeGroup, setOfficeGroup] = useState<"A" | "B" | "">("")
