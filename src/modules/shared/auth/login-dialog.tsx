@@ -86,7 +86,7 @@ export function LoginDialog({ className, children }: LoginDialogProps) {
         return
       }
 
-      if (role === "admin") {
+      if (role === "admin" || role === "staff") {
         toast({ title: "Login Successful", description: "Redirecting to dashboard..." })
         window.location.replace("/dashboard")
       } else if (role === "client") {

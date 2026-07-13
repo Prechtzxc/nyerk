@@ -30,6 +30,7 @@ export interface AppUser {
   createdAt: string
   status: "active" | "inactive"
   phone?: string
+  position?: string
   permissions?: StaffPermissions
 }
 
@@ -114,6 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 createdAt: data.createdAt || new Date().toISOString(),
                 status: data.status || "active",
                 phone: data.phone || "",
+                position: data.position || "",
                 permissions,
               })
             }
@@ -194,18 +196,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ? { ...DEFAULT_STAFF_PERMISSIONS, ...(data.permissions || {}) }
           : undefined
 
-      setUser({
-        id: credential.user.uid,
-        fullName: data.fullName || "",
-        name: data.fullName || "",
-        email: data.email || credential.user.email || email,
-        role,
-        profilePicture: data.profilePicture || "",
-        createdAt: data.createdAt || new Date().toISOString(),
-        status: data.status || "active",
-        phone: data.phone || "",
-        permissions,
-      })
+        setUser({
+          id: credential.user.uid,
+          fullName: data.fullName || "",
+          name: data.fullName || "",
+          email: data.email || credential.user.email || email,
+          role,
+          profilePicture: data.profilePicture || "",
+          createdAt: data.createdAt || new Date().toISOString(),
+          status: data.status || "active",
+          phone: data.phone || "",
+          position: data.position || "",
+          permissions,
+        })
 
       return { success: true, role }
     } catch (error: any) {
@@ -326,6 +329,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           createdAt: data.createdAt || new Date().toISOString(),
           status: data.status || "active",
           phone: data.phone || "",
+          position: data.position || "",
           permissions: refreshedPermissions,
         })
       }

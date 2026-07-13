@@ -7,9 +7,6 @@ import {
   onSnapshot,
   doc,
   updateDoc,
-  deleteDoc,
-  setDoc,
-  serverTimestamp,
 } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import type { StaffPermissions } from "@/src/modules/shared/types/permissions"
@@ -104,7 +101,12 @@ export const StaffProvider = ({ children }: { children: React.ReactNode }) => {
         body: JSON.stringify({
           email: data.email,
           password: data.password,
+          firstName: data.firstName,
+          lastName: data.lastName,
           fullName,
+          phone: data.phone || "",
+          position: data.position,
+          permissions: data.permissions,
         }),
       })
       const contentType = res.headers.get("content-type") || ""
@@ -117,26 +119,7 @@ export const StaffProvider = ({ children }: { children: React.ReactNode }) => {
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || "Failed to create staff")
 
-      const uid: string = json.uid
-      const now = new Date().toISOString()
-      const userDocRef = doc(db, "users", uid)
-      await setDoc(userDocRef, {
-        uid,
-        email: data.email.toLowerCase().trim(),
-        fullName,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        phone: data.phone || "",
-        position: data.position,
-        role: "staff",
-        status: "active",
-        permissions: data.permissions,
-        createdAt: now,
-        lastActive: now,
-        createdAtServer: serverTimestamp(),
-      })
-
-      return uid
+      return json.uid as string
     } catch (error) {
       console.error("[StaffContext] addStaff error:", error)
       throw error
@@ -193,9 +176,11 @@ export const StaffProvider = ({ children }: { children: React.ReactNode }) => {
 
   const deleteStaff: StaffContextValue["deleteStaff"] = async (uid) => {
     try {
-      await fetch(`/api/staff?uid=${uid}`, { method: "DELETE" })
-      const userDocRef = doc(db, "users", uid)
-      await deleteDoc(userDocRef)
+      const res = await fetch(`/api/staff?uid=${uid}`, { method: "DELETE" })
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({ error: "Failed to delete staff" }))
+        throw new Error(json.error || "Failed to delete staff")
+      }
     } catch (error) {
       console.error("[StaffContext] deleteStaff error:", error)
       throw error

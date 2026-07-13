@@ -41,6 +41,76 @@ export async function GET() {
   return NextResponse.json({ ok: true })
 }
 
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const uid = searchParams.get("uid")
+
+    if (!uid) {
+      return NextResponse.json({ error: "Missing uid parameter" }, { status: 400 })
+    }
+
+    console.log("[DELETE /api/staff] Deleting staff:", uid)
+
+    let auth: Auth
+    try {
+      auth = await getAdminAuth()
+    } catch (initError) {
+      return NextResponse.json(
+        { error: "Failed to initialize Firebase Admin SDK" },
+        { status: 500 },
+      )
+    }
+
+    const firestore = getFirestore()
+
+    // Delete Firestore document
+    try {
+      await firestore.collection("users").doc(uid).delete()
+      console.log("[DELETE /api/staff] Firestore document deleted")
+    } catch (firestoreError) {
+      console.error("[DELETE /api/staff] Firestore delete error:", firestoreError)
+      return NextResponse.json(
+        {
+          error:
+            firestoreError instanceof Error
+              ? firestoreError.message
+              : "Failed to delete Firestore document",
+        },
+        { status: 500 },
+      )
+    }
+
+    // Delete Firebase Auth user
+    try {
+      await auth.deleteUser(uid)
+      console.log("[DELETE /api/staff] Auth user deleted")
+    } catch (authError) {
+      console.error("[DELETE /api/staff] Auth delete error:", authError)
+      return NextResponse.json(
+        {
+          error:
+            authError instanceof Error
+              ? authError.message
+              : "Failed to delete Auth user",
+        },
+        { status: 500 },
+      )
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error("[DELETE /api/staff] UNCAUGHT error:", error)
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to delete staff",
+      },
+      { status: 500 },
+    )
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     console.log("[POST /api/staff] STEP 1: parsing request body")
@@ -55,11 +125,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { email, password, fullName, position } = body as {
+    const { email, password, firstName, lastName, fullName, phone, position, permissions } = body as {
       email?: string
       password?: string
+      firstName?: string
+      lastName?: string
       fullName?: string
+      phone?: string
       position?: string
+      permissions?: Record<string, boolean>
     }
 
     if (!email || !password || !fullName) {
@@ -128,14 +202,15 @@ export async function POST(request: NextRequest) {
         uid: userRecord.uid,
         email,
         fullName,
+        firstName: firstName || "",
+        lastName: lastName || "",
+        phone: phone || "",
+        position: position || "",
         role: "staff",
         status: "active",
+        permissions: permissions || {},
         createdAt: now,
         profilePicture: "",
-        phone: "",
-      }
-      if (position) {
-        profileData.position = position
       }
       await firestore.collection("users").doc(userRecord.uid).set(profileData)
       console.log("[POST /api/staff] STEP 4 OK: Firestore profile created")

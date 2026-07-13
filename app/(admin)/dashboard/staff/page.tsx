@@ -366,10 +366,10 @@ export default function StaffManagementPage() {
         description: `${fullName} has been permanently removed.`,
         variant: "destructive",
       })
-    } catch {
+    } catch (error) {
       toast({
         title: "Failed to delete staff",
-        description: "An error occurred. Please try again.",
+        description: error instanceof Error ? error.message : "An error occurred. Please try again.",
         variant: "destructive",
       })
     }
