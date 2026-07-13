@@ -1325,16 +1325,16 @@ function BookingDetailsModal({
                     </Button>
                   ) : showPay && !isPayUnderReview ? (
                     <Button
-                      disabled={isPendingAction}
+                      disabled={hasActiveCancellationRequest}
                       onClick={() => {
-                        if (!isPendingAction) {
+                        if (!hasActiveCancellationRequest) {
                           onPay(booking)
                           onClose()
                         }
                       }}
                       className={cn(
                         "h-10 w-full rounded-lg px-5 text-xs font-bold text-white shadow-sm",
-                        isPendingAction
+                        hasActiveCancellationRequest
                           ? "bg-slate-300 cursor-not-allowed opacity-60"
                           : "bg-[#ea580c] hover:bg-[#c2410c]"
                       )}

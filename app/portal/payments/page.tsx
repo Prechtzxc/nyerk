@@ -204,7 +204,7 @@ function hasPaymentRecord(booking: Booking) {
   const ps = String(booking.paymentStatus || "").toLowerCase();
   if (amt > 0 || payAmt > 0) return true;
   if (proof) return true;
-  if (ps === "unpaid" && (booking as any).paymentMethod === "cash") return true;
+  if (ps === "unpaid") return true;
   return ["for review", "pending verification", "partial payment", "partial", "fully paid", "verified", "rejected", "incomplete"].includes(ps);
 }
 

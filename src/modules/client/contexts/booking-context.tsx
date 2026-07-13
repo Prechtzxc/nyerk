@@ -1647,6 +1647,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         cancellationRequested: false,
         cancellationStatus: "Declined" as const,
         cancellationStatusLabel: "Declined",
+        cancelRequestStatus: null,
         cancellationReviewedAt: new Date().toISOString(),
         cancellationDeclinedAt: new Date().toISOString(),
         cancellationCooldownUntil: addDays(new Date(), 0).getTime() ? new Date(Date.now() + 60 * 60 * 1000).toISOString() : null,

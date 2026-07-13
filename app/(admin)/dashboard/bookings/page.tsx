@@ -2333,6 +2333,7 @@ function MaintenanceCalendarModal({
   const offices = getAllOffices()
 
   const [maintType, setMaintType] = useState<"venue" | "office">("venue")
+  const [officeGroup, setOfficeGroup] = useState<"A" | "B" | "">("")
   const [selectedSpaceId, setSelectedSpaceId] = useState("")
   const [selectedDate, setSelectedDate] = useState("")
   const [startDate, setStartDate] = useState("")
@@ -2348,12 +2349,30 @@ function MaintenanceCalendarModal({
   useEffect(() => {
     if (open) {
       const firstVenue = venues[0]?.id || "v1"
-      const firstOffice = offices[0]?.id || "o1"
-      setSelectedSpaceId(maintType === "venue" ? firstVenue : firstOffice)
+      setSelectedSpaceId(firstVenue)
+      setOfficeGroup("")
     }
-  }, [open, maintType, venues, offices])
+  }, [open, venues])
 
-  const currentSpaces = maintType === "venue" ? venues : offices
+  useEffect(() => {
+    if (maintType === "venue") {
+      const firstVenue = venues[0]?.id || "v1"
+      setSelectedSpaceId(firstVenue)
+      setOfficeGroup("")
+    } else {
+      setSelectedSpaceId("")
+      setOfficeGroup("")
+    }
+  }, [maintType, venues])
+
+  const currentSpaces = useMemo(() => {
+    if (maintType === "venue") return venues
+    if (!officeGroup) return []
+    return offices.filter(o => {
+      const num = parseInt(o.id.slice(1))
+      return officeGroup === "A" ? num >= 1 && num <= 8 : num >= 9 && num <= 16
+    })
+  }, [maintType, officeGroup, venues, offices])
 
   const filteredRecords = maintenanceRecords.filter(
     r => r.type === maintType
@@ -2532,25 +2551,67 @@ function MaintenanceCalendarModal({
             </div>
 
             {/* Space dropdown */}
-            <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                {maintType === "venue" ? "Select Venue" : "Select Office"}
-              </label>
-              <select
-                value={selectedSpaceId}
-                onChange={(e) => setSelectedSpaceId(e.target.value)}
-                className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
-              >
-                <option value="" disabled>
-                  {maintType === "venue" ? "Select event venue" : "Select office space"}
-                </option>
-                {currentSpaces.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {maintType === "venue" ? (
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                  Select Venue
+                </label>
+                <select
+                  value={selectedSpaceId}
+                  onChange={(e) => setSelectedSpaceId(e.target.value)}
+                  className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
+                >
+                  <option value="" disabled>Select event venue</option>
+                  {venues.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    Select Building
+                  </label>
+                  <select
+                    value={officeGroup}
+                    onChange={(e) => {
+                      setOfficeGroup(e.target.value as "A" | "B")
+                      setSelectedSpaceId("")
+                    }}
+                    className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
+                  >
+                    <option value="">Select office building</option>
+                    <option value="A">Office A</option>
+                    <option value="B">Office B</option>
+                  </select>
+                </div>
+                {officeGroup && (
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                      Select Room
+                    </label>
+                    <select
+                      value={selectedSpaceId}
+                      onChange={(e) => setSelectedSpaceId(e.target.value)}
+                      className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
+                    >
+                      <option value="" disabled>Select room</option>
+                      {currentSpaces.map((s) => {
+                        const roomNum = officeGroup === "A" ? parseInt(s.id.slice(1)) : parseInt(s.id.slice(1)) - 8
+                        return (
+                          <option key={s.id} value={s.id}>
+                            Room {roomNum}
+                          </option>
+                        )
+                      })}
+                    </select>
+                  </div>
+                )}
+              </>
+            )}
 
             {/* Calendar */}
             <div>
