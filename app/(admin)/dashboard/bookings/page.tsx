@@ -2349,30 +2349,15 @@ function MaintenanceCalendarModal({
   useEffect(() => {
     if (open) {
       const firstVenue = venues[0]?.id || "v1"
-      setSelectedSpaceId(firstVenue)
+      setSelectedSpaceId(maintType === "venue" ? firstVenue : "")
       setOfficeGroup("")
     }
-  }, [open, venues])
+  }, [open, maintType, venues])
 
-  useEffect(() => {
-    if (maintType === "venue") {
-      const firstVenue = venues[0]?.id || "v1"
-      setSelectedSpaceId(firstVenue)
-      setOfficeGroup("")
-    } else {
-      setSelectedSpaceId("")
-      setOfficeGroup("")
-    }
-  }, [maintType, venues])
-
-  const currentSpaces = useMemo(() => {
-    if (maintType === "venue") return venues
-    if (!officeGroup) return []
-    return offices.filter(o => {
-      const num = parseInt(o.id.slice(1))
-      return officeGroup === "A" ? num >= 1 && num <= 8 : num >= 9 && num <= 16
-    })
-  }, [maintType, officeGroup, venues, offices])
+  const currentSpaces = maintType === "venue" ? venues : (officeGroup ? offices.filter(o => {
+    const num = parseInt(o.id.slice(1))
+    return officeGroup === "A" ? num >= 1 && num <= 4 : num >= 5 && num <= 8
+  }) : [])
 
   const filteredRecords = maintenanceRecords.filter(
     r => r.type === maintType
@@ -2542,6 +2527,7 @@ function MaintenanceCalendarModal({
                 onChange={(e) => {
                   setMaintType(e.target.value as "venue" | "office")
                   setSelectedSpaceId("")
+                  setOfficeGroup("")
                 }}
                 className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
               >
@@ -2600,7 +2586,7 @@ function MaintenanceCalendarModal({
                     >
                       <option value="" disabled>Select room</option>
                       {currentSpaces.map((s) => {
-                        const roomNum = officeGroup === "A" ? parseInt(s.id.slice(1)) : parseInt(s.id.slice(1)) - 8
+                        const roomNum = officeGroup === "A" ? parseInt(s.id.slice(1)) : parseInt(s.id.slice(1)) - 4
                         return (
                           <option key={s.id} value={s.id}>
                             Room {roomNum}

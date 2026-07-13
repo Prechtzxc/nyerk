@@ -16,12 +16,7 @@ export const FACILITIES: Record<string, Facility> = {
   v4: { id: "v4", name: "Rooftop Terrace", type: "venue", price: 20000, minPax: 30, maxPax: 100 },
   ...Object.fromEntries(
     Array.from({ length: 8 }).map((_, i) => [
-      `o${i + 1}`, { id: `o${i + 1}`, name: `Office A - Room ${i + 1}`, type: "office", price: 5000, minPax: 1, maxPax: 10 }
-    ])
-  ),
-  ...Object.fromEntries(
-    Array.from({ length: 8 }).map((_, i) => [
-      `o${i + 9}`, { id: `o${i + 9}`, name: `Office B - Room ${i + 1}`, type: "office", price: 5000, minPax: 1, maxPax: 10 }
+      `o${i + 1}`, { id: `o${i + 1}`, name: `Office Room ${i + 1}`, type: "office", price: 5000, minPax: 1, maxPax: 10 }
     ])
   )
 };
