@@ -14,7 +14,7 @@ import {
 } from "@/src/modules/shared/components/ui/dialog"
 import { Input } from "@/src/modules/shared/components/ui/input"
 import { Label } from "@/src/modules/shared/components/ui/label"
-import { Eye, EyeOff, Loader2, AlertCircle, Info } from "lucide-react"
+import { Eye, EyeOff, Loader2, AlertCircle } from "lucide-react"
 import { useToast } from "@/src/modules/shared/hooks/use-toast"
 
 interface SignupDialogProps {
@@ -206,16 +206,6 @@ export function SignupDialog({ className, children }: SignupDialogProps) {
                     {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
                 </div>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-[11px] font-medium leading-5 text-slate-600">
-              <div className="flex items-start gap-2">
-                <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                <p>
-                  By creating an account, your profile picture (if uploaded) and basic details
-                  will be saved locally to your browser so you stay signed in across refreshes.
-                </p>
               </div>
             </div>
 
