@@ -7,7 +7,6 @@ import {
   collection,
   query,
   where,
-  orderBy,
   onSnapshot,
   doc,
   updateDoc,
@@ -37,37 +36,54 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     if (!user || !scope) return
 
     const userId = scope === "admin" ? "admin" : user.id
+    console.log("[Notifications] Provider subscribing, userId:", userId)
 
     const q = query(
       collection(db, "notifications"),
       where("userId", "==", userId),
-      orderBy("createdAt", "desc"),
       limit(50),
     )
 
-    const unsub = onSnapshot(q, (snapshot) => {
-      const items: NotificationItem[] = []
-      snapshot.forEach((docSnap) => {
-        const data = docSnap.data()
-        items.push({
-          id: docSnap.id,
-          type: data.type,
-          title: data.title,
-          message: data.message,
-          bookingId: data.bookingId,
-          userId: data.userId,
-          relatedUserId: data.relatedUserId,
-          relatedUserName: data.relatedUserName,
-          isRead: data.isRead ?? false,
-          createdAt: data.createdAt,
-          link: data.link,
+    const unsub = onSnapshot(q,
+      (snapshot) => {
+        console.log("[Notifications] Provider snapshot size:", snapshot.size)
+        const items: NotificationItem[] = []
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data()
+          items.push({
+            id: docSnap.id,
+            type: data.type,
+            title: data.title,
+            message: data.message,
+            bookingId: data.bookingId,
+            userId: data.userId,
+            relatedUserId: data.relatedUserId,
+            relatedUserName: data.relatedUserName,
+            isRead: data.isRead ?? false,
+            createdAt: data.createdAt,
+            link: data.link,
+          })
         })
-      })
-      setNotifications(items)
-    })
+        items.sort((a, b) => {
+          const ta = a.createdAt?.toDate?.()?.getTime() ?? 0
+          const tb = b.createdAt?.toDate?.()?.getTime() ?? 0
+          return tb - ta
+        })
+        setNotifications(items)
+      },
+      (error) => {
+        console.error("[Notifications] onSnapshot error:", error)
+      },
+    )
 
     return () => unsub()
   }, [user, scope])
+
+  const unreadCount = useMemo(() => {
+    const count = notifications.filter((n) => !n.isRead).length
+    console.log("[Notifications] unread count:", count)
+    return count
+  }, [notifications])
 
   const unreadCount = useMemo(
     () => notifications.filter((n) => !n.isRead).length,

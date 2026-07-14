@@ -47,8 +47,9 @@ export async function createNotification(data: {
   relatedUserName?: string
   link: string
 }) {
+  console.log("[Notifications] createNotification payload:", data)
   try {
-    await addDoc(notificationsRef, {
+    const docRef = await addDoc(notificationsRef, {
       type: data.type,
       title: data.title,
       message: data.message,
@@ -60,6 +61,7 @@ export async function createNotification(data: {
       createdAt: serverTimestamp(),
       link: data.link,
     })
+    console.log("[Notifications] Firestore write success, doc ID:", docRef.id)
   } catch (error) {
     console.error("[Notifications] Failed to create notification:", error)
   }
