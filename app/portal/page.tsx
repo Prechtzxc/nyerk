@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo } from "react"
 import { useAuth } from "@/src/modules/shared/auth/auth-context"
 import { Card, CardContent } from "@/src/modules/shared/components/ui/card"
 import { Badge } from "@/src/modules/shared/components/ui/badge"
@@ -88,8 +88,6 @@ function getOfficeStatusDisplay(booking: Booking) {
 export default function ClientDashboardPage() {
   const { user } = useAuth()
   const { getUserBookings, bookings } = useBookings()
-  const [profilePicture] = useState<string | null>(user?.profilePicture ?? null)
-
   const myBookings = useMemo(() => {
     if (user) return getUserBookings(user.id)
     return bookings
@@ -118,7 +116,7 @@ export default function ClientDashboardPage() {
             <div className="flex items-center gap-4">
               <UserAvatar
                 name={user?.name}
-                picture={profilePicture}
+                picture={user?.profilePicture}
                 className="h-12 w-12"
                 ringClassName="ring-2 ring-white"
                 fallbackClassName="bg-gradient-to-br from-orange-100 to-orange-200 text-orange-700"

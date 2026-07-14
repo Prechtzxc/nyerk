@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 import { useAuth } from "@/src/modules/shared/auth/auth-context"
 import { useToast } from "@/src/modules/shared/hooks/use-toast"
 import { Card, CardContent } from "@/src/modules/shared/components/ui/card"
@@ -26,7 +26,7 @@ import { cn } from "@/src/modules/shared/lib/utils"
 import { ProfilePictureUploader } from "@/src/modules/shared/components/profile-picture-uploader"
 
 export default function ProfilePage() {
-  const { user, updateProfilePicture } = useAuth()
+  const { user, updateProfilePicture, removeProfilePicture } = useAuth()
   const { toast } = useToast()
 
   const [email, setEmail] = useState(user?.email || "")
@@ -89,19 +89,29 @@ export default function ProfilePage() {
     setConfirmPassword("")
   }
 
-  const handleProfilePictureChange = (dataUrl: string | null) => {
+  const handleProfilePictureChange = async (dataUrl: string | null) => {
+    const previousPicture = user?.profilePicture || null
     setPicture(dataUrl)
-    if (dataUrl) {
-      updateProfilePicture(dataUrl)
+    try {
+      if (dataUrl) {
+        await updateProfilePicture(dataUrl)
+        toast({
+          title: "Profile picture updated",
+          description: "Your new photo has been saved.",
+        })
+      } else {
+        await removeProfilePicture()
+        toast({
+          title: "Profile picture removed",
+          description: "Your default avatar is now in use.",
+        })
+      }
+    } catch {
+      setPicture(previousPicture)
       toast({
-        title: "Profile picture updated",
-        description: "Your new photo has been saved.",
-      })
-    } else {
-      updateProfilePicture("")
-      toast({
-        title: "Profile picture removed",
-        description: "Your default avatar is now in use.",
+        title: "Error",
+        description: dataUrl ? "Failed to upload profile picture. Please try again." : "Failed to remove profile picture. Please try again.",
+        variant: "destructive",
       })
     }
   }

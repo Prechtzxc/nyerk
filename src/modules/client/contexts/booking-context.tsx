@@ -2507,6 +2507,40 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     const updatedBookings = bookings.map((booking) => {
       if (booking.id !== id) return booking;
       const rejectionReason = reason || booking.paymentRejectedReason || "Payment rejected by admin.";
+      const hasApprovedDownpayment = typeof booking.downpaymentPaid === "number" && booking.downpaymentPaid > 0;
+
+      if (hasApprovedDownpayment) {
+        const total = getSafePrice(booking.totalPrice);
+        const amountPaid = typeof booking.amountPaid === "number" ? booking.amountPaid : 0;
+
+        const restored = recalculatePaymentStage({
+          ...booking,
+          paymentRejectedReason: rejectionReason,
+          paymentRejectionReason: rejectionReason,
+          paymentRejectedAt: new Date().toISOString(),
+          paymentReviewedBy: adminName || "Administrator",
+          hasActivePaymentSubmission: false,
+          proofUrl: null,
+          bankReferenceNumber: null,
+          paymentReference: null,
+          paymentAmount: 0,
+          pendingPaymentAmount: 0,
+          paymentSubmittedAt: null,
+          updatedAt: new Date().toISOString(),
+        });
+
+        return {
+          ...restored,
+          status: "confirmed" as BookingStatus,
+          bookingStatus: "Confirmed",
+          isSlotSecured: true,
+          adminLogs: makeAdminLog(
+            booking,
+            "REMAINING_BALANCE_REJECTED",
+            `Admin rejected remaining balance payment. Reason: ${rejectionReason}. Approved down payment of ₱${amountPaid.toLocaleString()} is preserved. Remaining balance: ₱${(total - amountPaid).toLocaleString()}.`,
+          ),
+        };
+      }
 
       return {
         ...booking,
@@ -2534,10 +2568,13 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     saveBookings(updatedBookings as Booking[]);
     const rejectedBooking = bookings.find((b) => b.id === id);
     if (rejectedBooking) {
+      const hasApprovedDownpayment = typeof rejectedBooking.downpaymentPaid === "number" && rejectedBooking.downpaymentPaid > 0;
       createNotification({
-        type: "payment_rejected",
-        title: "Payment Rejected",
-        message: `Your payment for Booking ${rejectedBooking.id} has been rejected.`,
+        type: hasApprovedDownpayment ? "remaining_balance_rejected" : "payment_rejected",
+        title: hasApprovedDownpayment ? "Remaining Balance Rejected" : "Payment Rejected",
+        message: hasApprovedDownpayment
+          ? `Your remaining balance payment for Booking ${rejectedBooking.id} has been rejected. Your approved down payment is still valid.`
+          : `Your payment for Booking ${rejectedBooking.id} has been rejected.`,
         bookingId: rejectedBooking.id,
         userId: rejectedBooking.userId,
         link: "/portal/payments",

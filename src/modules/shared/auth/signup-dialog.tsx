@@ -16,7 +16,6 @@ import { Input } from "@/src/modules/shared/components/ui/input"
 import { Label } from "@/src/modules/shared/components/ui/label"
 import { Eye, EyeOff, Loader2, AlertCircle, Info } from "lucide-react"
 import { useToast } from "@/src/modules/shared/hooks/use-toast"
-import { ProfilePictureUploader } from "@/src/modules/shared/components/profile-picture-uploader"
 
 interface SignupDialogProps {
   className?: string
@@ -32,11 +31,10 @@ export function SignupDialog({ className, children }: SignupDialogProps) {
   const [phoneNumber, setPhoneNumber] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
-  const [profilePicture, setProfilePicture] = useState<string>("")
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [errorMsg, setErrorMsg] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errorMsg, setErrorMsg] = useState("")
 
   const { signup, isLoading } = useAuth()
   const { toast } = useToast()
@@ -56,7 +54,6 @@ export function SignupDialog({ className, children }: SignupDialogProps) {
       setPhoneNumber("")
       setPassword("")
       setConfirmPassword("")
-      setProfilePicture("")
       setErrorMsg("")
       setIsSubmitting(false)
     }
@@ -112,7 +109,6 @@ export function SignupDialog({ className, children }: SignupDialogProps) {
         email,
         phone: formattedPhone,
         password,
-        profilePicture: profilePicture || "",
       })
 
       if (result.success) {
@@ -162,16 +158,6 @@ export function SignupDialog({ className, children }: SignupDialogProps) {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="flex justify-center">
-              <ProfilePictureUploader
-                value={profilePicture}
-                fallbackName={firstName || lastName || "You"}
-                onChange={(dataUrl) => setProfilePicture(dataUrl || "")}
-                onError={(message) => setErrorMsg(message)}
-                size="sm"
-              />
-            </div>
-
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="firstName" className="text-xs font-bold text-slate-600 uppercase tracking-wider">First Name *</Label>

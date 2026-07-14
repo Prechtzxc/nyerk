@@ -15,10 +15,11 @@ import {
   signOut,
   onAuthStateChanged,
 } from "firebase/auth"
-import { doc, getDoc, setDoc } from "firebase/firestore"
+import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore"
 import { auth, db } from "@/lib/firebase"
 import type { StaffPermissions } from "@/src/modules/shared/types/permissions"
 import { DEFAULT_STAFF_PERMISSIONS } from "@/src/modules/shared/types/permissions"
+import { uploadToCloudinary, deleteFromCloudinary, extractPublicId } from "@/src/modules/shared/lib/cloudinary"
 
 export interface AppUser {
   id: string
@@ -53,8 +54,8 @@ export interface AuthContextValue {
   login: (email: string, password?: string) => Promise<{ success: boolean; message?: string; role?: string }>
   signup: (input: SignupInput) => Promise<{ success: boolean; message?: string }>
   logout: () => void
-  updateProfilePicture: (dataUrl: string) => void
-  removeProfilePicture: () => void
+  updateProfilePicture: (dataUrl: string) => Promise<void>
+  removeProfilePicture: () => Promise<void>
   refreshUser: () => void
 }
 
@@ -290,13 +291,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.location.replace("/")
   }, [])
 
-  const updateProfilePicture = useCallback((_dataUrl: string) => {
-    // Will be implemented with Firebase Storage in a future phase
-  }, [])
+  const updateProfilePicture = useCallback(async (dataUrl: string) => {
+    if (!auth.currentUser) return
+    try {
+      let url = ""
+      if (dataUrl) {
+        const res = await fetch(dataUrl)
+        const blob = await res.blob()
+        const file = new File([blob], "profile.jpg", { type: blob.type })
+        const result = await uploadToCloudinary(file, { folder: "profiles" })
+        url = result.secureUrl
+      } else {
+        const currentUrl = user?.profilePicture
+        if (currentUrl) {
+          const publicId = extractPublicId(currentUrl)
+          if (publicId) {
+            deleteFromCloudinary(publicId).catch(() => {})
+          }
+        }
+      }
+      const userDocRef = doc(db, "users", auth.currentUser.uid)
+      await updateDoc(userDocRef, { profilePicture: url })
+      setUser((prev) => (prev ? { ...prev, profilePicture: url } : prev))
+    } catch (err) {
+      console.error("[Auth] Failed to update profile picture:", err)
+      throw err
+    }
+  }, [user?.profilePicture])
 
-  const removeProfilePicture = useCallback(() => {
-    // Will be implemented with Firebase Storage in a future phase
-  }, [])
+  const removeProfilePicture = useCallback(async () => {
+    if (!auth.currentUser) return
+    try {
+      const currentUrl = user?.profilePicture
+      if (currentUrl) {
+        const publicId = extractPublicId(currentUrl)
+        if (publicId) {
+          await deleteFromCloudinary(publicId)
+        }
+      }
+      const userDocRef = doc(db, "users", auth.currentUser.uid)
+      await updateDoc(userDocRef, { profilePicture: "" })
+      setUser((prev) => (prev ? { ...prev, profilePicture: "" } : prev))
+    } catch (err) {
+      console.error("[Auth] Failed to remove profile picture:", err)
+      throw err
+    }
+  }, [user?.profilePicture])
 
   const refreshUser = useCallback(async () => {
     if (!auth.currentUser) {

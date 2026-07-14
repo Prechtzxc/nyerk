@@ -1501,6 +1501,39 @@ function buildVerifiedPaymentBooking(booking: BookingRecord) {
 }
 
 function buildRejectedPaymentBooking(booking: BookingRecord, reason: string) {
+  const total = getAmountValue(booking.totalAmount || booking.totalPrice || booking.amount || booking.price)
+  const amountPaid = typeof booking.amountPaid === "number" ? booking.amountPaid : 0
+  const downpaymentPaid = typeof booking.downpaymentPaid === "number" ? booking.downpaymentPaid : 0
+  const hasApprovedDownpayment = downpaymentPaid > 0
+
+  if (hasApprovedDownpayment) {
+    const remaining = Math.max(total - amountPaid, 0)
+    return {
+      ...booking,
+      status: "confirmed",
+      bookingStatus: "Confirmed",
+      paymentStatus: "partial",
+      isSlotSecured: true,
+      paymentRejectedReason: reason,
+      paymentRejectionReason: reason,
+      paymentRejectedAt: new Date().toISOString(),
+      hasActivePaymentSubmission: false,
+      proofUrl: null,
+      bankReferenceNumber: null,
+      paymentReference: null,
+      paymentAmount: 0,
+      pendingPaymentAmount: 0,
+      paymentSubmittedAt: null,
+      remainingBalance: remaining,
+      updatedAt: new Date().toISOString(),
+      adminLogs: appendAdminLog(
+        booking,
+        "REMAINING_BALANCE_REJECTED",
+        `Admin rejected remaining balance payment. Reason: ${reason}. Approved down payment of ₱${amountPaid.toLocaleString()} is preserved.`
+      ),
+    }
+  }
+
   return {
     ...booking,
     status: "pending",
