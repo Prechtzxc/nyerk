@@ -2525,7 +2525,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           paymentReference: undefined,
           paymentAmount: 0,
           pendingPaymentAmount: 0,
-          paymentSubmittedAt: null,
+          paymentSubmittedAt: undefined,
           updatedAt: new Date().toISOString(),
         });
 
