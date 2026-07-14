@@ -819,8 +819,6 @@ function BookingDetailsModal({
     !!booking.cancellationStatus &&
     booking.cancellationStatus !== "None"
 
-  const isPendingAction = hasActiveModificationRequest || hasActiveCancellationRequest
-
   const showCancelAction =
     onCancel &&
     !["cancelled", "declined", "completed", "rental_expired"].includes(String(booking.status || "").toLowerCase()) &&
@@ -1293,16 +1291,16 @@ function BookingDetailsModal({
                   {showModify && (
                     <Button
                       variant="outline"
-                      disabled={isPendingAction}
+                      disabled={hasActiveModificationRequest}
                       onClick={() => {
-                        if (onEdit && !isPendingAction) {
+                        if (onEdit && !hasActiveModificationRequest) {
                           onEdit(booking)
                           onClose()
                         }
                       }}
                       className={cn(
                         "h-10 w-full rounded-lg border-slate-200 px-4 text-xs font-bold",
-                        isPendingAction
+                        hasActiveModificationRequest
                           ? "text-slate-400 opacity-60 cursor-not-allowed"
                           : "text-slate-700 hover:bg-slate-100"
                       )}
@@ -1380,16 +1378,16 @@ function BookingDetailsModal({
               {showCancelAction && (
                 <Button
                   variant="outline"
-                  disabled={isPendingAction}
+                  disabled={hasActiveCancellationRequest}
                   onClick={() => {
-                    if (onCancel && !isPendingAction) {
+                    if (onCancel && !hasActiveCancellationRequest) {
                       onCancel(booking)
                       onClose()
                     }
                   }}
                   className={cn(
                     "h-10 w-full rounded-lg border-rose-200 px-4 text-xs font-bold",
-                    isPendingAction
+                    hasActiveCancellationRequest
                       ? "text-rose-300 opacity-60 cursor-not-allowed"
                       : "text-rose-600 hover:bg-rose-50 hover:text-rose-700"
                   )}
