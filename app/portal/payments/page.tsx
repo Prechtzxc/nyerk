@@ -360,45 +360,51 @@ function PaymentActionButtons({
     booking.paymentType === "downpayment" &&
     Number((booking as any).downpaymentPaid || 0) > 0;
 
-  return (
-    <>
-      {booking.status === "pending" && !isCashPending && !isExpired && (
-        <Button
-          onClick={() => onPay(booking)}
-          disabled={isUnderReview}
-          className={cn(
-            compact
-              ? "h-8 rounded-lg px-2.5 text-[10px] font-bold"
-              : "h-9 rounded-lg px-3 text-[11px] font-bold shadow-sm",
-            isUnderReview
-              ? "bg-orange-300 text-white cursor-not-allowed opacity-60"
-              : "bg-orange-600 text-white hover:bg-orange-700"
-          )}
-        >
-          <CreditCard className={cn("mr-1", compact ? "h-3 w-3" : "h-3.5 w-3.5")} />
-          {isUnderReview ? "Payment Submitted" : "Pay Now"}
-        </Button>
-      )}
-      {(isDownpaymentActive || hasRemainingPaymentDue || isPendingRemainingDP) && (
-        <Button
-          onClick={() => onSettle(booking)}
-          disabled={isUnderReview}
-          className={cn(
-            compact
-              ? "h-8 rounded-lg px-2.5 text-[10px] font-bold"
-              : "h-9 rounded-lg px-3 text-[11px] font-bold shadow-sm",
-            isUnderReview
-              ? "bg-emerald-300 text-white cursor-not-allowed opacity-60"
-              : "bg-emerald-600 text-white hover:bg-emerald-700"
-          )}
-        >
-          {isUnderReview
-            ? "Payment Submitted"
-            : "Settle Remaining Balance"}
-        </Button>
-      )}
-    </>
-  );
+  if (isUnderReview) return null;
+
+  const isFullyPaid =
+    paymentStatus === "paid" ||
+    paymentStatus === "fully paid" ||
+    remaining <= 0;
+  if (isFullyPaid) return null;
+
+  const showSettle = isDownpaymentActive || hasRemainingPaymentDue || isPendingRemainingDP;
+  const showPayNow = booking.status === "pending" && !isCashPending && !isExpired && !showSettle;
+
+  if (showSettle) {
+    return (
+      <Button
+        onClick={() => onSettle(booking)}
+        className={cn(
+          compact
+            ? "h-8 rounded-lg px-2.5 text-[10px] font-bold"
+            : "h-9 rounded-lg px-3 text-[11px] font-bold shadow-sm",
+          "bg-emerald-600 text-white hover:bg-emerald-700"
+        )}
+      >
+        {"Settle Remaining Balance"}
+      </Button>
+    );
+  }
+
+  if (showPayNow) {
+    return (
+      <Button
+        onClick={() => onPay(booking)}
+        className={cn(
+          compact
+            ? "h-8 rounded-lg px-2.5 text-[10px] font-bold"
+            : "h-9 rounded-lg px-3 text-[11px] font-bold shadow-sm",
+          "bg-orange-600 text-white hover:bg-orange-700"
+        )}
+      >
+        <CreditCard className={cn("mr-1", compact ? "h-3 w-3" : "h-3.5 w-3.5")} />
+        {"Pay Now"}
+      </Button>
+    );
+  }
+
+  return null;
 }
 
 function CurrentTransactionCard({
