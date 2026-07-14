@@ -268,29 +268,30 @@ function getStatusBadgeClass(paymentStatus?: string, status?: string, paymentSta
   return "border-slate-200 bg-slate-50 text-slate-700";
 }
 
-function getStatusLabel(paymentStatus?: string, status?: string, paymentStage?: string, remainingBalance?: number) {
-  const bookingStatus = String(status || "").toLowerCase();
-  if (["cancelled", "declined"].includes(bookingStatus)) return "Cancelled";
-  if (bookingStatus === "completed") return "Completed";
-  if (bookingStatus === "rental_expired") return "Expired";
+function getStatusLabel(paymentStatus?: string, _status?: string, paymentStage?: string, remainingBalance?: number) {
+  const stage = String(paymentStage || "").toLowerCase();
+
+  if (stage === "fully paid") return "Fully Paid";
+
+  const hasRemaining = typeof remainingBalance === "number" ? remainingBalance > 0 : true;
+
+  if (!hasRemaining) return "Fully Paid";
 
   const v = String(paymentStatus || "").toLowerCase();
-  const stage = String(paymentStage || "").toLowerCase();
-  const hasRemaining = typeof remainingBalance === "number" ? remainingBalance > 0 : false;
 
-  if (hasRemaining && v !== "unpaid" && v !== "rejected" && v !== "for_review" && v !== "cash_pending" && v !== "slot_pending" && v !== "pending_verification") {
+  if (v === "paid" || v === "verified" || v === "slot_verified") {
+    return hasRemaining ? "Partial Payment" : "Fully Paid";
+  }
+
+  if (["for_review", "cash_pending", "slot_pending", "pending_verification", "incomplete", "partial"].includes(v)) {
     return "Partial Payment";
   }
-  if ((stage === "fully paid" || v === "paid") && !hasRemaining) return "Fully Paid";
-  if (["verified", "slot_verified"].includes(v)) return "Verified";
-  if (v === "partial" || stage === "complete downpayment" || stage === "settle remaining balance") return "Partial Payment";
-  if (["for_review", "cash_pending", "slot_pending", "pending_verification"].includes(v)) return "For Review";
-  if (v === "incomplete") return "Incomplete Payment";
-  if (v === "unpaid") return "Pending Onsite Payment";
-  if (v === "rejected") return "Rejected";
-  if (status === "pending" && !v) return "Pending";
-  if (!v && !status) return "Pending";
-  return v ? v.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "Pending";
+
+  if (stage === "complete downpayment" || stage === "settle remaining balance") return "Partial Payment";
+
+  if (v && v !== "unpaid" && v !== "rejected" && v !== "cancelled") return "Partial Payment";
+
+  return "Unpaid";
 }
 
 function getBookingStatusBadgeClass(status?: string) {
