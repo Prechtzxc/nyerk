@@ -147,5 +147,4 @@ export function NotificationDropdown({ open, onClose }: Props) {
   )
 }
 
-// Re-export for convenience
-export type { NotificationItem }
+
