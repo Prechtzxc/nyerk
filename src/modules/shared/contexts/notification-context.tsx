@@ -85,11 +85,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     return count
   }, [notifications])
 
-  const unreadCount = useMemo(
-    () => notifications.filter((n) => !n.isRead).length,
-    [notifications],
-  )
-
   const markAsRead = useCallback((id: string) => {
     try {
       updateDoc(doc(db, "notifications", id), { isRead: true })
