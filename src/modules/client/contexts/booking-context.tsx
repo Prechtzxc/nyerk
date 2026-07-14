@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useToast } from "@/src/modules/shared/hooks/use-toast";
 import { db } from "@/lib/firebase"
+import { createNotification } from "@/src/modules/shared/lib/notifications"
 import {
   collection,
   doc,
@@ -1289,6 +1290,17 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     } as Booking;
 
     await saveBookings([...bookings, newBooking])
+    const clientName = newBooking.userInfo?.name || newBooking.eventName || "A client"
+    createNotification({
+      type: "booking_submitted",
+      title: "New Booking",
+      message: `${clientName} submitted a new booking.`,
+      bookingId: newId,
+      userId: "admin",
+      relatedUserId: newBooking.userId,
+      relatedUserName: clientName,
+      link: "/dashboard/bookings",
+    })
     return newId;
   };
 
@@ -1567,6 +1579,17 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     });
 
     saveBookings(updatedBookings as Booking[]);
+    const clientName = targetBooking.userInfo?.name || targetBooking.eventName || "A client"
+    createNotification({
+      type: "cancellation_requested",
+      title: "Cancellation Requested",
+      message: `${clientName} requested cancellation for Booking ${targetBooking.id}.`,
+      bookingId: targetBooking.id,
+      userId: "admin",
+      relatedUserId: targetBooking.userId,
+      relatedUserName: clientName,
+      link: "/dashboard/bookings",
+    })
   };
 
   const approveCancellation = (id: string) => {
@@ -1617,6 +1640,17 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     });
 
     saveBookings(updatedBookings as Booking[]);
+    const approvedBooking = updatedBookings.find((b) => b.id === id);
+    if (approvedBooking) {
+      createNotification({
+        type: "cancellation_approved",
+        title: "Cancellation Approved",
+        message: `Your cancellation request for Booking ${approvedBooking.id} has been approved.`,
+        bookingId: approvedBooking.id,
+        userId: approvedBooking.userId,
+        link: "/portal/bookings",
+      })
+    }
   };
 
   const declineCancellation = (id: string, reason: string) => {
@@ -1670,6 +1704,17 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     });
 
     saveBookings(updatedBookings);
+    const declinedBooking = updatedBookings.find((b: any) => b.id === id);
+    if (declinedBooking) {
+      createNotification({
+        type: "cancellation_declined",
+        title: "Cancellation Declined",
+        message: `Your cancellation request for Booking ${declinedBooking.id} has been declined.`,
+        bookingId: declinedBooking.id,
+        userId: declinedBooking.userId,
+        link: "/portal/bookings",
+      })
+    }
   };
 
   const rejectCancellation = (id: string, reason?: string) => {
@@ -1718,6 +1763,17 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     });
 
     saveBookings(updatedBookings as Booking[]);
+    const clientName = targetBooking.userInfo?.name || targetBooking.eventName || "A client"
+    createNotification({
+      type: "modification_requested",
+      title: "Modification Requested",
+      message: `${clientName} requested to modify Booking ${targetBooking.id}.`,
+      bookingId: targetBooking.id,
+      userId: "admin",
+      relatedUserId: targetBooking.userId,
+      relatedUserName: clientName,
+      link: "/dashboard/bookings",
+    })
   };
 
   const approveModification = (id: string) => {
@@ -1766,6 +1822,17 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     });
 
     saveBookings(updatedBookings as Booking[]);
+    const approvedMod = updatedBookings.find((b) => b.id === id);
+    if (approvedMod) {
+      createNotification({
+        type: "modification_approved",
+        title: "Modification Approved",
+        message: `Your modification request for Booking ${approvedMod.id} has been approved.`,
+        bookingId: approvedMod.id,
+        userId: approvedMod.userId,
+        link: "/portal/bookings",
+      })
+    }
   };
 
   const declineModification = (id: string, reason: string) => {
@@ -1805,6 +1872,17 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     });
 
     saveBookings(updatedBookings as Booking[]);
+    const declinedMod = updatedBookings.find((b) => b.id === id);
+    if (declinedMod) {
+      createNotification({
+        type: "modification_declined",
+        title: "Modification Declined",
+        message: `Your modification request for Booking ${declinedMod.id} has been declined.`,
+        bookingId: declinedMod.id,
+        userId: declinedMod.userId,
+        link: "/portal/bookings",
+      })
+    }
   };
 
   const markRefundReady = (id: string) => {
@@ -2412,6 +2490,17 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     });
 
     saveBookings(updatedBookings);
+    const verifiedBooking = bookings.find((b) => b.id === id);
+    if (verifiedBooking) {
+      createNotification({
+        type: "payment_approved",
+        title: "Payment Approved",
+        message: `Your payment for Booking ${verifiedBooking.id} has been approved.`,
+        bookingId: verifiedBooking.id,
+        userId: verifiedBooking.userId,
+        link: "/portal/payments",
+      })
+    }
   };
 
   const rejectPayment = (id: string, reason?: string, adminName?: string) => {
@@ -2443,6 +2532,17 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     });
 
     saveBookings(updatedBookings as Booking[]);
+    const rejectedBooking = bookings.find((b) => b.id === id);
+    if (rejectedBooking) {
+      createNotification({
+        type: "payment_rejected",
+        title: "Payment Rejected",
+        message: `Your payment for Booking ${rejectedBooking.id} has been rejected.`,
+        bookingId: rejectedBooking.id,
+        userId: rejectedBooking.userId,
+        link: "/portal/payments",
+      })
+    }
   };
 
   const markIncompletePayment = (id: string, data: { verifiedAmount: number; adminNote: string; adminName?: string }) => {
@@ -2859,6 +2959,17 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     saveBookings(updatedBookings as Booking[]);
     if (updatedBooking) {
       window.dispatchEvent(new Event("oneestela_payments_updated"))
+      const payName = updatedBooking.userInfo?.name || updatedBooking.eventName || "A client"
+      createNotification({
+        type: "payment_submitted",
+        title: "Payment Submitted",
+        message: `Payment submitted for Booking ${updatedBooking.id}.`,
+        bookingId: updatedBooking.id,
+        userId: "admin",
+        relatedUserId: updatedBooking.userId,
+        relatedUserName: payName,
+        link: "/dashboard/payments",
+      })
     }
   };
 

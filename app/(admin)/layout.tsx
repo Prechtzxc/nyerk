@@ -29,6 +29,8 @@ import { Input } from "@/src/modules/shared/components/ui/input"
 import { cn } from "@/src/modules/shared/lib/utils"
 import { LogoutConfirmDialog } from "@/src/modules/shared/components/logout-confirm-dialog"
 import { UserAvatar } from "@/src/modules/shared/components/user-avatar"
+import { useNotifications } from "@/src/modules/shared/contexts/notification-context"
+import { NotificationDropdown } from "@/src/modules/shared/components/notification-dropdown"
 
 import type { StaffPermissions } from "@/src/modules/shared/types/permissions"
 
@@ -64,9 +66,11 @@ export default function AdminLayout({
   const router = useRouter()
   const { logout, user, isLoading } = useAuth()
   const { messages } = useChat()
+  const { unreadCount: notificationUnread } = useNotifications()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const [chatUnread, setChatUnread] = useState(0)
+  const [showNotifications, setShowNotifications] = useState(false)
 
   const visibleMenu = useMemo(() => {
     if (!user) return []
@@ -147,20 +151,26 @@ export default function AdminLayout({
             </div>
 
             <div className="flex items-center gap-3 pl-2 lg:pl-4">
+            <div className="relative">
               <Button
                 variant="ghost"
                 size="icon"
                 className="relative shrink-0 rounded-full text-white hover:bg-white/15"
-                onClick={() => router.push("/dashboard/chat")}
+                onClick={() => setShowNotifications(!showNotifications)}
                 aria-label="Notifications"
               >
                 <Bell className="h-5 w-5" />
-                {chatUnread > 0 && (
+                {notificationUnread > 0 && (
                   <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-black tabular-nums text-white shadow-md ring-2 ring-orange-700">
-                    {chatUnread > 99 ? "99+" : chatUnread}
+                    {notificationUnread > 99 ? "99+" : notificationUnread}
                   </span>
                 )}
               </Button>
+              <NotificationDropdown
+                open={showNotifications}
+                onClose={() => setShowNotifications(false)}
+              />
+            </div>
 
               <Link
                 href="/dashboard"

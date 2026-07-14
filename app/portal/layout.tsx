@@ -27,6 +27,8 @@ import { CHAT_LABELS } from "@/src/modules/shared/lib/labels"
 import { cn } from "@/src/modules/shared/lib/utils"
 import { LogoutConfirmDialog } from "@/src/modules/shared/components/logout-confirm-dialog"
 import { UserAvatar } from "@/src/modules/shared/components/user-avatar"
+import { useNotifications } from "@/src/modules/shared/contexts/notification-context"
+import { NotificationDropdown } from "@/src/modules/shared/components/notification-dropdown"
 
 const CLIENT_MENU = [
   { name: "Dashboard", href: "/portal", icon: LayoutDashboard, key: "dashboard" },
@@ -50,9 +52,11 @@ export default function ClientLayout({
 
   const { user, isLoading, logout } = useAuth()
   const { messages } = useChat()
+  const { unreadCount: notificationUnread } = useNotifications()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const [chatUnread, setChatUnread] = useState(0)
+  const [showNotifications, setShowNotifications] = useState(false)
 
   useEffect(() => {
     getUnreadCount("client").then(setChatUnread)
@@ -142,20 +146,26 @@ export default function ClientLayout({
           </div>
 
           <div className="flex items-center gap-3 pl-2 lg:pl-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="relative shrink-0 rounded-full text-white hover:bg-white/15"
-              onClick={() => router.push("/portal/chat")}
-              aria-label="Notifications"
-            >
-              <Bell className="h-5 w-5" />
-              {chatUnread > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-black tabular-nums text-white shadow-md ring-2 ring-orange-700">
-                  {chatUnread > 99 ? "99+" : chatUnread}
-                </span>
-              )}
-            </Button>
+            <div className="relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative shrink-0 rounded-full text-white hover:bg-white/15"
+                onClick={() => setShowNotifications(!showNotifications)}
+                aria-label="Notifications"
+              >
+                <Bell className="h-5 w-5" />
+                {notificationUnread > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-black tabular-nums text-white shadow-md ring-2 ring-orange-700">
+                    {notificationUnread > 99 ? "99+" : notificationUnread}
+                  </span>
+                )}
+              </Button>
+              <NotificationDropdown
+                open={showNotifications}
+                onClose={() => setShowNotifications(false)}
+              />
+            </div>
 
             <Link
               href="/portal/profile"
