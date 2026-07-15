@@ -25,6 +25,7 @@ const typeIcons: Record<NotificationType, typeof Bell> = {
   remaining_balance_approved: FileText,
   remaining_balance_rejected: XCircle,
   maintenance_conflict: AlertTriangle,
+  balance_reminder: Bell,
 }
 
 function formatTimestamp(ts: any): string {

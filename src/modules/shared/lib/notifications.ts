@@ -20,6 +20,7 @@ export type NotificationType =
   | "remaining_balance_approved"
   | "remaining_balance_rejected"
   | "maintenance_conflict"
+  | "balance_reminder"
 
 export interface NotificationItem {
   id?: string

@@ -49,6 +49,7 @@ import { useAuth } from "@/src/modules/shared/auth/auth-context"
 import { useToast } from "@/src/modules/shared/hooks/use-toast"
 import { cn } from "@/src/modules/shared/lib/utils"
 import { useBookings, type Booking } from "@/src/modules/client/contexts/booking-context"
+import { createNotification } from "@/src/modules/shared/lib/notifications"
 import { getPaymentMethodLabel } from "@/src/modules/shared/lib/labels"
 import { Textarea } from "@/src/modules/shared/components/ui/textarea"
 import { Label } from "@/src/modules/shared/components/ui/label"
@@ -529,6 +530,14 @@ export default function AdminBookingsPage() {
               balanceReminderSent: true,
               balanceReminderSentAt: new Date().toISOString(),
               balanceReminderSentBy: "Administrator",
+            })
+            createNotification({
+              type: "balance_reminder",
+              title: "Remaining Balance Reminder",
+              message: `Please settle the remaining balance for Booking ${id}.`,
+              bookingId: id,
+              userId: sendReminderTarget.userId,
+              link: "/portal/payments",
             })
             setSendReminderTarget(null)
             toast({
