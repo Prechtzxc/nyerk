@@ -25,10 +25,11 @@ import { cn } from "@/src/modules/shared/lib/utils"
 const ROUTES = {
   bookings: "/dashboard/bookings",
   payments: "/dashboard/payments",
+  reports: "/dashboard/reports",
   pendingBookings: "/dashboard/bookings?status=pending",
-  verifyingBookings: "/dashboard/bookings?status=verifying",
+  verifyingPayments: "/dashboard/payments?status=for_review",
   confirmedBookings: "/dashboard/bookings?status=confirmed",
-  cancellationRequests: "/dashboard/bookings?status=cancellation_requested",
+  cancelledBookings: "/dashboard/bookings?status=cancelled",
 }
 
 export default function AdminDashboardPage() {
@@ -108,11 +109,11 @@ export default function AdminDashboardPage() {
 
         <section className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5 xl:gap-5 mb-6">
           <StatCard
-            href={ROUTES.payments}
-            icon={<Banknote className="h-4 w-4" />}
+            href={ROUTES.reports}
+            icon={<TrendingUp className="h-4 w-4" />}
             label="Revenue"
             value={formatCurrency(stats.totalRevenue)}
-            description="Confirmed income"
+            description="Reports & Analytics"
             tone="orange"
           />
           <StatCard
@@ -124,11 +125,11 @@ export default function AdminDashboardPage() {
             tone="amber"
           />
           <StatCard
-            href={ROUTES.verifyingBookings}
+            href={ROUTES.verifyingPayments}
             icon={<CreditCard className="h-4 w-4" />}
             label="Verifying"
             value={stats.verifying.toString()}
-            description="Payment check"
+            description="Payments awaiting verification"
             tone="purple"
           />
           <StatCard
@@ -140,7 +141,7 @@ export default function AdminDashboardPage() {
             tone="emerald"
           />
           <StatCard
-            href={ROUTES.cancellationRequests}
+            href={ROUTES.cancelledBookings}
             icon={<AlertCircle className="h-4 w-4" />}
             label="Cancelled"
             value={stats.cancelled.toString()}
@@ -214,14 +215,14 @@ export default function AdminDashboardPage() {
                   tone="orange"
                 />
                 <ActionItem
-                  href={ROUTES.verifyingBookings}
+                  href={ROUTES.verifyingPayments}
                   icon={<CreditCard className="h-4 w-4" />}
                   label="Payment verifying"
                   value={stats.verifying}
                   tone="purple"
                 />
                 <ActionItem
-                  href={ROUTES.cancellationRequests}
+                  href={ROUTES.cancelledBookings}
                   icon={<AlertCircle className="h-4 w-4" />}
                   label="Cancel requests"
                   value={stats.cancellationRequests}

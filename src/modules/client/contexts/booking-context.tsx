@@ -2636,6 +2636,17 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     });
 
     saveBookings(updatedBookings);
+    const incompleteBooking = bookings.find((b) => b.id === id);
+    if (incompleteBooking) {
+      createNotification({
+        type: "payment_incomplete",
+        title: "Payment Requires Correction",
+        message: `Your payment for Booking ${incompleteBooking.id} needs correction or additional information before it can be verified.`,
+        bookingId: incompleteBooking.id,
+        userId: incompleteBooking.userId,
+        link: "/portal/payments",
+      })
+    }
   };
 
   const addMaintenanceRecord = (record: Omit<MaintenanceRecord, "id" | "createdAt" | "updatedAt">) => {

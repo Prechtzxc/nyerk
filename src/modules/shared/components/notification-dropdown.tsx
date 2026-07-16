@@ -21,6 +21,7 @@ const typeIcons: Record<NotificationType, typeof Bell> = {
   payment_submitted: FileText,
   payment_approved: FileText,
   payment_rejected: XCircle,
+  payment_incomplete: AlertTriangle,
   remaining_balance_submitted: FileText,
   remaining_balance_approved: FileText,
   remaining_balance_rejected: XCircle,

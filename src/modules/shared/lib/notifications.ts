@@ -16,6 +16,7 @@ export type NotificationType =
   | "payment_submitted"
   | "payment_approved"
   | "payment_rejected"
+  | "payment_incomplete"
   | "remaining_balance_submitted"
   | "remaining_balance_approved"
   | "remaining_balance_rejected"

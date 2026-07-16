@@ -93,6 +93,7 @@ export default function AdminPaymentsPage() {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
     const searchId = urlParams.get("search")
+    const statusParam = urlParams.get("status")
 
     if (searchId) {
       setSearchQuery(searchId)
@@ -100,6 +101,9 @@ export default function AdminPaymentsPage() {
 
       // Remove the URL query after using it once so the page does not stay locked
       // on the same booking ID after refresh/navigation.
+      window.history.replaceState(null, "", window.location.pathname)
+    } else if (statusParam) {
+      setStatusFilter(statusParam)
       window.history.replaceState(null, "", window.location.pathname)
     }
   }, [])
@@ -279,12 +283,13 @@ export default function AdminPaymentsPage() {
 
     try {
       // Use BookingContext as single source of truth for payment actions
+      const reviewerName = user?.name || "Administrator"
       if (type === "verify") {
-        bookingCtx.verifyPayment(bookingId, { adminNote: note || undefined, adminName: "Administrator" })
+        bookingCtx.verifyPayment(bookingId, { adminNote: note || undefined, adminName: reviewerName })
       } else if (type === "reject") {
-        bookingCtx.rejectPayment(bookingId, note, "Administrator")
+        bookingCtx.rejectPayment(bookingId, note, reviewerName)
       } else if (type === "incomplete") {
-        bookingCtx.markIncompletePayment(bookingId, { verifiedAmount: 0, adminNote: note, adminName: "Administrator" })
+        bookingCtx.markIncompletePayment(bookingId, { verifiedAmount: 0, adminNote: note, adminName: reviewerName })
       }
 
       let updatedBooking: BookingRecord
@@ -346,7 +351,7 @@ export default function AdminPaymentsPage() {
             bookingCtx.verifyPayment(updatedBooking.id, {
               verifiedAmount: updatedBooking.lastPaymentAmount || updatedBooking.paymentVerifiedAmount,
               adminNote: updatedBooking.adminLogs?.[updatedBooking.adminLogs.length - 1]?.message || undefined,
-              adminName: "Administrator",
+              adminName: user?.name || "Administrator",
             })
             let updated = updatedBooking
             if (!updated.proofUrl) {
@@ -375,7 +380,7 @@ export default function AdminPaymentsPage() {
             bookingCtx.markIncompletePayment(updatedBooking.id, {
               verifiedAmount: updatedBooking.lastPaymentAmount || updatedBooking.paymentVerifiedAmount || 0,
               adminNote: updatedBooking.incompletePaymentNote || updatedBooking.incompletePaymentReason || "",
-              adminName: "Administrator",
+              adminName: user?.name || "Administrator",
             })
             let updated = updatedBooking
             if (!updated.proofUrl) {
