@@ -513,7 +513,7 @@ function CurrentTransactionCard({
               View Details
             </Button>
           )}
-          <PaymentActionButtons booking={booking} onPay={onPay} onSettle={onSettle} />
+          <PaymentActionButtons booking={booking} onPay={onPay} onSettle={onSettle} compact />
         </div>
       </div>
     </div>
@@ -1775,30 +1775,32 @@ function TransactionsContent() {
                             </p>
                           </div>
                         </div>
-                        <div className="flex flex-wrap items-center gap-1.5 sm:shrink-0">
-                        <span
-                          className={cn(
-                            "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest whitespace-nowrap",
-                getStatusBadgeClass(booking.paymentStatus, booking.status, (booking as any).paymentStage, (booking as any).remainingBalance),
-                          )}
-                        >
-                          {getStatusLabel(booking.paymentStatus, booking.status, (booking as any).paymentStage, (booking as any).remainingBalance)}
-                        </span>
-                        {hasPaymentRecord(booking) && (
-                          <Button
-                            variant="outline"
-                            onClick={() => setViewingReceipt(booking)}
-                            className="h-8 shrink-0 whitespace-nowrap rounded-lg border-slate-200 px-2 text-[10px] font-bold text-slate-700 hover:bg-slate-50 sm:px-2.5"
+                        <div className="flex flex-wrap items-center justify-between gap-1.5 sm:shrink-0 sm:flex-nowrap sm:gap-2">
+                          <span
+                            className={cn(
+                              "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest whitespace-nowrap",
+                  getStatusBadgeClass(booking.paymentStatus, booking.status, (booking as any).paymentStage, (booking as any).remainingBalance),
+                            )}
                           >
-                            View Details
-                          </Button>
-                        )}
-                        <PaymentActionButtons
-                          booking={booking}
-                          onPay={(b) => setSelectedBookingToPay(b.id)}
-                          onSettle={(b) => setSelectedBookingToPay(b.id)}
-                          compact
-                        />
+                            {getStatusLabel(booking.paymentStatus, booking.status, (booking as any).paymentStage, (booking as any).remainingBalance)}
+                          </span>
+                          <div className="flex flex-wrap items-center gap-1.5 sm:flex-nowrap">
+                            {hasPaymentRecord(booking) && (
+                              <Button
+                                variant="outline"
+                                onClick={() => setViewingReceipt(booking)}
+                                className="h-8 shrink-0 whitespace-nowrap rounded-lg border-slate-200 px-2 text-[10px] font-bold text-slate-700 hover:bg-slate-50 sm:px-2.5"
+                              >
+                                View Details
+                              </Button>
+                            )}
+                            <PaymentActionButtons
+                              booking={booking}
+                              onPay={(b) => setSelectedBookingToPay(b.id)}
+                              onSettle={(b) => setSelectedBookingToPay(b.id)}
+                              compact
+                            />
+                          </div>
                       </div>
                     </div>
                   );

@@ -79,7 +79,7 @@ export function NotificationDropdown({ open, onClose }: Props) {
       <div className="fixed inset-0 z-40" onClick={onClose} />
       <div
         ref={ref}
-        className="absolute right-0 top-full z-50 mt-2 w-[calc(100vw-32px)] sm:w-80 origin-top-right overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl"
+        className="absolute right-0 top-full z-50 mt-2 w-[calc(100vw-24px)] min-w-[280px] sm:w-80 origin-top-right overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl sm:right-0"
       >
         <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
           <h3 className="text-sm font-bold text-slate-800">Notifications</h3>
@@ -87,11 +87,12 @@ export function NotificationDropdown({ open, onClose }: Props) {
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 gap-1 px-2 text-[11px] font-bold text-slate-500 hover:text-slate-700"
+              className="h-7 shrink-0 gap-1 px-2 text-[11px] font-bold text-slate-500 hover:text-slate-700"
               onClick={markAllAsRead}
             >
               <CheckCheck className="h-3 w-3" />
-              Mark all read
+              <span className="hidden sm:inline">Mark all read</span>
+              <span className="sm:hidden">All read</span>
             </Button>
           )}
         </div>
@@ -110,7 +111,7 @@ export function NotificationDropdown({ open, onClose }: Props) {
                   key={n.id}
                   onClick={() => handleClick(n)}
                   className={cn(
-                    "flex w-full gap-3 px-4 py-3 text-left transition hover:bg-slate-50",
+                    "flex w-full gap-2 px-4 py-3 text-left transition hover:bg-slate-50",
                     !n.isRead && "bg-blue-50/60",
                   )}
                 >
@@ -125,7 +126,7 @@ export function NotificationDropdown({ open, onClose }: Props) {
                   <div className="min-w-0 flex-1">
                     <p
                       className={cn(
-                        "text-xs leading-tight",
+                        "text-xs leading-relaxed break-words",
                         !n.isRead ? "font-bold text-slate-800" : "font-medium text-slate-500",
                       )}
                     >
