@@ -131,26 +131,23 @@ export default function ProfilePage() {
         <Card className="overflow-hidden rounded-2xl border-slate-200 bg-white shadow-sm">
         <CardContent className="p-0">
           <div className="border-b border-slate-100 bg-white p-5 sm:p-6">
-            <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex min-w-0 items-center gap-4">
-                <div className="shrink-0">
-                  <ProfilePictureUploader
-                    value={profilePicture || ""}
-                    fallbackName={user.name || "Client"}
-                    onChange={handleProfilePictureChange}
-                    onError={(message) =>
-                      toast({
-                        title: "Invalid image",
-                        description: message,
-                        variant: "destructive",
-                      })
-                    }
-                    size="md"
-                    label="Profile Picture"
-                  />
-                </div>
+            <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center sm:gap-5 sm:min-w-0">
+                <ProfilePictureUploader
+                  value={profilePicture || ""}
+                  fallbackName={user.name || "Client"}
+                  onChange={handleProfilePictureChange}
+                  onError={(message) =>
+                    toast({
+                      title: "Invalid image",
+                      description: message,
+                      variant: "destructive",
+                    })
+                  }
+                  size="md"
+                />
 
-                <div className="min-w-0">
+                <div className="text-center sm:text-left">
                   <p className="text-xs font-black uppercase tracking-[0.2em] text-orange-600">
                     Client Account
                   </p>
@@ -163,7 +160,7 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              <div className="flex w-fit flex-col items-end gap-2">
+              <div className="flex flex-col items-center gap-2 sm:items-end">
                 <div className="flex w-fit items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-emerald-700">
                   <ShieldCheck className="h-5 w-5 shrink-0" />
                   <span className="text-xs font-black uppercase tracking-wider">

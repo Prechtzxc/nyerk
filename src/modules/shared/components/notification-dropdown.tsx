@@ -79,7 +79,7 @@ export function NotificationDropdown({ open, onClose }: Props) {
       <div className="fixed inset-0 z-40" onClick={onClose} />
       <div
         ref={ref}
-        className="absolute right-0 top-full z-50 mt-2 w-[calc(100vw-24px)] min-w-[280px] sm:w-80 origin-top-right overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl sm:right-0"
+        className="absolute right-0 top-full z-50 mt-2 w-[calc(100vw-32px)] sm:w-80 origin-top-right overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl"
       >
         <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
           <h3 className="text-sm font-bold text-slate-800">Notifications</h3>
