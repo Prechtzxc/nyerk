@@ -38,9 +38,10 @@ export function CMSOfficesTab({ onNavigate }: { onNavigate: (tab: string) => voi
     resetForm()
   }
 
-  const handleDelete = (id: string) => { deleteOffice(id); setConfirmDelete(null); toast({ title: "Office deleted", description: "Office removed.", className: "bg-emerald-500 text-white border-none" }) }
+  const handleDelete = (id: string) => { deleteOffice(id); setConfirmDelete(null); toast({ title: "Office archived", description: "Office has been archived.", className: "bg-emerald-500 text-white border-none" }) }
 
-  const filtered = offices.filter((o: any) => {
+  const activeOffices = offices.filter((o: any) => !o.isArchived)
+  const filtered = activeOffices.filter((o: any) => {
     if (floorFilter === "ground") return (o.floor || "ground") === "ground" || o.floor === "Ground"
     if (floorFilter === "second") return o.floor === "second" || o.floor === "Second"
     return true
@@ -58,7 +59,7 @@ export function CMSOfficesTab({ onNavigate }: { onNavigate: (tab: string) => voi
             {(["all", "ground", "second"] as const).map((f) => (
               <button key={f} type="button" onClick={() => setFloorFilter(f)}
                 className={`rounded-md px-2.5 py-1 text-[11px] font-bold tracking-wide transition ${floorFilter === f ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}>
-                {f === "all" ? `All (${offices.length})` : f === "ground" ? `Ground (${offices.filter((o: any) => (o.floor || "ground") === "ground" || o.floor === "Ground").length})` : `Second (${offices.filter((o: any) => o.floor === "second" || o.floor === "Second").length})`}
+                {f === "all" ? `All (${activeOffices.length})` : f === "ground" ? `Ground (${activeOffices.filter((o: any) => (o.floor || "ground") === "ground" || o.floor === "Ground").length})` : `Second (${activeOffices.filter((o: any) => o.floor === "second" || o.floor === "Second").length})`}
               </button>
             ))}
           </div>

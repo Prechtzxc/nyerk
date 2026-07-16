@@ -10,12 +10,14 @@ import { Button } from "@/src/modules/shared/components/ui/button"
 import { Label } from "@/src/modules/shared/components/ui/label"
 import { useToast } from "@/src/modules/shared/hooks/use-toast"
 import { useBookings, Booking } from "@/src/modules/client/contexts/booking-context"
+import { useCMS } from "@/src/modules/admin/contexts/cms-context"
 
 export default function ClientPaymentPage() {
   const params = useParams()
   const router = useRouter()
   const { toast } = useToast()
   const { bookings, submitPayment } = useBookings()
+  const { paymentInfo } = useCMS()
   
   const bookingId = params.bookingId as string
   const [booking, setBooking] = useState<Booking | null>(null)
@@ -180,23 +182,19 @@ export default function ClientPaymentPage() {
                                 <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Bank Details</p>
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-center pb-3 border-b border-slate-200">
-                                        <span className="text-sm font-medium text-slate-600">BDO Account</span>
-                                        <span className="text-base font-black text-slate-900">0012 3456 7890</span>
-                                    </div>
-                                    <div className="flex justify-between items-center pb-3 border-b border-slate-200">
-                                        <span className="text-sm font-medium text-slate-600">GCash / Maya</span>
-                                        <span className="text-base font-black text-slate-900">0917 123 4567</span>
+                                        <span className="text-sm font-medium text-slate-600">{paymentInfo.bankName || "BDO"}</span>
+                                        <span className="text-base font-black text-slate-900">{paymentInfo.accountNumber || "0012 3456 7890"}</span>
                                     </div>
                                     <div className="flex justify-between items-center pt-1">
                                         <span className="text-sm font-medium text-slate-600">Account Name</span>
-                                        <span className="text-base font-black text-slate-900">One Estela Place</span>
+                                        <span className="text-base font-black text-slate-900">{paymentInfo.accountName || "One Estela Place"}</span>
                                     </div>
                                 </div>
                             </div>
 
                             <div className="space-y-3">
                                 <Label className="text-base font-black text-slate-900">Upload Proof of Payment</Label>
-                                <p className="text-sm text-slate-500">Please upload a clear screenshot of your bank transfer receipt.</p>
+                                <p className="text-sm text-slate-500">{paymentInfo.instructions || "Please upload a clear screenshot of your bank transfer receipt."}</p>
                                 
                                 {!proofFile ? (
                                     <div className="relative border-2 border-dashed border-slate-300 rounded-2xl p-10 hover:bg-slate-50 hover:border-[#ea580c] transition-colors group text-center cursor-pointer mt-4">

@@ -52,6 +52,8 @@ export type PastClientBooking = {
   display: boolean
   createdAt: string
   updatedAt?: string
+  isArchived?: boolean
+  archivedAt?: string
 }
 
 export type FAQ = {
@@ -59,6 +61,8 @@ export type FAQ = {
   question: string
   answer: string
   isHidden?: boolean
+  isArchived?: boolean
+  archivedAt?: string
   order?: number
   createdAt: string
   updatedAt?: string
@@ -74,6 +78,13 @@ export type Policy = {
   isPublished: boolean
   createdAt: string
   updatedAt?: string
+}
+
+export interface PaymentInfo {
+  bankName: string
+  accountName: string
+  accountNumber: string
+  instructions: string
 }
 
 export interface CMSData {
@@ -95,6 +106,7 @@ export interface CMSData {
   policies: Policy[]
   eventVenueContract: ContractFile
   officeRentalContract: ContractFile
+  paymentInfo: PaymentInfo
 }
 
 type CMSContextType = {
@@ -136,6 +148,8 @@ type CMSContextType = {
   saveCMSData: (newData: CMSData) => void
   updateEventVenueContract: (data: ContractFile) => void
   updateOfficeRentalContract: (data: ContractFile) => void
+  paymentInfo: PaymentInfo
+  updatePaymentInfo: (data: Partial<PaymentInfo>) => void
 }
 
 const CMS_DOC_PATH = "cms/data"
@@ -186,6 +200,13 @@ const DEFAULT_POLICIES: Policy[] = ALL_POLICY_KEYS.map((key, i) => ({
   isPublished: true,
   createdAt: new Date().toISOString(),
 }))
+
+const defaultPaymentInfo: PaymentInfo = {
+  bankName: "BDO / GCash / Maya",
+  accountName: "One Estela Place",
+  accountNumber: "0012 3456 7890",
+  instructions: "Please upload a clear screenshot of your bank transfer receipt.",
+}
 
 const defaultCMSData: CMSData = {
   homepage: {
@@ -303,6 +324,7 @@ const defaultCMSData: CMSData = {
     fileType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     fileUrl: "/contracts/office/Office space contract.docx",
   },
+  paymentInfo: defaultPaymentInfo,
 }
 
 const defaultHomepage: CMSData["homepage"] = defaultCMSData.homepage
@@ -346,6 +368,8 @@ const defaultContextValue: CMSContextType = {
   saveCMSData: () => {},
   updateEventVenueContract: () => {},
   updateOfficeRentalContract: () => {},
+  paymentInfo: defaultPaymentInfo,
+  updatePaymentInfo: () => {},
 }
 
 const CMSContext = createContext<CMSContextType>(defaultContextValue)
@@ -422,6 +446,10 @@ function normalizeCMSData(parsed: Partial<CMSData> | null): CMSData {
     policies: Array.isArray(parsed.policies) ? parsed.policies : defaultCMSData.policies,
     eventVenueContract: parsed.eventVenueContract || defaultCMSData.eventVenueContract,
     officeRentalContract: parsed.officeRentalContract || defaultCMSData.officeRentalContract,
+    paymentInfo: {
+      ...defaultPaymentInfo,
+      ...(parsed.paymentInfo || {}),
+    },
   }
 }
 
@@ -553,7 +581,11 @@ export const CMSProvider = ({ children }: { children: React.ReactNode }) => {
   const deleteVenue = (id: string) => {
     saveCMSData({
       ...cmsData,
-      venues: cmsData.venues.filter((venue) => venue.id !== id),
+      venues: cmsData.venues.map((venue) =>
+        venue.id === id
+          ? { ...venue, isArchived: true, archivedAt: new Date().toISOString() }
+          : venue
+      ),
     })
   }
 
@@ -574,7 +606,11 @@ export const CMSProvider = ({ children }: { children: React.ReactNode }) => {
   const deleteOffice = (id: string) => {
     saveCMSData({
       ...cmsData,
-      offices: cmsData.offices.filter((office) => office.id !== id),
+      offices: cmsData.offices.map((office) =>
+        office.id === id
+          ? { ...office, isArchived: true, archivedAt: new Date().toISOString() }
+          : office
+      ),
     })
   }
 
@@ -616,7 +652,11 @@ export const CMSProvider = ({ children }: { children: React.ReactNode }) => {
   const deletePastClientBooking = (id: string) => {
     saveCMSData({
       ...cmsData,
-      pastClientBookings: cmsData.pastClientBookings.filter((booking) => booking.id !== id),
+      pastClientBookings: cmsData.pastClientBookings.map((booking) =>
+        booking.id === id
+          ? { ...booking, isArchived: true, archivedAt: new Date().toISOString() }
+          : booking
+      ),
     })
   }
 
@@ -624,6 +664,16 @@ export const CMSProvider = ({ children }: { children: React.ReactNode }) => {
     saveCMSData({
       ...cmsData,
       eventVenueContract: data,
+    })
+  }
+
+  const updatePaymentInfo = (data: Partial<PaymentInfo>) => {
+    saveCMSData({
+      ...cmsData,
+      paymentInfo: {
+        ...cmsData.paymentInfo,
+        ...data,
+      },
     })
   }
 
@@ -663,7 +713,11 @@ export const CMSProvider = ({ children }: { children: React.ReactNode }) => {
   const deleteFAQ = (id: string) => {
     saveCMSData({
       ...cmsData,
-      faqs: cmsData.faqs.filter((faq) => faq.id !== id),
+      faqs: cmsData.faqs.map((faq) =>
+        faq.id === id
+          ? { ...faq, isArchived: true, archivedAt: new Date().toISOString() }
+          : faq
+      ),
     })
   }
 
@@ -709,7 +763,11 @@ export const CMSProvider = ({ children }: { children: React.ReactNode }) => {
   const deletePolicy = (id: string) => {
     saveCMSData({
       ...cmsData,
-      policies: cmsData.policies.filter((policy) => policy.id !== id),
+      policies: cmsData.policies.map((policy) =>
+        policy.id === id
+          ? { ...policy, isArchived: true, archivedAt: new Date().toISOString() }
+          : policy
+      ),
     })
   }
 
@@ -743,7 +801,11 @@ export const CMSProvider = ({ children }: { children: React.ReactNode }) => {
   const deleteOfficeRoom: CMSContextType["deleteOfficeRoom"] = (id) => {
     saveCMSData({
       ...cmsData,
-      offices: cmsData.offices.filter((office) => office.id !== id),
+      offices: cmsData.offices.map((office) =>
+        office.id === id
+          ? { ...office, isArchived: true, archivedAt: new Date().toISOString() }
+          : office
+      ),
     })
   }
 
@@ -788,6 +850,8 @@ export const CMSProvider = ({ children }: { children: React.ReactNode }) => {
         saveCMSData,
         updateEventVenueContract,
         updateOfficeRentalContract,
+        paymentInfo: cmsData.paymentInfo,
+        updatePaymentInfo,
       }}
     >
       {children}

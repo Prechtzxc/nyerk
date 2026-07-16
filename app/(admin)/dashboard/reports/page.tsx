@@ -164,6 +164,8 @@ export default function ReportsPage() {
   const [filterMonth, setFilterMonth] = useState("all")
   const [filterStatus, setFilterStatus] = useState("all")
   const [searchTerm, setSearchTerm] = useState("")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [rowsPerPage, setRowsPerPage] = useState(10)
 
   const bookingList = useMemo(() => {
     return Array.isArray(bookings) ? (bookings as BookingRecord[]) : []
@@ -203,6 +205,9 @@ export default function ReportsPage() {
           booking.status,
           booking.paymentStatus,
           getBookingDate(booking),
+          (booking as any).bookingCategory,
+          (booking as any).officeName,
+          (booking as any).officeRoom,
         ]
           .join(" ")
           .toLowerCase()
@@ -217,6 +222,17 @@ export default function ReportsPage() {
         return dateB - dateA
       })
   }, [bookingList, filterMonth, filterStatus, searchTerm])
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, filterMonth, filterStatus, rowsPerPage])
+
+  const totalPages = Math.max(1, Math.ceil(filteredData.length / rowsPerPage))
+  const safePage = Math.min(currentPage, totalPages)
+  const paginatedData = useMemo(
+    () => filteredData.slice((safePage - 1) * rowsPerPage, safePage * rowsPerPage),
+    [filteredData, safePage, rowsPerPage],
+  )
 
   const confirmedBookings = useMemo(() => {
     return filteredData.filter((booking) => CONFIRMED_STATUSES.includes(normalizeStatus(booking.status)))
@@ -660,8 +676,24 @@ export default function ReportsPage() {
           <div>
             <h3 className="text-lg font-black text-slate-950">Booking Records</h3>
             <p className="text-xs font-semibold text-slate-500">
-              Showing {filteredData.length} record{filteredData.length === 1 ? "" : "s"} from your selected filters.
+              Showing {filteredData.length === 0 ? 0 : (safePage - 1) * rowsPerPage + 1}
+              &ndash;{Math.min(safePage * rowsPerPage, filteredData.length)} of {filteredData.length} record
+              {filteredData.length === 1 ? "" : "s"} from your selected filters.
             </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <span className="text-[11px] font-bold text-slate-500">Rows:</span>
+            <select
+              value={rowsPerPage}
+              onChange={(e) => setRowsPerPage(Number(e.target.value))}
+              className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-orange-500"
+            >
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
           </div>
         </div>
 
@@ -679,7 +711,7 @@ export default function ReportsPage() {
             </thead>
 
             <tbody className="divide-y divide-slate-100">
-              {filteredData.map((booking, index) => {
+              {paginatedData.map((booking, index) => {
                 const status = booking.status || "pending"
                 const clientName = booking.customerName || booking.clientName || booking.name || "Walk-in / Guest"
 
@@ -736,6 +768,55 @@ export default function ReportsPage() {
             </tbody>
           </table>
         </div>
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4">
+            <p className="text-[11px] font-bold text-slate-500">
+              Page {safePage} of {totalPages}
+            </p>
+            <div className="flex items-center gap-1.5">
+              <button
+                disabled={safePage <= 1}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                ‹
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter((page) => {
+                  if (totalPages <= 7) return true
+                  if (page === 1 || page === totalPages) return true
+                  if (Math.abs(page - safePage) <= 1) return true
+                  return false
+                })
+                .map((page, idx, arr) => {
+                  const showEllipsis = idx > 0 && page - arr[idx - 1] > 1
+                  return (
+                    <span key={page} className="flex items-center">
+                      {showEllipsis && <span className="px-1 text-xs text-slate-400">…</span>}
+                      <button
+                        onClick={() => setCurrentPage(page)}
+                        className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold transition ${
+                          page === safePage
+                            ? "bg-orange-600 text-white shadow-sm"
+                            : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    </span>
+                  )
+                })}
+              <button
+                disabled={safePage >= totalPages}
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                ›
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

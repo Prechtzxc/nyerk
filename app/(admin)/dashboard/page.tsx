@@ -4,17 +4,19 @@ import type React from "react"
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import {
+  Activity,
   AlertCircle,
   ArrowRight,
   Banknote,
   Building2,
+  CalendarDays,
   CheckCircle2,
   Clock,
   CreditCard,
   Inbox,
+  Landmark,
   Tent,
   TrendingUp,
-  Activity,
 } from "lucide-react"
 
 import { useAuth } from "@/src/modules/shared/auth/auth-context"
@@ -48,8 +50,53 @@ export default function AdminDashboardPage() {
       .filter((b) => b.status === "completed" || b.status === "confirmed")
       .reduce((acc, curr) => acc + getSafePrice(curr.totalPrice), 0)
 
+    const now = new Date()
+    const currentMonth = now.getMonth()
+    const currentYear = now.getFullYear()
+
+    const monthlyBookings = bookings.filter((b) => {
+      const d = new Date(b.createdAt || 0)
+      return d.getMonth() === currentMonth && d.getFullYear() === currentYear
+    })
+
+    const monthlyRevenue = monthlyBookings
+      .filter((b) => b.status === "completed" || b.status === "confirmed")
+      .reduce((acc, curr) => acc + getSafePrice(curr.totalPrice), 0)
+
+    const cancelled = bookings.filter(
+      (b) => b.status === "cancelled" || b.status === "declined",
+    ).length
+
+    const venueCounts: Record<string, number> = {}
+    const officeCounts: Record<string, number> = {}
+    const paymentMethodCounts: Record<string, number> = {}
+
+    bookings
+      .filter((b) => b.status === "confirmed" || b.status === "completed")
+      .forEach((b) => {
+        const venue = String(b.venue || "Unassigned")
+        if (venue.toLowerCase().includes("office")) {
+          officeCounts[venue] = (officeCounts[venue] || 0) + 1
+        } else {
+          venueCounts[venue] = (venueCounts[venue] || 0) + 1
+        }
+
+        const pm = String(b.paymentMethod || "Unknown")
+        paymentMethodCounts[pm] = (paymentMethodCounts[pm] || 0) + 1
+      })
+
+    const topVenue = Object.entries(venueCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "N/A"
+    const topOffice = Object.entries(officeCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "N/A"
+    const topPaymentMethod = Object.entries(paymentMethodCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "N/A"
+
     return {
       totalRevenue,
+      monthlyRevenue,
+      monthlyBookings: monthlyBookings.length,
+      cancelled,
+      topVenue,
+      topOffice,
+      topPaymentMethod,
       pending: bookings.filter((b) => b.status === "pending").length,
       verifying: bookings.filter((b) => b.status === "verifying").length,
       confirmed: bookings.filter((b) => b.status === "confirmed").length,
@@ -134,6 +181,45 @@ export default function AdminDashboardPage() {
             label="Confirmed"
             value={stats.confirmed.toString()}
             description="Approved bookings"
+            tone="emerald"
+          />
+        </section>
+
+        <section className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6 xl:gap-5 mb-6">
+          <MiniStatCard
+            icon={<TrendingUp className="h-4 w-4" />}
+            label="Monthly Revenue"
+            value={formatCurrency(stats.monthlyRevenue)}
+            tone="orange"
+          />
+          <MiniStatCard
+            icon={<CalendarDays className="h-4 w-4" />}
+            label="Monthly Bookings"
+            value={stats.monthlyBookings.toString()}
+            tone="blue"
+          />
+          <MiniStatCard
+            icon={<AlertCircle className="h-4 w-4" />}
+            label="Cancelled"
+            value={stats.cancelled.toString()}
+            tone="rose"
+          />
+          <MiniStatCard
+            icon={<Tent className="h-4 w-4" />}
+            label="Top Venue"
+            value={stats.topVenue}
+            tone="amber"
+          />
+          <MiniStatCard
+            icon={<Building2 className="h-4 w-4" />}
+            label="Top Office"
+            value={stats.topOffice}
+            tone="sky"
+          />
+          <MiniStatCard
+            icon={<Landmark className="h-4 w-4" />}
+            label="Top Payment"
+            value={stats.topPaymentMethod}
             tone="emerald"
           />
         </section>
@@ -323,6 +409,41 @@ function getStatusBadge(status: string) {
         </span>
       )
   }
+}
+
+function MiniStatCard({
+  icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: React.ReactNode
+  label: string
+  value: string
+  tone: "orange" | "blue" | "rose" | "amber" | "sky" | "emerald"
+}) {
+  const tones: Record<string, string> = {
+    orange: "bg-orange-50 text-orange-600",
+    blue: "bg-blue-50 text-blue-600",
+    rose: "bg-rose-50 text-rose-600",
+    amber: "bg-amber-50 text-amber-600",
+    sky: "bg-sky-50 text-sky-600",
+    emerald: "bg-emerald-50 text-emerald-600",
+  }
+
+  return (
+    <div className="flex flex-col rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm sm:p-4">
+      <div className="mb-2 flex items-center gap-2">
+        <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-xl", tones[tone])}>
+          {icon}
+        </div>
+      </div>
+      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">{label}</p>
+      <p className="mt-0.5 truncate text-sm font-black tracking-tight text-slate-950 xl:text-base">
+        {value}
+      </p>
+    </div>
+  )
 }
 
 function StatCard({

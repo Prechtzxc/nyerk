@@ -11,6 +11,7 @@ import { CMSFaqsTab } from "@admin/components/cms/cms-faqs-tab"
 import { CMSPoliciesTab } from "@admin/components/cms/cms-policies-tab"
 import { CMSPastClientsTab } from "@admin/components/cms/cms-past-clients-tab"
 import { CMSContractsTab } from "@admin/components/cms/cms-contracts-tab"
+import { CMSPaymentTab } from "@admin/components/cms/cms-payment-tab"
 
 export default function CMSPage() {
   const { user } = useAuth()
@@ -46,6 +47,7 @@ export default function CMSPage() {
         {activeTab === "policies" && <CMSPoliciesTab onNavigate={setActiveTab} />}
         {activeTab === "pastClients" && <CMSPastClientsTab onNavigate={setActiveTab} />}
         {activeTab === "contracts" && <CMSContractsTab onNavigate={setActiveTab} />}
+        {activeTab === "payment" && <CMSPaymentTab onNavigate={setActiveTab} />}
       </div>
     </div>
   )

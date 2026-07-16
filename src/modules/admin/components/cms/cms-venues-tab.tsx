@@ -38,9 +38,9 @@ export function CMSVenuesTab({ onNavigate }: { onNavigate: (tab: string) => void
     resetForm()
   }
 
-  const handleDelete = (id: string) => { deleteVenue(id); setConfirmDelete(null); toast({ title: "Venue deleted", description: "Venue removed.", className: "bg-emerald-500 text-white border-none" }) }
+  const handleDelete = (id: string) => { deleteVenue(id); setConfirmDelete(null); toast({ title: "Venue archived", description: "Venue has been archived.", className: "bg-emerald-500 text-white border-none" }) }
 
-  const filtered = venues.filter((v: any) => { if (filter === "published") return !v.isHidden; if (filter === "hidden") return v.isHidden; return true })
+  const filtered = venues.filter((v: any) => { if (v.isArchived) return false; if (filter === "published") return !v.isHidden; if (filter === "hidden") return v.isHidden; return true })
 
   return (
     <div>

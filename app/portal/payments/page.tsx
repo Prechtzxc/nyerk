@@ -41,6 +41,7 @@ import {
   type Booking,
 } from "@/src/modules/client/contexts/booking-context";
 import { useAuth } from "@/src/modules/shared/auth/auth-context";
+import { useCMS } from "@/src/modules/admin/contexts/cms-context";
 import { PAYMENT_LABELS, getPaymentMethodLabel } from "@/src/modules/shared/lib/labels";
 import {
   ReceiptPaper,
@@ -502,12 +503,12 @@ function CurrentTransactionCard({
             Time left: {formatCountdown(remainingMs)}
           </p>
         )}
-        <div className="flex flex-wrap items-center justify-end gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2">
           {hasPaymentRecord(booking) && (
             <Button
               variant="outline"
               onClick={() => onView(booking)}
-              className="h-8 shrink-0 whitespace-nowrap rounded-lg border-slate-200 px-2.5 text-[10px] font-bold text-slate-700 hover:bg-slate-50"
+              className="h-8 shrink-0 whitespace-nowrap rounded-lg border-slate-200 px-2 text-[10px] font-bold text-slate-700 hover:bg-slate-50 sm:px-2.5"
             >
               View Details
             </Button>
@@ -680,6 +681,7 @@ function TransactionsContent() {
   const { toast } = useToast();
   const { bookings, submitPayment, cancelBooking } = useBookings();
   const { user } = useAuth();
+  const { paymentInfo } = useCMS();
 
   const [selectedBookingToPay, setSelectedBookingToPay] = useState<string | null>(null);
   const [localBookings, setLocalBookings] = useState<Booking[]>([]);
@@ -1506,17 +1508,22 @@ function TransactionsContent() {
                       Bank Details
                     </p>
                     <div className="flex flex-col gap-1 border-b border-slate-200 pb-3 sm:flex-row sm:justify-between">
-                      <span className="text-slate-600">BDO Account</span>
+                      <span className="text-slate-600">{paymentInfo.bankName || "BDO"}</span>
                       <span className="break-words font-bold text-slate-900">
-                        0012 3456 7890
+                        {paymentInfo.accountNumber || "0012 3456 7890"}
                       </span>
                     </div>
                     <div className="flex flex-col gap-1 pt-3 sm:flex-row sm:justify-between">
                       <span className="text-slate-600">Account Name</span>
                       <span className="break-words font-bold text-slate-900">
-                        One Estela Place
+                        {paymentInfo.accountName || "One Estela Place"}
                       </span>
                     </div>
+                    {paymentInfo.instructions && (
+                      <p className="mt-3 border-t border-slate-200 pt-3 text-xs text-slate-500">
+                        {paymentInfo.instructions}
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -1748,25 +1755,27 @@ function TransactionsContent() {
                 {paginatedOtherActive.map((booking) => {
                   const isOfficeRental = isOfficeRentalBooking(booking);
                   return (
-                    <div
-                      key={booking.id}
-                      className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-3 transition hover:border-orange-200 sm:gap-3"
-                    >
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-orange-50 text-orange-600">
-                        {isOfficeRental ? <Banknote className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="break-words text-sm font-black text-slate-900">
-                          {booking.eventName || "Untitled"}
-                        </p>
-                        <p className="text-[10px] font-semibold text-slate-500 sm:text-[11px]">
-                          {booking.id}
-                          <span className="hidden sm:inline">
-                            {" · "}{getPaymentMethodLabel(booking.paymentMethod)}{" · "}{booking.venue || "N/A"}
-                          </span>
-                        </p>
-                      </div>
-                        <div className="flex shrink-0 items-center gap-1.5">
+                      <div
+                        key={booking.id}
+                        className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-3 transition hover:border-orange-200 sm:flex-row sm:items-center sm:gap-3"
+                      >
+                        <div className="flex items-start gap-2 sm:items-center sm:gap-3">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-orange-50 text-orange-600">
+                            {isOfficeRental ? <Banknote className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="break-words text-sm font-black text-slate-900">
+                              {booking.eventName || "Untitled"}
+                            </p>
+                            <p className="text-[10px] font-semibold text-slate-500 sm:text-[11px]">
+                              {booking.id}
+                              <span className="hidden sm:inline">
+                                {" · "}{getPaymentMethodLabel(booking.paymentMethod)}{" · "}{booking.venue || "N/A"}
+                              </span>
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-1.5 sm:shrink-0">
                         <span
                           className={cn(
                             "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest whitespace-nowrap",
@@ -1779,7 +1788,7 @@ function TransactionsContent() {
                           <Button
                             variant="outline"
                             onClick={() => setViewingReceipt(booking)}
-                            className="h-8 shrink-0 whitespace-nowrap rounded-lg border-slate-200 px-2.5 text-[10px] font-bold text-slate-700 hover:bg-slate-50"
+                            className="h-8 shrink-0 whitespace-nowrap rounded-lg border-slate-200 px-2 text-[10px] font-bold text-slate-700 hover:bg-slate-50 sm:px-2.5"
                           >
                             View Details
                           </Button>

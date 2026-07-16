@@ -45,7 +45,8 @@ export function CMSPastClientsTab({ onNavigate }: { onNavigate: (tab: string) =>
   const [form, setForm] = useState<Form>(EMPTY_FORM)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
 
-  const sortedBookings = [...(cmsData.pastClientBookings || [])].sort(
+  const activePastBookings = (cmsData.pastClientBookings || []).filter((b) => !b.isArchived)
+  const sortedBookings = [...activePastBookings].sort(
     (a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()
   )
 
@@ -161,7 +162,7 @@ export function CMSPastClientsTab({ onNavigate }: { onNavigate: (tab: string) =>
   const handleDelete = (id: string) => {
     deletePastClientBooking(id)
     setConfirmDelete(null)
-    toast({ title: "Client booking deleted", description: "Entry removed from CMS.", className: "bg-emerald-500 text-white border-none" })
+    toast({ title: "Client booking archived", description: "Entry has been archived.", className: "bg-emerald-500 text-white border-none" })
   }
 
   const getCoverImage = (booking: PastClientBooking) => {
@@ -187,7 +188,7 @@ export function CMSPastClientsTab({ onNavigate }: { onNavigate: (tab: string) =>
       <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-100 px-4 py-2.5">
           <p className="text-[11px] font-semibold text-slate-500">
-            {cmsData.pastClientBookings.length} client booking{cmsData.pastClientBookings.length !== 1 ? "s" : ""}
+            {activePastBookings.length} client booking{activePastBookings.length !== 1 ? "s" : ""}
           </p>
         </div>
 

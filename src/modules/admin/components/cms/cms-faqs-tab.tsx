@@ -21,7 +21,8 @@ export function CMSFaqsTab({ onNavigate }: { onNavigate: (tab: string) => void }
   const [isHidden, setIsHidden] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
 
-  const faqs = [...cmsData.faqs].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+  const activeFaqs = cmsData.faqs.filter((f) => !f.isArchived)
+  const faqs = [...activeFaqs].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
 
   const resetForm = () => { setQuestion(""); setAnswer(""); setIsHidden(false); setEditingId(null); setShowModal(false) }
   const openNew = () => { resetForm(); setShowModal(true) }
@@ -35,13 +36,13 @@ export function CMSFaqsTab({ onNavigate }: { onNavigate: (tab: string) => void }
     resetForm()
   }
 
-  const handleDelete = (id: string) => { deleteFAQ(id); setConfirmDelete(null); toast({ title: "FAQ deleted", description: "FAQ removed.", className: "bg-emerald-500 text-white border-none" }) }
+  const handleDelete = (id: string) => { deleteFAQ(id); setConfirmDelete(null); toast({ title: "FAQ archived", description: "FAQ has been archived.", className: "bg-emerald-500 text-white border-none" }) }
 
   const moveUp = (index: number) => { if (index === 0) return; const ids = faqs.map((f) => f.id); [ids[index - 1], ids[index]] = [ids[index], ids[index - 1]]; reorderFAQs(ids) }
   const moveDown = (index: number) => { if (index >= faqs.length - 1) return; const ids = faqs.map((f) => f.id); [ids[index + 1], ids[index]] = [ids[index], ids[index + 1]]; reorderFAQs(ids) }
 
-  const visibleCount = cmsData.faqs.filter((f) => !f.isHidden).length
-  const hiddenCount = cmsData.faqs.filter((f) => f.isHidden).length
+  const visibleCount = activeFaqs.filter((f) => !f.isHidden).length
+  const hiddenCount = activeFaqs.filter((f) => f.isHidden).length
 
   return (
     <div>
