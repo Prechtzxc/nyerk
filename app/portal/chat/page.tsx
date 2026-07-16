@@ -84,7 +84,7 @@ export default function ClientSupportChatPage() {
   return (
     <>
       <div className="flex flex-col h-full w-full bg-white rounded-none border-none relative">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
+        <div className="flex items-center justify-between px-4 py-4 sm:px-6 border-b border-slate-100 shrink-0">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 shrink-0"><ShieldCheck className="w-6 h-6" /></div>
           <div>
@@ -94,7 +94,7 @@ export default function ClientSupportChatPage() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/50">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 bg-slate-50/50">
           {myMessages.map((msg: any) => (
             <div key={msg.id} className={`flex items-start gap-3 ${msg.sender === "client" ? "justify-end" : ""}`}>
               {msg.sender === "admin" && (<div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 shrink-0 mt-1"><ShieldCheck className="w-4 h-4" /></div>)}
@@ -129,7 +129,7 @@ export default function ClientSupportChatPage() {
           )}
 
           {!hasRealAdminReplied && (
-            <div className="flex flex-wrap gap-2 px-6 pt-4 pb-1">
+            <div className="flex flex-wrap gap-2 px-4 sm:px-6 pt-4 pb-1">
               {predefinedQuestions.map((q, idx) => (
                 <Button key={idx} variant="outline" size="sm" onClick={() => handleSend(q)} className="text-xs font-medium text-orange-700 bg-orange-50 border-orange-200 hover:bg-orange-100 hover:text-orange-800 rounded-full h-8"><MessageCircle className="w-3 h-3 mr-1.5" />{q}</Button>
               ))}

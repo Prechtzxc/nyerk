@@ -554,7 +554,7 @@ function HistoryRow({
           </span>
         </p>
       </div>
-      <div className="flex shrink-0 items-center gap-1.5">
+      <div className="flex shrink-0 items-center gap-1.5 flex-wrap sm:flex-nowrap">
         <span
           className={cn(
             "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest",
@@ -661,58 +661,58 @@ function PaymentSummaryCard({
       <div className="space-y-3">
         <div className="min-w-0">
           <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Method</p>
-          <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">
+          <p className="mt-0.5 whitespace-normal sm:whitespace-nowrap break-words text-xs font-bold text-slate-800">
             {booking.paymentMethod ? getPaymentMethodLabel(booking.paymentMethod) : "—"}
           </p>
         </div>
         <div className="min-w-0">
           <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Type</p>
-          <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">
+          <p className="mt-0.5 whitespace-normal sm:whitespace-nowrap break-words text-xs font-bold text-slate-800">
             {booking.paymentType ? formatTextLabel(booking.paymentType) : "—"}
           </p>
         </div>
         <div className="min-w-0">
           <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Total Amount</p>
-          <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{hasTotal ? formatMoney(totalPrice) : "—"}</p>
+          <p className="mt-0.5 whitespace-normal sm:whitespace-nowrap text-xs font-bold text-slate-800">{hasTotal ? formatMoney(totalPrice) : "—"}</p>
         </div>
         {showDP && (
           <div className="min-w-0">
             <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Selected Downpayment</p>
-            <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{formatMoney(selectedDP)}</p>
+            <p className="mt-0.5 whitespace-normal sm:whitespace-nowrap text-xs font-bold text-slate-800">{formatMoney(selectedDP)}</p>
           </div>
         )}
         {showDP && (
           <div className="min-w-0">
             <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Downpayment Paid</p>
-            <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{formatMoney(downpaymentPaid)}</p>
+            <p className="mt-0.5 whitespace-normal sm:whitespace-nowrap text-xs font-bold text-slate-800">{formatMoney(downpaymentPaid)}</p>
           </div>
         )}
         {!isTerminal && showDP && downpaymentRemaining > 0 && (
           <div className="min-w-0">
             <p className="text-[9px] font-black uppercase tracking-widest text-amber-600">Downpayment Remaining</p>
-            <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-amber-700">{formatMoney(downpaymentRemaining)}</p>
+            <p className="mt-0.5 whitespace-normal sm:whitespace-nowrap text-xs font-bold text-amber-700">{formatMoney(downpaymentRemaining)}</p>
           </div>
         )}
         <div className="min-w-0">
           <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Amount Paid</p>
-          <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{hasPaid ? formatMoney(amountPaid) : "—"}</p>
+          <p className="mt-0.5 whitespace-normal sm:whitespace-nowrap text-xs font-bold text-slate-800">{hasPaid ? formatMoney(amountPaid) : "—"}</p>
         </div>
         {!isTerminal && remaining !== null && remaining > 0 && (
           <div className="min-w-0">
             <p className="text-[9px] font-black uppercase tracking-widest text-amber-600">Remaining Balance</p>
-            <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-amber-700">{formatMoney(remaining)}</p>
+            <p className="mt-0.5 whitespace-normal sm:whitespace-nowrap text-xs font-bold text-amber-700">{formatMoney(remaining)}</p>
           </div>
         )}
         {!isTerminal && paymentStage && (
           <div className="min-w-0">
             <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Payment Stage</p>
-            <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{paymentStage}</p>
+            <p className="mt-0.5 whitespace-normal sm:whitespace-nowrap text-xs font-bold text-slate-800">{paymentStage}</p>
           </div>
         )}
         {bankRef && (
           <div className="min-w-0">
             <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Bank Reference</p>
-            <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-900">{bankRef}</p>
+            <p className="mt-0.5 whitespace-normal sm:whitespace-nowrap break-all text-xs font-bold text-slate-900">{bankRef}</p>
           </div>
         )}
       </div>
@@ -1027,7 +1027,7 @@ function BookingDetailsModal({
                     </div>
                     <div className="space-y-3">
                       <Progress value={progress.progress} className="h-2.5 rounded-full bg-slate-100" />
-                      <div className="grid grid-cols-3 gap-2 text-center">
+                      <div className="grid grid-cols-3 gap-1 sm:gap-2 text-center">
                         <div>
                           <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Days Used</p>
                           <p className="text-xs font-bold text-slate-800">{progress.daysUsed}</p>
@@ -1122,40 +1122,40 @@ function BookingDetailsModal({
                   </p>
                 </div>
                 <div className="space-y-3 text-sm font-semibold text-slate-700">
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Cancellation</span>
-                    <span className="font-bold text-slate-900">
+                  <div className="flex justify-between gap-2">
+                    <span className="text-slate-400 shrink-0">Cancellation</span>
+                    <span className="font-bold text-slate-900 text-right break-words">
                       {booking.cancellationStatus || (booking as any).cancelRequestStatus || "None"}
                     </span>
                   </div>
                   {(booking.cancellationReason || (booking as any).cancelReason) && (
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Reason</span>
-                      <span className="font-bold text-slate-900 max-w-[60%] text-right">
+                    <div className="flex justify-between gap-2">
+                      <span className="text-slate-400 shrink-0">Reason</span>
+                      <span className="font-bold text-slate-900 max-w-[60%] text-right break-words">
                         {booking.cancellationReason || (booking as any).cancelReason}
                       </span>
                     </div>
                   )}
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Refund</span>
-                    <span className="font-bold text-slate-900">
+                  <div className="flex justify-between gap-2">
+                    <span className="text-slate-400 shrink-0">Refund</span>
+                    <span className="font-bold text-slate-900 text-right break-words">
                       {amountPaid > 0 ? (booking.refundStatus || "Not Applicable") : "Not Applicable"}
                     </span>
                   </div>
                   {booking.refundEligibilityNote && (
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Eligibility</span>
-                      <span className="font-bold text-slate-900">
+                    <div className="flex justify-between gap-2">
+                      <span className="text-slate-400 shrink-0">Eligibility</span>
+                      <span className="font-bold text-slate-900 text-right break-words">
                         {booking.refundEligibilityNote}
                       </span>
                     </div>
                   )}
                   {booking.daysBeforeEventAtCancellation !== undefined && (
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">
+                    <div className="flex justify-between gap-2">
+                      <span className="text-slate-400 shrink-0">
                         Days before event
                       </span>
-                      <span className="font-bold text-slate-900">
+                      <span className="font-bold text-slate-900 text-right break-words">
                         {booking.daysBeforeEventAtCancellation} days
                       </span>
                     </div>
@@ -1817,7 +1817,7 @@ const CancellationDialog = ({
             </div>
           </div>
 
-          <footer className="shrink-0 flex items-center justify-end gap-2 border-t border-slate-100 bg-white px-5 py-4">
+          <footer className="shrink-0 flex items-center justify-end gap-2 border-t border-slate-100 bg-white px-5 py-4 flex-wrap">
             <Button
               variant="outline"
               onClick={onClose}
@@ -2978,7 +2978,7 @@ export default function MyBookingsPage() {
             )}
           </div>
         ) : (
-          <div className="mt-3 flex flex-col items-center rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
+          <div className="mt-3 flex flex-col items-center rounded-2xl border border-dashed border-slate-300 bg-white p-6 sm:p-8 text-center">
             <Calendar className="mb-3 h-10 w-10 text-slate-300" />
             <h3 className="text-sm font-black text-slate-900">No current booking found.</h3>
             <p className="mt-1 max-w-sm text-xs text-slate-500">
@@ -3093,7 +3093,7 @@ export default function MyBookingsPage() {
             />
 
           {historyEmpty ? (
-            <div className="mt-3 flex flex-col items-center rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
+            <div className="mt-3 flex flex-col items-center rounded-2xl border border-dashed border-slate-300 bg-white p-6 sm:p-8 text-center">
               <FileText className="mb-3 h-10 w-10 text-slate-300" />
               <h3 className="text-sm font-black text-slate-900">No matching bookings</h3>
               <p className="mt-1 text-xs text-slate-500">

@@ -81,7 +81,7 @@ export default function ClientPaymentPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 py-12 px-6">
+    <div className="min-h-screen bg-slate-50 py-8 px-4 sm:py-12 sm:px-6">
       <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
         
         {/* HEADER: PENCIL BOOKING ALERT */}
@@ -97,7 +97,7 @@ export default function ClientPaymentPage() {
                     </p>
                 </div>
             </div>
-            <div className="bg-white px-8 py-4 rounded-2xl border border-amber-100 text-center shrink-0 shadow-sm">
+            <div className="bg-white px-6 sm:px-8 py-4 rounded-2xl border border-amber-100 text-center shrink-0 shadow-sm">
                 <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-1">Time Left</p>
                 <p className="text-3xl font-black text-[#ea580c] tracking-tight">23:59:59</p>
             </div>
@@ -181,13 +181,13 @@ export default function ClientPaymentPage() {
                             <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
                                 <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Bank Details</p>
                                 <div className="space-y-3">
-                                    <div className="flex justify-between items-center pb-3 border-b border-slate-200">
+                                    <div className="flex justify-between items-center gap-2 pb-3 border-b border-slate-200 flex-wrap">
                                         <span className="text-sm font-medium text-slate-600">{paymentInfo.bankName || "BDO"}</span>
-                                        <span className="text-base font-black text-slate-900">{paymentInfo.accountNumber || "0012 3456 7890"}</span>
+                                        <span className="text-base font-black text-slate-900 break-all">{paymentInfo.accountNumber || "0012 3456 7890"}</span>
                                     </div>
-                                    <div className="flex justify-between items-center pt-1">
+                                    <div className="flex justify-between items-center gap-2 pt-1 flex-wrap">
                                         <span className="text-sm font-medium text-slate-600">Account Name</span>
-                                        <span className="text-base font-black text-slate-900">{paymentInfo.accountName || "One Estela Place"}</span>
+                                        <span className="text-base font-black text-slate-900 break-all">{paymentInfo.accountName || "One Estela Place"}</span>
                                     </div>
                                 </div>
                             </div>

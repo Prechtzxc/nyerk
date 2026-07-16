@@ -184,9 +184,9 @@ function getTransactionDisplayAmount(booking: Booking): number {
 
 function SummaryLine({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-start justify-between gap-4">
-      <span className="font-semibold text-slate-500">{label}</span>
-      <span className="max-w-[230px] break-all text-right text-xs font-black text-slate-900">
+    <div className="flex items-start justify-between gap-2">
+      <span className="font-semibold text-slate-500 shrink-0">{label}</span>
+      <span className="max-w-[180px] sm:max-w-[230px] break-all text-right text-xs font-black text-slate-900">
         {value}
       </span>
     </div>
@@ -642,7 +642,7 @@ function Pagination({
 }) {
   if (totalPages <= 1) return null;
   return (
-    <div className="mt-4 flex items-center justify-between gap-2">
+    <div className="mt-4 flex items-center justify-between gap-2 flex-wrap">
       <p className="text-[11px] font-bold text-slate-500">
         Page <span className="font-black text-slate-900">{page}</span> of{" "}
         <span className="font-black text-slate-900">{totalPages}</span>
@@ -903,7 +903,7 @@ function TransactionsContent() {
               setSelectedBookingToPay(null);
               router.replace("/portal/payments");
             }}
-            className="h-10 rounded-xl bg-orange-600 px-6 font-bold text-white hover:bg-orange-700"
+            className="h-10 rounded-xl bg-orange-600 px-4 sm:px-6 font-bold text-white hover:bg-orange-700"
           >
             Back to Transactions
           </Button>
@@ -1108,7 +1108,7 @@ function TransactionsContent() {
     };
 
     return (
-      <div className="mx-auto w-full max-w-6xl space-y-5 p-4 pb-10 md:p-6">
+      <div className="mx-auto w-full max-w-6xl space-y-5 p-4 pb-6 md:pb-10 md:p-6">
         <Dialog
           open={isPaymentConfirmOpen}
           onOpenChange={setIsPaymentConfirmOpen}
@@ -1562,7 +1562,7 @@ function TransactionsContent() {
                     </Label>
 
                     {!proofFile ? (
-                      <div className="relative cursor-pointer rounded-xl border-2 border-dashed border-slate-300 p-8 text-center transition-colors hover:bg-slate-50">
+                      <div className="relative cursor-pointer rounded-xl border-2 border-dashed border-slate-300 p-6 sm:p-8 text-center transition-colors hover:bg-slate-50">
                         <input
                           type="file"
                           accept="image/*"
@@ -1733,7 +1733,7 @@ function TransactionsContent() {
                 />
               </div>
             ) : (
-              <div className="mt-3 flex flex-col items-center rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
+              <div className="mt-3 flex flex-col items-center rounded-2xl border border-dashed border-slate-300 bg-white p-6 sm:p-8 text-center">
                 <Receipt className="mb-3 h-10 w-10 text-slate-300" />
                 <h3 className="text-sm font-black text-slate-900">No active transaction</h3>
                 <p className="mt-1 max-w-sm text-xs text-slate-500">
@@ -1933,7 +1933,7 @@ function TransactionsContent() {
               icon={<Receipt className="h-4 w-4" />}
             />
             {filteredHistory.length === 0 ? (
-              <div className="mt-3 flex flex-col items-center rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
+              <div className="mt-3 flex flex-col items-center rounded-2xl border border-dashed border-slate-300 bg-white p-6 sm:p-8 text-center">
                 <FileImage className="mb-3 h-10 w-10 text-slate-300" />
                 <h3 className="text-sm font-black text-slate-900">No matching transactions</h3>
                 <p className="mt-1 text-xs text-slate-500">
@@ -2080,7 +2080,7 @@ function ReceiptDetails({
             verifies your payment.
           </p>
         </div>
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 sm:p-6 text-center">
           <Receipt className="mx-auto mb-3 h-10 w-10 text-slate-300" />
           <p className="text-sm font-black text-slate-700">
             No system-generated receipt yet.
