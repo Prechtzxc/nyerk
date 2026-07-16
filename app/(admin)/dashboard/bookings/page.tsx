@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useEffect, useMemo, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import {
   AlertCircle,
   Calendar,
@@ -262,15 +262,14 @@ export default function AdminBookingsPage() {
     }
   }, [bookings, selectedBooking?.id])
 
-  const urlStatusRef = useMemo(() => {
-    if (typeof window === "undefined") return null
-    const params = new URLSearchParams(window.location.search)
-    return params.get("status")
-  }, [])
+  const searchParams = useSearchParams()
 
   useEffect(() => {
-    if (urlStatusRef) setStatusFilter(urlStatusRef)
-  }, [urlStatusRef])
+    const statusParam = searchParams?.get("status")
+    if (statusParam) {
+      setStatusFilter(statusParam)
+    }
+  }, [searchParams])
 
   const venueOptions = useMemo(() => {
     const venues = new Set(bookings.map((b) => b.venue).filter(Boolean) as string[])
