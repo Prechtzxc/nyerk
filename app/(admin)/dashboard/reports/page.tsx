@@ -672,29 +672,9 @@ export default function ReportsPage() {
       </div>
 
       <div className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm">
-        <div className="flex flex-col gap-2 border-b border-slate-100 bg-slate-50 px-6 py-5 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h3 className="text-lg font-black text-slate-950">Booking Records</h3>
-            <p className="text-xs font-semibold text-slate-500">
-              Showing {filteredData.length === 0 ? 0 : (safePage - 1) * rowsPerPage + 1}
-              &ndash;{Math.min(safePage * rowsPerPage, filteredData.length)} of {filteredData.length} record
-              {filteredData.length === 1 ? "" : "s"} from your selected filters.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <span className="text-[11px] font-bold text-slate-500">Rows:</span>
-            <select
-              value={rowsPerPage}
-              onChange={(e) => setRowsPerPage(Number(e.target.value))}
-              className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-orange-500"
-            >
-              <option value={10}>10</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
-          </div>
+        <div className="flex items-center border-b border-slate-100 bg-slate-50 px-6 py-5">
+          <h3 className="text-lg font-black text-slate-950">Booking Records</h3>
+          <p className="ml-2 text-xs font-semibold text-slate-500">({filteredData.length} record{filteredData.length === 1 ? "" : "s"})</p>
         </div>
 
         <div className="overflow-x-auto">
@@ -770,51 +750,25 @@ export default function ReportsPage() {
         </div>
 
         {totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4">
-            <p className="text-[11px] font-bold text-slate-500">
-              Page {safePage} of {totalPages}
+          <div className="flex items-center justify-center gap-4 border-t border-slate-100 px-6 py-4">
+            <button
+              disabled={safePage <= 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Previous
+            </button>
+            <p className="text-xs font-bold text-slate-500">
+              Page <span className="font-black text-slate-900">{safePage}</span> of{" "}
+              <span className="font-black text-slate-900">{totalPages}</span>
             </p>
-            <div className="flex items-center gap-1.5">
-              <button
-                disabled={safePage <= 1}
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                ‹
-              </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1)
-                .filter((page) => {
-                  if (totalPages <= 7) return true
-                  if (page === 1 || page === totalPages) return true
-                  if (Math.abs(page - safePage) <= 1) return true
-                  return false
-                })
-                .map((page, idx, arr) => {
-                  const showEllipsis = idx > 0 && page - arr[idx - 1] > 1
-                  return (
-                    <span key={page} className="flex items-center">
-                      {showEllipsis && <span className="px-1 text-xs text-slate-400">…</span>}
-                      <button
-                        onClick={() => setCurrentPage(page)}
-                        className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold transition ${
-                          page === safePage
-                            ? "bg-orange-600 text-white shadow-sm"
-                            : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                        }`}
-                      >
-                        {page}
-                      </button>
-                    </span>
-                  )
-                })}
-              <button
-                disabled={safePage >= totalPages}
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                ›
-              </button>
-            </div>
+            <button
+              disabled={safePage >= totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Next
+            </button>
           </div>
         )}
       </div>
