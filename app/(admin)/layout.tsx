@@ -21,7 +21,6 @@ import {
   Search,
   Bell,
   Menu,
-  BellDot,
 } from "lucide-react"
 
 import { Button } from "@/src/modules/shared/components/ui/button"
@@ -52,7 +51,6 @@ const ADMIN_MENU = [
   { name: "Chat Support", href: "/dashboard/chat", icon: MessageSquare, key: "chat" },
   { name: "Payment Verification", href: "/dashboard/payments", icon: CreditCard, key: "payments" },
   { name: "Reports & Analytics", href: "/dashboard/reports", icon: BarChart, key: "reports" },
-  { name: "Notifications", href: "/dashboard/notifications", icon: BellDot, key: "dashboard" },
   { name: "Staff Management", href: "/dashboard/staff", icon: Users, key: "staff" },
   { name: "CMS Settings", href: "/dashboard/cms", icon: Settings, key: "cms" },
   { name: "Users Information", href: "/users", icon: UserCheck, key: "users" },
