@@ -97,26 +97,26 @@ function GalleryModal({
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); setZoom((z) => Math.min(3, z + 0.5)) }}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-black/30 text-white border border-white/25 transition hover:bg-white/20"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-800 text-white border border-slate-600/50 shadow-lg transition hover:bg-slate-700 hover:border-slate-500"
             aria-label="Zoom in"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-5 w-5" />
           </button>
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); setZoom((z) => Math.max(1, z - 0.5)) }}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-black/30 text-white border border-white/25 transition hover:bg-white/20"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-800 text-white border border-slate-600/50 shadow-lg transition hover:bg-slate-700 hover:border-slate-500"
             aria-label="Zoom out"
           >
-            <Minus className="h-4 w-4" />
+            <Minus className="h-5 w-5" />
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-black/30 text-white border border-white/25 transition hover:bg-white/20"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-800 text-white border border-slate-600/50 shadow-lg transition hover:bg-slate-700 hover:border-slate-500"
             aria-label="Close"
           >
-            <X className="h-4 w-4" />
+            <X className="h-5 w-5" />
           </button>
         </div>
       </header>
