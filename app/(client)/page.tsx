@@ -126,7 +126,7 @@ function GalleryModal({
           {total > 0 ? (
             <>
               <div
-                className={cn("flex items-center justify-center max-w-full", isPortrait ? "max-h-[60vh]" : "max-h-[80vh]")}
+                className={cn("flex items-center justify-center max-w-full", isPortrait ? "max-h-[50vh]" : "max-h-[80vh]")}
                 onClick={(e) => e.stopPropagation()}
               >
                 <img
