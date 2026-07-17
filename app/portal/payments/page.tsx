@@ -477,7 +477,7 @@ function CurrentTransactionCard({
       </div>
 
       {/* ---- Info grid ---- */}
-      <div className="grid min-w-0 flex-1 grid-cols-1 gap-y-2 gap-x-3 sm:grid-cols-4">
+      <div className="grid min-w-0 flex-1 grid-cols-1 gap-y-2 gap-x-3 sm:grid-cols-3">
         <div className="min-w-0">
           <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Booking ID</p>
           <p className="mt-0.5 break-all text-xs font-black text-slate-800">{booking.id}</p>
@@ -494,40 +494,36 @@ function CurrentTransactionCard({
             {isOfficeRental ? "Slot Reservation" : (booking as any).paymentType === "downpayment" ? "Down Payment" : "Full Payment"}
           </p>
         </div>
-        <div className="min-w-0">
-          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Status</p>
-          <div className="mt-1 flex flex-wrap gap-1">
-            <span
-              className={cn(
-                "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest whitespace-nowrap",
-                getStatusBadgeClass(booking.paymentStatus, booking.status, (booking as any).paymentStage, (booking as any).remainingBalance),
-              )}
-            >
-              {getStatusLabel(booking.paymentStatus, booking.status, (booking as any).paymentStage, (booking as any).remainingBalance)}
-            </span>
-          </div>
-        </div>
       </div>
 
       {/* ---- Timer + actions ---- */}
-      <div className="flex flex-col gap-2 sm:items-end">
+      <div className="flex flex-col gap-2">
         {booking.status === "pending" && !isCashPending && !isExpired && (
-          <p className="rounded-md bg-orange-50 px-2 py-1 text-[10px] font-black text-orange-700">
+          <p className="rounded-md bg-orange-50 px-2 py-1 text-[10px] font-black text-orange-700 sm:text-right">
             Time left: {formatCountdown(remainingMs)}
           </p>
         )}
-        {/* Mobile: justify-between opposite sides.  Desktop: right-aligned side-by-side. */}
-        <div className="flex flex-row justify-between items-center gap-1.5 sm:flex-row sm:items-center sm:gap-2">
-          {hasPaymentRecord(booking) && (
-            <Button
-              variant="outline"
-              onClick={() => onView(booking)}
-              className="h-8 whitespace-nowrap rounded-lg border-slate-200 px-2.5 text-[10px] font-bold text-slate-700 hover:bg-slate-50"
-            >
-              View Details
-            </Button>
-          )}
-          <PaymentActionButtons booking={booking} onPay={onPay} onSettle={onSettle} compact />
+        <div className="flex flex-row items-center justify-between gap-2 sm:gap-3">
+          <span
+            className={cn(
+              "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest whitespace-nowrap w-fit",
+              getStatusBadgeClass(booking.paymentStatus, booking.status, (booking as any).paymentStage, (booking as any).remainingBalance),
+            )}
+          >
+            {getStatusLabel(booking.paymentStatus, booking.status, (booking as any).paymentStage, (booking as any).remainingBalance)}
+          </span>
+          <div className="flex flex-row items-center gap-1.5 sm:gap-2 shrink-0">
+            {hasPaymentRecord(booking) && (
+              <Button
+                variant="outline"
+                onClick={() => onView(booking)}
+                className="h-8 whitespace-nowrap rounded-lg border-slate-200 px-2.5 text-[10px] font-bold text-slate-700 hover:bg-slate-50"
+              >
+                View Details
+              </Button>
+            )}
+            <PaymentActionButtons booking={booking} onPay={onPay} onSettle={onSettle} compact />
+          </div>
         </div>
       </div>
     </div>
@@ -1802,7 +1798,7 @@ function TransactionsContent() {
                         </div>
 
                         {/* ---- Status badge + actions ---- */}
-                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2 sm:shrink-0">
+                        <div className="flex flex-row items-center justify-between gap-2 sm:gap-3">
                           <span
                             className={cn(
                               "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest whitespace-nowrap w-fit",
@@ -1811,8 +1807,7 @@ function TransactionsContent() {
                           >
                             {getStatusLabel(booking.paymentStatus, booking.status, (booking as any).paymentStage, (booking as any).remainingBalance)}
                           </span>
-                          {/* Mobile: justify-between opposite sides. Desktop: right-aligned side-by-side. */}
-                          <div className="flex flex-row justify-between items-center gap-1.5 sm:flex-row sm:items-center sm:gap-1.5">
+                          <div className="flex flex-row items-center gap-1.5 sm:gap-2 shrink-0">
                             {hasPaymentRecord(booking) && (
                               <Button
                                 variant="outline"

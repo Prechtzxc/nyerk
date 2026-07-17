@@ -295,12 +295,13 @@ export default function AdminBookingsPage() {
           .some((f) => f && String(f).toLowerCase().includes(q))
       })
       .sort((a, b) => {
-        const aTime = new Date(a.createdAt).getTime()
-        const bTime = new Date(b.createdAt).getTime()
-        if (isNaN(aTime) && isNaN(bTime)) return 0
-        if (isNaN(aTime)) return 1
-        if (isNaN(bTime)) return -1
-        return bTime - aTime
+        const getTime = (record: Booking) => {
+          const t = (record as any).lastActivityAt || record.createdAt
+          if (!t) return 0
+          const d = new Date(t).getTime()
+          return isNaN(d) ? 0 : d
+        }
+        return getTime(b) - getTime(a)
       })
   }, [bookings, statusFilter, venueFilter, searchQuery])
 

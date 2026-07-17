@@ -174,6 +174,7 @@ export interface Booking {
   bookingStatus?: BookingStatusLabel;
   isSlotSecured?: boolean;
   createdAt: string;
+  lastActivityAt?: string;
   updatedAt?: string;
   userInfo?: {
     name: string;
@@ -1286,6 +1287,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         },
       ],
       createdAt: new Date().toISOString(),
+      lastActivityAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     } as Booking;
 
@@ -1345,6 +1347,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           verifiedByAdmin: true,
           verifiedAt: new Date().toISOString(),
           paymentVerifiedAt: new Date().toISOString(),
+          lastActivityAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           adminLogs: makeAdminLog(
             booking,
@@ -1372,6 +1375,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         verifiedAt: shouldVerifyPayment
           ? new Date().toISOString()
           : booking.verifiedAt,
+        lastActivityAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       } as Booking;
 
@@ -1452,6 +1456,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           booking.paymentStatus === "partial"
             ? booking.paymentStatus
             : "cancelled",
+        lastActivityAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
     });
@@ -1495,6 +1500,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           "Another customer completed payment for this office room before your payment was verified. Please choose another available room.",
         cancellationReason:
           "Another customer completed payment for this office room before your payment was verified.",
+        lastActivityAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         adminLogs: makeAdminLog(
           b,
@@ -1519,7 +1525,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
 
   const modifyBooking = (id: string, updates: Partial<Booking>) => {
     saveBookings(
-      bookings.map((booking) => (booking.id === id ? { ...booking, ...updates, updatedAt: new Date().toISOString() } : booking))
+      bookings.map((booking) => (booking.id === id ? { ...booking, ...updates, lastActivityAt: new Date().toISOString(), updatedAt: new Date().toISOString() } : booking))
     );
   };
 
@@ -1567,6 +1573,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
             : "No refund will be processed if admin confirms the request is non-refundable based on policy."
           : "No payment has been made, so no refund is applicable.",
         daysBeforeEventAtCancellation: isSlotSecured ? daysBefore : null,
+        lastActivityAt: now,
         updatedAt: now,
         adminLogs: makeAdminLog(
           booking,
@@ -1628,6 +1635,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         refundInstructions: eligible
           ? "Refund may be claimed onsite in cash within the allowed processing period."
           : "No refund will be processed based on the venue cancellation policy.",
+        lastActivityAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         adminLogs: makeAdminLog(
           booking,
@@ -1692,6 +1700,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         previousStatus: null,
         previousBookingStatus: null,
         previousPaymentStatus: null,
+        lastActivityAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         adminLogs: makeAdminLog(
           booking,
@@ -1753,6 +1762,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           venueId: booking.venueId,
           specialRequests: booking.specialRequests,
         },
+        lastActivityAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         adminLogs: makeAdminLog(
           booking,
@@ -1812,6 +1822,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         modificationPreviousBookingStatus: null,
         requestedChanges: null,
         originalBookingSnapshot: null,
+        lastActivityAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         adminLogs: makeAdminLog(
           booking,
@@ -1862,6 +1873,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         modificationPreviousBookingStatus: null,
         requestedChanges: null,
         originalBookingSnapshot: null,
+        lastActivityAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         adminLogs: makeAdminLog(
           booking,
@@ -1907,6 +1919,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         refundReadyDate: booking.refundReadyDate || new Date().toISOString(),
         refundInstructions:
           "Your cash refund is ready. Please claim it at the One Estela Place office.",
+        lastActivityAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         adminLogs: makeAdminLog(
           booking,
@@ -1942,6 +1955,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         ...booking,
         refundStatus: "Refund Claimed" as RefundStatus,
         refundClaimedDate: new Date().toISOString(),
+        lastActivityAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         adminLogs: makeAdminLog(
           booking,
@@ -1976,6 +1990,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           ...booking,
           status: newStatus,
         }),
+        lastActivityAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         adminLogs: makeAdminLog(
           booking,
@@ -2042,6 +2057,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
               "Another customer completed payment for this office room before your payment was verified. Please choose another available room.",
             cancellationReason:
               "Another customer completed payment for this office room before your payment was verified.",
+            lastActivityAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             adminLogs: makeAdminLog(
               booking,
@@ -2075,6 +2091,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           verifiedByAdmin: true,
           verifiedAt: new Date().toISOString(),
           paymentVerifiedAt: new Date().toISOString(),
+          lastActivityAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           adminLogs: makeAdminLog(
             booking,
@@ -2113,6 +2130,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           contractSigningRequired: true,
           contractSigned: booking.contractSigned || false,
           contractStatus: booking.contractSigned ? "Signed" : "Pending Signature",
+          lastActivityAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         });
 
@@ -2127,6 +2145,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           contractSigningRequired: true,
           contractSigned: booking.contractSigned || false,
           contractStatus: booking.contractSigned ? "Signed" : "Pending Signature",
+          lastActivityAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           adminLogs: makeAdminLog(
             booking,
@@ -2159,6 +2178,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         contractSigningRequired: true,
         contractSigned: booking.contractSigned || false,
         contractStatus: booking.contractSigned ? "Signed" : "Pending Signature",
+        lastActivityAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         adminLogs: makeAdminLog(
           booking,
@@ -2277,6 +2297,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         contractSigningRequired: true,
         contractSigned: booking.contractSigned || false,
         contractStatus: booking.contractSigned ? "Signed" as ContractStatus : "Pending Signature" as ContractStatus,
+        lastActivityAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         adminLogs: makeAdminLog(
           booking,
@@ -2309,6 +2330,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         remainingBalancePaid: true,
         verifiedByAdmin: true,
         verifiedAt: new Date().toISOString(),
+        lastActivityAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });
 
@@ -2320,6 +2342,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         paymentMethod: method,
         verifiedByAdmin: true,
         verifiedAt: new Date().toISOString(),
+        lastActivityAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         adminLogs: makeAdminLog(
           booking,
@@ -2351,6 +2374,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
               "Another customer completed payment for this office room before your payment was verified. Please choose another available room.",
             cancellationReason:
               "Another customer completed payment for this office room before your payment was verified.",
+            lastActivityAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             adminLogs: makeAdminLog(
               booking,
@@ -2388,6 +2412,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           officeContractSigningRequired: true,
           verifiedByAdmin: true,
           verifiedAt: new Date().toISOString(),
+          lastActivityAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           adminLogs: makeAdminLog(
             booking,
@@ -2423,25 +2448,27 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           paymentVerifiedAt: new Date().toISOString(),
           paymentVerifiedBy: reviewData?.adminName || "Administrator",
           paymentVerifiedAmount: paymentAmount,
-          verifiedByAdmin: true,
-          verifiedAt: new Date().toISOString(),
-          contractSigningRequired: true,
-          contractSigned: booking.contractSigned || false,
-          contractStatus: booking.contractSigned ? "Signed" : "Pending Signature",
-          updatedAt: new Date().toISOString(),
-        });
+        verifiedByAdmin: true,
+        verifiedAt: new Date().toISOString(),
+        contractSigningRequired: true,
+        contractSigned: booking.contractSigned || false,
+        contractStatus: booking.contractSigned ? "Signed" : "Pending Signature",
+        lastActivityAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
 
-        return attachAutoReceipt({
-          ...updated,
-          status: "confirmed" as BookingStatus,
-          bookingStatus: "Confirmed",
-          isSlotSecured: true,
-          verifiedByAdmin: true,
-          verifiedAt: new Date().toISOString(),
-          contractSigningRequired: true,
-          contractSigned: booking.contractSigned || false,
-          contractStatus: booking.contractSigned ? "Signed" : "Pending Signature",
-          updatedAt: new Date().toISOString(),
+      return attachAutoReceipt({
+        ...updated,
+        status: "confirmed" as BookingStatus,
+        bookingStatus: "Confirmed",
+        isSlotSecured: true,
+        verifiedByAdmin: true,
+        verifiedAt: new Date().toISOString(),
+        contractSigningRequired: true,
+        contractSigned: booking.contractSigned || false,
+        contractStatus: booking.contractSigned ? "Signed" : "Pending Signature",
+        lastActivityAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
           adminLogs: makeAdminLog(
             booking,
             "VERIFY_PAYMENT",
@@ -2478,6 +2505,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         contractSigningRequired: true,
         contractSigned: booking.contractSigned || false,
         contractStatus: booking.contractSigned ? "Signed" : "Pending Signature",
+        lastActivityAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         adminLogs: makeAdminLog(
           booking,
@@ -2526,6 +2554,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           paymentAmount: 0,
           pendingPaymentAmount: 0,
           paymentSubmittedAt: undefined,
+          lastActivityAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         });
 
@@ -2556,6 +2585,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         hasActivePaymentSubmission: false,
         remainingBalance: getSafePrice(booking.totalPrice),
         remainingBalancePaid: false,
+        lastActivityAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         adminLogs: makeAdminLog(
           booking,
@@ -2626,6 +2656,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         contractSigningRequired: true,
         contractSigned: booking.contractSigned || false,
         contractStatus: booking.contractSigned ? "Signed" as ContractStatus : "Pending Signature" as ContractStatus,
+        lastActivityAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         adminLogs: makeAdminLog(
           booking,
@@ -2741,6 +2772,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
             officePaymentInstructions: "Customer selected Pay at the Office for office slot reservation. Awaiting admin onsite payment verification.",
             verifiedByAdmin: false,
             hasActivePaymentSubmission: true,
+            lastActivityAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             adminLogs: makeAdminLog(
               booking,
@@ -2776,6 +2808,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
             "This payment secures your office reservation slot only. After admin verification, succeeding rental payments are settled onsite via check and recorded by admin.",
           verifiedByAdmin: false,
           hasActivePaymentSubmission: true,
+          lastActivityAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           adminLogs: makeAdminLog(
             booking,
@@ -2828,6 +2861,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
             remainingBalancePaid: false,
             verifiedByAdmin: false,
             hasActivePaymentSubmission: true,
+            lastActivityAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             adminLogs: makeAdminLog(
               booking,
@@ -2857,6 +2891,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           remainingBalancePaid: false,
           verifiedByAdmin: false,
           hasActivePaymentSubmission: true,
+          lastActivityAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
       }
@@ -2886,6 +2921,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
             paymentSubmittedAt: new Date().toISOString(),
             verifiedByAdmin: false,
             hasActivePaymentSubmission: true,
+            lastActivityAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             adminLogs: makeAdminLog(
               booking,
@@ -2913,6 +2949,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           remainingBalancePaid: false,
           verifiedByAdmin: false,
           hasActivePaymentSubmission: true,
+          lastActivityAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
       }
@@ -2938,6 +2975,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           remainingBalancePaid: false,
           verifiedByAdmin: false,
           hasActivePaymentSubmission: true,
+          lastActivityAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           adminLogs: makeAdminLog(
             booking,
@@ -2967,6 +3005,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         remainingBalancePaid: false,
         verifiedByAdmin: false,
         hasActivePaymentSubmission: true,
+        lastActivityAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
     });
@@ -3362,6 +3401,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       return {
         ...booking,
         officePaymentTracker: [...tracker, newPayment],
+        lastActivityAt: now,
         updatedAt: now,
         adminLogs: makeAdminLog(
           booking,
@@ -3401,6 +3441,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
                 }
               : payment,
         ),
+        lastActivityAt: now,
         updatedAt: now,
         adminLogs: makeAdminLog(
           booking,
@@ -3422,6 +3463,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         officePaymentTracker: (booking.officePaymentTracker || []).filter(
           (payment) => payment.id !== paymentId,
         ),
+        lastActivityAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         adminLogs: makeAdminLog(
           booking,
