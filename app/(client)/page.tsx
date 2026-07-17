@@ -18,8 +18,8 @@ import {
   Loader2,
   Sparkles,
   X,
-  Plus,
-  Minus,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react"
 import { ReserveButton } from "@/src/modules/client/components/reserve-button"
 import { TourButton } from "@/src/modules/client/components/tour-button"
@@ -100,7 +100,7 @@ function GalleryModal({
             className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-800 text-white border border-slate-600/50 shadow-lg transition hover:bg-slate-700 hover:border-slate-500"
             aria-label="Zoom in"
           >
-            <Plus className="h-5 w-5" />
+            <ZoomIn className="h-5 w-5" />
           </button>
           <button
             type="button"
@@ -108,7 +108,7 @@ function GalleryModal({
             className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-800 text-white border border-slate-600/50 shadow-lg transition hover:bg-slate-700 hover:border-slate-500"
             aria-label="Zoom out"
           >
-            <Minus className="h-5 w-5" />
+            <ZoomOut className="h-5 w-5" />
           </button>
           <button
             type="button"
@@ -134,7 +134,7 @@ function GalleryModal({
                   alt={`${booking.eventName} photo ${currentIndex + 1}`}
                   className={cn(
                     "rounded-lg object-contain transition-transform duration-200",
-                    isPortrait ? "max-h-[50vh] w-auto" : "max-h-[80vh] w-auto"
+                    isPortrait ? "max-h-[55vh] w-auto" : "max-h-[80vh] w-auto"
                   )}
                   style={{ transform: `scale(${zoom})` }}
                   onLoad={(e) => {

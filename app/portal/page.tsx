@@ -210,10 +210,25 @@ export default function ClientDashboardPage() {
   const activeRental = useMemo(() => officeBookings.find(b => b.status === "active_rental"), [officeBookings])
   const contractSigning = useMemo(() => officeBookings.find(b => b.status === "contract_signing_required"), [officeBookings])
   const expiredRental = useMemo(() => officeBookings.find(b => b.status === "rental_expired"), [officeBookings])
-  const topOther = useMemo(() => {
-    const nonOffice = myBookings.filter((b) => !isOfficeBooking(b))
-    return getCurrentBooking(nonOffice)
+
+  const sortedBookings = useMemo(() => {
+    return [...myBookings].sort(
+      (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime(),
+    )
   }, [myBookings])
+
+  const currentBookingId = useMemo(() => {
+    const current = getCurrentBooking(sortedBookings)
+    return current?.id || ""
+  }, [sortedBookings])
+
+  const otherBookings = useMemo(() => {
+    return sortedBookings.filter(b => b.id !== currentBookingId).slice(0, 5)
+  }, [sortedBookings, currentBookingId])
+
+  const topOther = useMemo(() => {
+    return sortedBookings.find(b => b.id === currentBookingId) || sortedBookings[0] || null
+  }, [sortedBookings, currentBookingId])
 
   const recentPayments = useMemo(() => myBookings.filter(b => {
     const ps = String(b.paymentStatus || "").toLowerCase()
@@ -406,12 +421,12 @@ export default function ClientDashboardPage() {
             </div>
             <Card className="rounded-2xl border-slate-200 shadow-sm bg-white overflow-hidden">
               <div className="divide-y divide-slate-100">
-                {myBookings.length === 0 ? (
+                {otherBookings.length === 0 ? (
                   <div className="p-6 text-center">
-                    <p className="text-xs text-slate-500">No bookings found.</p>
+                    <p className="text-xs text-slate-500">No other bookings found.</p>
                   </div>
                 ) : (
-                  myBookings.slice(0, 5).map((booking) => {
+                  otherBookings.map((booking) => {
                     const isOffice = isOfficeBooking(booking)
                     const officeStatus = isOffice ? getOfficeStatusDisplay(booking) : null
                     return (
