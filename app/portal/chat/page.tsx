@@ -17,7 +17,6 @@ function formatMessageTime(timestamp?: string | number | Date): string {
   const timeStr = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
   if (diffDays === 0) return timeStr
   if (diffDays === 1) return "Yesterday"
-  if (diffDays < 7) return date.toLocaleDateString([], { weekday: "long" })
   return date.toLocaleDateString([], { month: "long", day: "2-digit", year: "numeric" })
 }
 
