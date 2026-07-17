@@ -85,7 +85,7 @@ function GalleryModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col bg-black/95 animate-in fade-in duration-200"
+      className="fixed inset-0 z-[10000] flex flex-col bg-black/95 animate-in fade-in duration-200"
       onClick={onClose}
     >
       <header className="shrink-0 flex items-center justify-between border-b border-white/10 px-4 py-3" onClick={(e) => e.stopPropagation()}>
@@ -147,7 +147,7 @@ function GalleryModal({
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); setCurrentIndex((i) => i - 1); setZoom(1) }}
-                      className="fixed left-4 top-1/2 -translate-y-1/2 z-[60] flex h-12 w-12 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur transition hover:bg-black/80"
+                      className="fixed left-4 top-1/2 -translate-y-1/2 z-[10001] flex h-12 w-12 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur transition hover:bg-black/80"
                     >
                       <ChevronLeft className="h-6 w-6" />
                     </button>
@@ -156,7 +156,7 @@ function GalleryModal({
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); setCurrentIndex((i) => i + 1); setZoom(1) }}
-                      className="fixed right-4 top-1/2 -translate-y-1/2 z-[60] flex h-12 w-12 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur transition hover:bg-black/80"
+                      className="fixed right-4 top-1/2 -translate-y-1/2 z-[10001] flex h-12 w-12 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur transition hover:bg-black/80"
                     >
                       <ChevronRight className="h-6 w-6" />
                     </button>

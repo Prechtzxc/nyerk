@@ -59,44 +59,83 @@ function BookingProgressIndicator({ status }: { status?: string }) {
     return "bg-slate-200"
   }
   return (
-    <div className="flex items-start w-full min-w-0">
-      {STAGES.map((stage, idx) => {
-        const isDone = idx < currentIdx
-        const isCurrent = idx === currentIdx
-        return (
-          <div key={stage.key} className="flex-1 flex flex-col items-center gap-1">
-            <div className="flex items-center w-full">
-              <div className={cn(
-                "flex-1 h-px",
-                idx === 0 && "invisible",
-                getLineColor(idx - 1)
-              )} />
-              <div className={cn(
-                "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-black",
-                isDone ? "bg-emerald-500 text-white" :
-                isCurrent ? "bg-orange-500 text-white" :
-                "bg-slate-200 text-slate-400"
-              )}>
-                {isDone ? <CheckCircle2 className="w-3.5 h-3.5" /> : idx + 1}
+    <>
+      {/* Vertical timeline — mobile only */}
+      <div className="flex flex-col md:hidden">
+        {STAGES.map((stage, idx) => {
+          const isDone = idx < currentIdx
+          const isCurrent = idx === currentIdx
+          return (
+            <div key={stage.key} className="flex items-stretch gap-3">
+              <div className="flex flex-col items-center">
+                <div className={cn(
+                  "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-black",
+                  isDone ? "bg-emerald-500 text-white" :
+                  isCurrent ? "bg-orange-500 text-white" :
+                  "bg-slate-200 text-slate-400"
+                )}>
+                  {isDone ? <CheckCircle2 className="w-3.5 h-3.5" /> : idx + 1}
+                </div>
+                {idx < STAGES.length - 1 && (
+                  <div className={cn(
+                    "w-px flex-1 min-h-[1.5rem]",
+                    isDone ? "bg-emerald-300" : isCurrent ? "bg-orange-300" : "bg-slate-200"
+                  )} />
+                )}
               </div>
-              <div className={cn(
-                "flex-1 h-px",
-                idx === STAGES.length - 1 && "invisible",
-                getLineColor(idx)
-              )} />
+              <span className={cn(
+                "text-[11px] font-bold leading-tight pt-0.5 pb-3",
+                isDone ? "text-emerald-600" :
+                isCurrent ? "text-orange-600" :
+                "text-slate-400"
+              )}>
+                {stage.label}
+              </span>
             </div>
-            <span className={cn(
-              "text-[8px] sm:text-[9px] font-bold leading-tight text-center px-0.5 break-words max-w-full min-w-0",
-              isDone ? "text-emerald-600" :
-              isCurrent ? "text-orange-600" :
-              "text-slate-400"
-            )}>
-              {stage.label}
-            </span>
-          </div>
-        )
-      })}
-    </div>
+          )
+        })}
+      </div>
+
+      {/* Horizontal stepper — desktop only */}
+      <div className="hidden md:flex items-start w-full min-w-0">
+        {STAGES.map((stage, idx) => {
+          const isDone = idx < currentIdx
+          const isCurrent = idx === currentIdx
+          return (
+            <div key={stage.key} className="flex-1 flex flex-col items-center gap-1">
+              <div className="flex items-center w-full">
+                <div className={cn(
+                  "flex-1 h-px",
+                  idx === 0 && "invisible",
+                  getLineColor(idx - 1)
+                )} />
+                <div className={cn(
+                  "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-black",
+                  isDone ? "bg-emerald-500 text-white" :
+                  isCurrent ? "bg-orange-500 text-white" :
+                  "bg-slate-200 text-slate-400"
+                )}>
+                  {isDone ? <CheckCircle2 className="w-3.5 h-3.5" /> : idx + 1}
+                </div>
+                <div className={cn(
+                  "flex-1 h-px",
+                  idx === STAGES.length - 1 && "invisible",
+                  getLineColor(idx)
+                )} />
+              </div>
+              <span className={cn(
+                "text-[9px] font-bold leading-tight text-center px-0.5 break-words max-w-full min-w-0",
+                isDone ? "text-emerald-600" :
+                isCurrent ? "text-orange-600" :
+                "text-slate-400"
+              )}>
+                {stage.label}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+    </>
   )
 }
 
@@ -325,11 +364,7 @@ export default function ClientDashboardPage() {
                     </div>
                     <div className="border-t border-slate-100 pt-4">
                       <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Progress</p>
-                      <div className="overflow-x-auto pb-1">
-                        <div className="min-w-[320px]">
-                          <BookingProgressIndicator status={topOther.status} />
-                        </div>
-                      </div>
+                      <BookingProgressIndicator status={topOther.status} />
                     </div>
                   </div>
                 </CardContent>
