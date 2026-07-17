@@ -5,7 +5,7 @@ import { useAuth } from "@/src/modules/shared/auth/auth-context"
 import { Card, CardContent } from "@/src/modules/shared/components/ui/card"
 import { Badge } from "@/src/modules/shared/components/ui/badge"
 import { Button } from "@/src/modules/shared/components/ui/button"
-import { Building2, Check, MapPin, ArrowRight, Clock, Plus, FileText, Calendar } from "lucide-react"
+import { Building2, Check, MapPin, ArrowRight, Clock, Plus, FileText, Calendar, CheckCircle2, XCircle } from "lucide-react"
 import {
   Tooltip,
   TooltipContent,
@@ -24,6 +24,72 @@ function isOfficeBooking(booking: Booking) {
     .join(" ")
     .toLowerCase()
   return text.includes("office")
+}
+
+function getBookingProgress(status?: string) {
+  const s = String(status || "").toLowerCase()
+  if (s === "cancelled" || s === "declined") return "cancelled"
+  if (s === "completed" || s === "complete") return "completed"
+  if (s === "confirmed" || s === "reservation_secured" || s === "slot_secured") return "confirmed"
+  if (s === "verifying" || s === "for_review") return "verifying"
+  return "pending"
+}
+
+const STAGES = [
+  { key: "pending", label: "Pending" },
+  { key: "verifying", label: "For Verification" },
+  { key: "confirmed", label: "Confirmed/Secured" },
+  { key: "completed", label: "Completed" },
+] as const
+
+function BookingProgressIndicator({ status }: { status?: string }) {
+  const progress = getBookingProgress(status)
+  if (progress === "cancelled") {
+    return (
+      <div className="flex items-center gap-2 rounded-lg bg-rose-50 border border-rose-200 px-3 py-2">
+        <XCircle className="w-4 h-4 text-rose-500 shrink-0" />
+        <span className="text-[11px] font-black uppercase tracking-widest text-rose-600">Cancelled</span>
+      </div>
+    )
+  }
+  const currentIdx = STAGES.findIndex(s => s.key === progress)
+  return (
+    <div className="flex items-center gap-0">
+      {STAGES.map((stage, idx) => {
+        const isDone = idx < currentIdx
+        const isCurrent = idx === currentIdx
+        const isFuture = idx > currentIdx
+        return (
+          <div key={stage.key} className="flex items-center gap-0 flex-1 last:flex-none">
+            <div className="flex items-center gap-1.5">
+              <div className={cn(
+                "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[9px] font-black",
+                isDone ? "bg-emerald-500 text-white" :
+                isCurrent ? "bg-orange-500 text-white" :
+                "bg-slate-200 text-slate-400"
+              )}>
+                {isDone ? <CheckCircle2 className="w-3 h-3" /> : idx + 1}
+              </div>
+              <span className={cn(
+                "text-[9px] font-bold whitespace-nowrap leading-tight",
+                isDone ? "text-emerald-600" :
+                isCurrent ? "text-orange-600" :
+                "text-slate-400"
+              )}>
+                {stage.label}
+              </span>
+            </div>
+            {idx < STAGES.length - 1 && (
+              <div className={cn(
+                "mx-1 h-px flex-1 min-w-[12px]",
+                isDone ? "bg-emerald-300" : isCurrent ? "bg-orange-300" : "bg-slate-200"
+              )} />
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
 }
 
 function getRemainingDuration(endDate?: string) {
@@ -232,23 +298,25 @@ export default function ClientDashboardPage() {
             <div>
               <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Your Next Event</h2>
               <Card className="rounded-2xl border-slate-200 shadow-sm overflow-hidden bg-white">
-                <CardContent className="p-5 flex flex-col md:flex-row justify-between gap-6">
-                  <div className="flex-1">
-                    <Badge variant="outline" className="uppercase text-[10px] font-black tracking-widest px-2.5 py-1 rounded-full mb-3 border-emerald-100 bg-emerald-50 text-emerald-600 shadow-none">
-                      {topOther.status}
-                    </Badge>
-                    <h3 className="text-xl font-black text-slate-950 tracking-tight leading-tight mb-3">
-                      {topOther.eventName || "Event"}
-                    </h3>
-                    <div className="flex flex-col gap-2 text-xs text-slate-600 font-semibold bg-slate-50 p-3.5 rounded-xl border border-slate-100 w-fit">
-                      {topOther.date && <div className="flex items-center gap-2.5"><Calendar className="w-4 h-4 text-orange-500" /> {formatDate(topOther.date)}</div>}
-                      {topOther.time && <div className="flex items-center gap-2.5"><Clock className="w-4 h-4 text-orange-500" /> {topOther.time}</div>}
-                      {topOther.venue && <div className="flex items-center gap-2.5"><MapPin className="w-4 h-4 text-orange-500" /> {topOther.venue}</div>}
+                <CardContent className="p-5">
+                  <div className="flex flex-col md:flex-row justify-between gap-4 md:gap-6">
+                    <div className="flex-1 min-w-0">
+                      <Badge variant="outline" className="uppercase text-[10px] font-black tracking-widest px-2.5 py-1 rounded-full mb-3 border-emerald-100 bg-emerald-50 text-emerald-600 shadow-none">
+                        {topOther.status}
+                      </Badge>
+                      <h3 className="text-xl font-black text-slate-950 tracking-tight leading-tight mb-3">
+                        {topOther.eventName || "Event"}
+                      </h3>
+                      <div className="flex flex-wrap gap-x-6 gap-y-1.5 text-xs text-slate-600 font-semibold bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                        {topOther.date && <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-orange-500 shrink-0" /> {formatDate(topOther.date)}</div>}
+                        {topOther.time && <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-orange-500 shrink-0" /> {topOther.time}</div>}
+                        {topOther.venue && <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-orange-500 shrink-0" /> {topOther.venue}</div>}
+                      </div>
                     </div>
-                  </div>
-                  <div className="w-full md:w-[200px] shrink-0 pt-4 md:pt-0 border-t md:border-t-0 md:border-l border-slate-100 md:pl-5">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4 text-center md:text-left">Status</p>
-                    <p className="text-sm font-bold text-slate-800 text-center md:text-left">{String(topOther.status || "").replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}</p>
+                    <div className="w-full md:w-[220px] shrink-0 pt-4 md:pt-0 border-t md:border-t-0 md:border-l border-slate-100 md:pl-5 self-start">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 text-center md:text-left">Progress</p>
+                      <BookingProgressIndicator status={topOther.status} />
+                    </div>
                   </div>
                 </CardContent>
               </Card>

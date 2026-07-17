@@ -18,13 +18,11 @@ import {
   Settings,
   UserCheck,
   LogOut,
-  Search,
   Bell,
   Menu,
 } from "lucide-react"
 
 import { Button } from "@/src/modules/shared/components/ui/button"
-import { Input } from "@/src/modules/shared/components/ui/input"
 
 import { cn } from "@/src/modules/shared/lib/utils"
 import { LogoutConfirmDialog } from "@/src/modules/shared/components/logout-confirm-dialog"
@@ -47,8 +45,8 @@ const PERMISSION_MAP: Record<string, keyof StaffPermissions> = {
 const ADMIN_MENU = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, key: "dashboard", exact: true },
   { name: "Booking Management", href: "/dashboard/bookings", icon: BookOpen, key: "bookings" },
-  { name: "Chat Support", href: "/dashboard/chat", icon: MessageSquare, key: "chat" },
   { name: "Payment Verification", href: "/dashboard/payments", icon: CreditCard, key: "payments" },
+  { name: "Chat Support", href: "/dashboard/chat", icon: MessageSquare, key: "chat" },
   { name: "Reports & Analytics", href: "/dashboard/reports", icon: BarChart, key: "reports" },
   { name: "Staff Management", href: "/dashboard/staff", icon: Users, key: "staff" },
   { name: "CMS Settings", href: "/dashboard/cms", icon: Settings, key: "cms" },
@@ -140,15 +138,6 @@ export default function AdminLayout({
           </div>
 
           <div className="flex flex-1 items-center justify-end gap-3 px-4 lg:px-6">
-            <div className="relative hidden items-center md:flex">
-              <Search className="absolute left-3 h-4 w-4 text-orange-100" />
-              <Input
-                type="text"
-                placeholder="Search admin records..."
-                className="h-9 w-[220px] rounded-full border-transparent bg-white/15 pl-9 text-xs text-white transition-all placeholder:text-orange-100 focus:w-[320px] focus-visible:ring-2 focus-visible:ring-white/40"
-              />
-            </div>
-
             <div className="flex items-center gap-3 pl-2 lg:pl-4">
             <div className="relative">
               <Button

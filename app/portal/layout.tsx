@@ -13,11 +13,9 @@ import {
   LogOut,
   Menu,
   Bell,
-  Search,
 } from "lucide-react"
 
 import { Button } from "@/src/modules/shared/components/ui/button"
-import { Input } from "@/src/modules/shared/components/ui/input"
 import { useToast } from "@/src/modules/shared/hooks/use-toast"
 import { useAuth } from "@/src/modules/shared/auth/auth-context"
 import { useChat } from "@/src/modules/shared/contexts/chat-context"
@@ -136,15 +134,6 @@ export default function ClientLayout({
         </div>
 
         <div className="flex flex-1 items-center justify-end gap-3 px-4 lg:px-6">
-          <div className="relative hidden items-center md:flex">
-            <Search className="absolute left-3 h-4 w-4 text-orange-100" />
-            <Input
-              type="text"
-              placeholder="Search events or dates..."
-              className="h-9 w-[220px] rounded-full border-transparent bg-white/15 pl-9 text-xs text-white transition-all placeholder:text-orange-100 focus:w-[320px] focus-visible:ring-2 focus-visible:ring-white/40"
-            />
-          </div>
-
           <div className="flex items-center gap-3 pl-2 lg:pl-4">
             <div className="relative">
               <Button

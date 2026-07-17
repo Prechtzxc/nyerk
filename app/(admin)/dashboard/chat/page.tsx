@@ -18,6 +18,7 @@ export default function AdminSupportChatPage() {
     }
   }, [user, router])
   
+  const [searchQuery, setSearchQuery] = useState("")
   const [activeClientId, setActiveClientId] = useState<any>(null)
   const [inputValue, setInputValue] = useState("")
   const [imagePreview, setImagePreview] = useState<string | null>(null)
@@ -41,10 +42,13 @@ export default function AdminSupportChatPage() {
   }
 
   const clientsList = getDynamicClients()
-  const activeClient = clientsList.find(c => c.id === activeClientId) || clientsList[0] || null
+  const filteredClientsList = searchQuery
+    ? clientsList.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    : clientsList
+  const activeClient = filteredClientsList.find(c => c.id === activeClientId) || filteredClientsList[0] || null
   const activeClientMessages = activeClient ? messages.filter((m: any) => m.clientId === activeClient.id) : []
 
-  useEffect(() => { if (!activeClientId && clientsList.length > 0) { setActiveClientId(clientsList[0].id) } }, [clientsList.map(c => c.id).join(",")])
+  useEffect(() => { if (!activeClientId && filteredClientsList.length > 0) { setActiveClientId(filteredClientsList[0].id) } }, [filteredClientsList.map(c => c.id).join(",")])
   
   useEffect(() => { 
     if (activeClientId) { markAsRead(activeClientId) }
@@ -81,13 +85,13 @@ export default function AdminSupportChatPage() {
             <h2 className="text-lg font-black text-slate-900 mb-3">Messages</h2>
             <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 focus-within:border-orange-500 focus-within:ring-2 focus-within:ring-orange-500/20 transition-all">
               <Search className="w-4 h-4 text-slate-400" />
-              <input type="text" placeholder="Search clients..." className="bg-transparent border-none focus:outline-none text-sm w-full" />
+              <input type="text" placeholder="Search clients..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="bg-transparent border-none focus:outline-none text-sm w-full" />
             </div>
           </div>
 
           <div className="flex-1 overflow-y-auto">
-            {clientsList.length === 0 && <p className="p-6 text-center text-xs font-medium text-slate-400">No client messages yet.</p>}
-            {clientsList.map((client: any) => {
+            {filteredClientsList.length === 0 && <p className="p-6 text-center text-xs font-medium text-slate-400">{searchQuery ? "No matching clients." : "No client messages yet."}</p>}
+            {filteredClientsList.map((client: any) => {
               const clientMsgs = messages.filter((m: any) => m.clientId === client.id)
               const lastMsg = clientMsgs[clientMsgs.length - 1] 
               

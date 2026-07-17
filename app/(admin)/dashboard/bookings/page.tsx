@@ -2365,7 +2365,7 @@ function MaintenanceCalendarModal({
 
   const currentSpaces = maintType === "venue" ? venues : (officeGroup ? offices.filter(o => {
     const num = parseInt(o.id.slice(1))
-    return officeGroup === "A" ? num >= 1 && num <= 4 : num >= 5 && num <= 8
+    return officeGroup === "A" ? num >= 1 && num <= 8 : num >= 9 && num <= 16
   }) : [])
 
   const filteredRecords = maintenanceRecords.filter(
@@ -2595,7 +2595,7 @@ function MaintenanceCalendarModal({
                     >
                       <option value="" disabled>Select room</option>
                       {currentSpaces.map((s) => {
-                        const roomNum = officeGroup === "A" ? parseInt(s.id.slice(1)) : parseInt(s.id.slice(1)) - 4
+                        const roomNum = officeGroup === "A" ? parseInt(s.id.slice(1)) : parseInt(s.id.slice(1)) - 8
                         return (
                           <option key={s.id} value={s.id}>
                             Room {roomNum}
