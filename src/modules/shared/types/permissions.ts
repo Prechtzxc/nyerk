@@ -6,7 +6,6 @@ export type StaffPermissions = {
   reports: boolean
   cms: boolean
   users: boolean
-  staff: boolean
 }
 
 export const DEFAULT_STAFF_PERMISSIONS: StaffPermissions = {
@@ -17,7 +16,6 @@ export const DEFAULT_STAFF_PERMISSIONS: StaffPermissions = {
   reports: false,
   cms: false,
   users: false,
-  staff: false,
 }
 
 export const PERMISSION_LABELS: Record<keyof StaffPermissions, string> = {
@@ -28,5 +26,4 @@ export const PERMISSION_LABELS: Record<keyof StaffPermissions, string> = {
   reports: "Reports & Analytics",
   cms: "CMS Settings",
   users: "Users Information",
-  staff: "Staff Management",
 }

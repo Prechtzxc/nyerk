@@ -304,10 +304,11 @@ export default function StaffManagementPage() {
 
       resetForm()
       setIsEditDialogOpen(false)
-    } catch {
+    } catch (error) {
+      console.error("[StaffPage] handleEditStaff error:", error)
       toast({
         title: "Failed to update staff",
-        description: "An error occurred. Please try again.",
+        description: error instanceof Error ? error.message : "An error occurred. Please try again.",
         variant: "destructive",
       })
     }

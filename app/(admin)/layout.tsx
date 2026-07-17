@@ -42,7 +42,6 @@ const PERMISSION_MAP: Record<string, keyof StaffPermissions> = {
   reports: "reports",
   cms: "cms",
   users: "users",
-  staff: "staff",
 }
 
 const ADMIN_MENU = [
