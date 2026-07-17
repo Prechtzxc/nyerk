@@ -26,6 +26,7 @@ import { TourButton } from "@/src/modules/client/components/tour-button"
 import { useCMS } from "@/src/modules/admin/contexts/cms-context"
 import { useAuth } from "@/src/modules/shared/auth/auth-context"
 import type { PastClientBooking } from "@/src/modules/admin/contexts/cms-context"
+import { cn } from "@/src/modules/shared/lib/utils"
 
 function getImageSource(value?: string) {
   return value && value.trim() ? value : "/placeholder.jpg"
@@ -53,10 +54,12 @@ function GalleryModal({
 }) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [zoom, setZoom] = useState(1)
+  const [isPortrait, setIsPortrait] = useState(false)
 
   useEffect(() => {
     setCurrentIndex(0)
     setZoom(1)
+    setIsPortrait(false)
   }, [booking?.id])
 
   useEffect(() => {
@@ -107,6 +110,14 @@ function GalleryModal({
           >
             <Minus className="h-4 w-4" />
           </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-white/25 text-white transition hover:bg-white/40"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
       </header>
 
@@ -115,7 +126,7 @@ function GalleryModal({
           {total > 0 ? (
             <>
               <div
-                className="flex items-center justify-center max-h-full max-w-full"
+                className={cn("flex items-center justify-center max-w-full", isPortrait ? "max-h-[75vh]" : "max-h-[80vh]")}
                 onClick={(e) => e.stopPropagation()}
               >
                 <img
@@ -123,6 +134,10 @@ function GalleryModal({
                   alt={`${booking.eventName} photo ${currentIndex + 1}`}
                   className="max-h-full max-w-full rounded-lg object-contain transition-transform duration-200"
                   style={{ transform: `scale(${zoom})` }}
+                  onLoad={(e) => {
+                    const img = e.currentTarget
+                    setIsPortrait(img.naturalHeight > img.naturalWidth)
+                  }}
                 />
               </div>
 

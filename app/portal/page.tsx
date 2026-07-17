@@ -53,15 +53,24 @@ function BookingProgressIndicator({ status }: { status?: string }) {
     )
   }
   const currentIdx = STAGES.findIndex(s => s.key === progress)
+  const getLineColor = (i: number) => {
+    if (i < currentIdx) return "bg-emerald-300"
+    if (i === currentIdx) return "bg-orange-300"
+    return "bg-slate-200"
+  }
   return (
-    <div className="flex items-center w-full gap-0">
+    <div className="flex items-start w-full">
       {STAGES.map((stage, idx) => {
         const isDone = idx < currentIdx
         const isCurrent = idx === currentIdx
-        const isFuture = idx > currentIdx
         return (
-          <div key={stage.key} className="flex items-center gap-0 flex-1">
-            <div className="flex flex-col items-center gap-1">
+          <div key={stage.key} className="flex-1 flex flex-col items-center gap-1">
+            <div className="flex items-center w-full">
+              <div className={cn(
+                "flex-1 h-px",
+                idx === 0 && "invisible",
+                getLineColor(idx - 1)
+              )} />
               <div className={cn(
                 "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-black",
                 isDone ? "bg-emerald-500 text-white" :
@@ -70,21 +79,20 @@ function BookingProgressIndicator({ status }: { status?: string }) {
               )}>
                 {isDone ? <CheckCircle2 className="w-3.5 h-3.5" /> : idx + 1}
               </div>
-              <span className={cn(
-                "text-[9px] font-bold whitespace-nowrap leading-tight text-center",
-                isDone ? "text-emerald-600" :
-                isCurrent ? "text-orange-600" :
-                "text-slate-400"
-              )}>
-                {stage.label}
-              </span>
-            </div>
-            {idx < STAGES.length - 1 && (
               <div className={cn(
-                "flex-1 h-px self-start mt-3 mx-2",
-                isDone ? "bg-emerald-300" : isCurrent ? "bg-orange-300" : "bg-slate-200"
+                "flex-1 h-px",
+                idx === STAGES.length - 1 && "invisible",
+                getLineColor(idx)
               )} />
-            )}
+            </div>
+            <span className={cn(
+              "text-[9px] font-bold leading-tight text-center px-0.5",
+              isDone ? "text-emerald-600" :
+              isCurrent ? "text-orange-600" :
+              "text-slate-400"
+            )}>
+              {stage.label}
+            </span>
           </div>
         )
       })}
