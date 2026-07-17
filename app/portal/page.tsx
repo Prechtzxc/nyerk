@@ -54,24 +54,24 @@ function BookingProgressIndicator({ status }: { status?: string }) {
   }
   const currentIdx = STAGES.findIndex(s => s.key === progress)
   return (
-    <div className="flex items-center gap-0">
+    <div className="flex items-center w-full gap-0">
       {STAGES.map((stage, idx) => {
         const isDone = idx < currentIdx
         const isCurrent = idx === currentIdx
         const isFuture = idx > currentIdx
         return (
-          <div key={stage.key} className="flex items-center gap-0 flex-1 last:flex-none">
-            <div className="flex items-center gap-1.5">
+          <div key={stage.key} className="flex items-center gap-0 flex-1">
+            <div className="flex flex-col items-center gap-1">
               <div className={cn(
-                "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[9px] font-black",
+                "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-black",
                 isDone ? "bg-emerald-500 text-white" :
                 isCurrent ? "bg-orange-500 text-white" :
                 "bg-slate-200 text-slate-400"
               )}>
-                {isDone ? <CheckCircle2 className="w-3 h-3" /> : idx + 1}
+                {isDone ? <CheckCircle2 className="w-3.5 h-3.5" /> : idx + 1}
               </div>
               <span className={cn(
-                "text-[9px] font-bold whitespace-nowrap leading-tight",
+                "text-[9px] font-bold whitespace-nowrap leading-tight text-center",
                 isDone ? "text-emerald-600" :
                 isCurrent ? "text-orange-600" :
                 "text-slate-400"
@@ -81,7 +81,7 @@ function BookingProgressIndicator({ status }: { status?: string }) {
             </div>
             {idx < STAGES.length - 1 && (
               <div className={cn(
-                "mx-1 h-px flex-1 min-w-[12px]",
+                "flex-1 h-px self-start mt-3 mx-2",
                 isDone ? "bg-emerald-300" : isCurrent ? "bg-orange-300" : "bg-slate-200"
               )} />
             )}

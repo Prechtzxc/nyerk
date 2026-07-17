@@ -18,6 +18,8 @@ import {
   Loader2,
   Sparkles,
   X,
+  Plus,
+  Minus,
 } from "lucide-react"
 import { ReserveButton } from "@/src/modules/client/components/reserve-button"
 import { TourButton } from "@/src/modules/client/components/tour-button"
@@ -50,9 +52,11 @@ function GalleryModal({
   onClose: () => void
 }) {
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [zoom, setZoom] = useState(1)
 
   useEffect(() => {
     setCurrentIndex(0)
+    setZoom(1)
   }, [booking?.id])
 
   useEffect(() => {
@@ -86,47 +90,49 @@ function GalleryModal({
           <p className="text-sm font-bold text-white truncate">{booking.eventName}</p>
           <p className="text-[11px] font-semibold text-white/60">{booking.name}</p>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/25 text-white transition hover:bg-white/40"
-          aria-label="Close gallery"
-        >
-          <X className="h-6 w-6" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setZoom((z) => Math.min(3, z + 0.5)) }}
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-white/25 text-white transition hover:bg-white/40"
+            aria-label="Zoom in"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setZoom((z) => Math.max(1, z - 0.5)) }}
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-white/25 text-white transition hover:bg-white/40"
+            aria-label="Zoom out"
+          >
+            <Minus className="h-4 w-4" />
+          </button>
+        </div>
       </header>
-
-      <button
-        type="button"
-        onClick={(e) => { e.stopPropagation(); onClose() }}
-        className="fixed right-4 top-4 z-[60] flex h-12 w-12 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur transition hover:bg-black/80"
-        aria-label="Close gallery"
-      >
-        <X className="h-6 w-6" />
-      </button>
 
       <div className="min-h-0 flex-1 overflow-auto p-4">
         <div className="relative flex min-h-full items-center justify-center">
           {total > 0 ? (
             <>
-              <img
-                src={photos[currentIndex]}
-                alt={`${booking.eventName} photo ${currentIndex + 1}`}
-                className="max-h-full max-w-full rounded-lg object-contain"
+              <div
+                className="flex items-center justify-center max-h-full max-w-full"
                 onClick={(e) => e.stopPropagation()}
-              />
+              >
+                <img
+                  src={photos[currentIndex]}
+                  alt={`${booking.eventName} photo ${currentIndex + 1}`}
+                  className="max-h-full max-w-full rounded-lg object-contain transition-transform duration-200"
+                  style={{ transform: `scale(${zoom})` }}
+                />
+              </div>
 
               {total > 1 && (
                 <>
-                  <span className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 text-xs font-bold text-white" onClick={(e) => e.stopPropagation()}>
-                    {currentIndex + 1} of {total}
-                  </span>
-
                   {currentIndex > 0 && (
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); setCurrentIndex((i) => i - 1) }}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white/70 transition hover:bg-white/20 hover:text-white"
+                      onClick={(e) => { e.stopPropagation(); setCurrentIndex((i) => i - 1); setZoom(1) }}
+                      className="fixed left-4 top-1/2 -translate-y-1/2 z-[60] flex h-12 w-12 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur transition hover:bg-black/80"
                     >
                       <ChevronLeft className="h-6 w-6" />
                     </button>
@@ -134,12 +140,15 @@ function GalleryModal({
                   {currentIndex < total - 1 && (
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); setCurrentIndex((i) => i + 1) }}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white/70 transition hover:bg-white/20 hover:text-white"
+                      onClick={(e) => { e.stopPropagation(); setCurrentIndex((i) => i + 1); setZoom(1) }}
+                      className="fixed right-4 top-1/2 -translate-y-1/2 z-[60] flex h-12 w-12 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur transition hover:bg-black/80"
                     >
                       <ChevronRight className="h-6 w-6" />
                     </button>
                   )}
+                  <span className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 text-xs font-bold text-white" onClick={(e) => e.stopPropagation()}>
+                    {zoom !== 1 ? `${Math.round(zoom * 100)}% · ` : ""}{currentIndex + 1} of {total}
+                  </span>
                 </>
               )}
             </>
@@ -158,7 +167,7 @@ function GalleryModal({
             <button
               key={i}
               type="button"
-              onClick={(e) => { e.stopPropagation(); setCurrentIndex(i) }}
+              onClick={(e) => { e.stopPropagation(); setCurrentIndex(i); setZoom(1) }}
               className={`h-14 w-14 shrink-0 overflow-hidden rounded-lg border-2 transition ${
                 i === currentIndex ? "border-white opacity-100" : "border-transparent opacity-50 hover:opacity-80"
               }`}
