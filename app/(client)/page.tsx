@@ -126,13 +126,16 @@ function GalleryModal({
           {total > 0 ? (
             <>
               <div
-                className={cn("flex items-center justify-center max-w-full", isPortrait ? "max-h-[50vh]" : "max-h-[80vh]")}
+                className="flex items-center justify-center max-w-full"
                 onClick={(e) => e.stopPropagation()}
               >
                 <img
                   src={photos[currentIndex]}
                   alt={`${booking.eventName} photo ${currentIndex + 1}`}
-                  className="max-h-full max-w-full rounded-lg object-contain transition-transform duration-200"
+                  className={cn(
+                    "rounded-lg object-contain transition-transform duration-200",
+                    isPortrait ? "max-h-[50vh] w-auto" : "max-h-[80vh] w-auto"
+                  )}
                   style={{ transform: `scale(${zoom})` }}
                   onLoad={(e) => {
                     const img = e.currentTarget
