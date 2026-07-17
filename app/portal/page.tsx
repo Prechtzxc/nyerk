@@ -59,7 +59,7 @@ function BookingProgressIndicator({ status }: { status?: string }) {
     return "bg-slate-200"
   }
   return (
-    <div className="flex items-start w-full">
+    <div className="flex items-start w-full min-w-0">
       {STAGES.map((stage, idx) => {
         const isDone = idx < currentIdx
         const isCurrent = idx === currentIdx
@@ -86,7 +86,7 @@ function BookingProgressIndicator({ status }: { status?: string }) {
               )} />
             </div>
             <span className={cn(
-              "text-[9px] font-bold leading-tight text-center px-0.5",
+              "text-[8px] sm:text-[9px] font-bold leading-tight text-center px-0.5 break-words max-w-full min-w-0",
               isDone ? "text-emerald-600" :
               isCurrent ? "text-orange-600" :
               "text-slate-400"
@@ -307,23 +307,29 @@ export default function ClientDashboardPage() {
               <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Your Next Event</h2>
               <Card className="rounded-2xl border-slate-200 shadow-sm overflow-hidden bg-white">
                 <CardContent className="p-5">
-                  <div className="flex flex-col md:flex-row justify-between gap-4 md:gap-6">
-                    <div className="flex-1 min-w-0">
-                      <Badge variant="outline" className="uppercase text-[10px] font-black tracking-widest px-2.5 py-1 rounded-full mb-3 border-emerald-100 bg-emerald-50 text-emerald-600 shadow-none">
-                        {topOther.status}
-                      </Badge>
-                      <h3 className="text-xl font-black text-slate-950 tracking-tight leading-tight mb-3">
-                        {topOther.eventName || "Event"}
-                      </h3>
-                      <div className="flex flex-wrap gap-x-6 gap-y-1.5 text-xs text-slate-600 font-semibold bg-slate-50 p-3.5 rounded-xl border border-slate-100">
-                        {topOther.date && <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-orange-500 shrink-0" /> {formatDate(topOther.date)}</div>}
-                        {topOther.time && <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-orange-500 shrink-0" /> {topOther.time}</div>}
-                        {topOther.venue && <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-orange-500 shrink-0" /> {topOther.venue}</div>}
+                  <div className="flex flex-col gap-4">
+                    <div className="flex flex-col md:flex-row justify-between gap-4 md:gap-6">
+                      <div className="flex-1 min-w-0">
+                        <Badge variant="outline" className="uppercase text-[10px] font-black tracking-widest px-2.5 py-1 rounded-full mb-3 border-emerald-100 bg-emerald-50 text-emerald-600 shadow-none">
+                          {topOther.status}
+                        </Badge>
+                        <h3 className="text-xl font-black text-slate-950 tracking-tight leading-tight mb-3">
+                          {topOther.eventName || "Event"}
+                        </h3>
+                        <div className="flex flex-wrap gap-x-6 gap-y-1.5 text-xs text-slate-600 font-semibold bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                          {topOther.date && <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-orange-500 shrink-0" /> {formatDate(topOther.date)}</div>}
+                          {topOther.time && <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-orange-500 shrink-0" /> {topOther.time}</div>}
+                          {topOther.venue && <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-orange-500 shrink-0" /> {topOther.venue}</div>}
+                        </div>
                       </div>
                     </div>
-                    <div className="w-full md:w-[220px] shrink-0 pt-4 md:pt-0 border-t md:border-t-0 md:border-l border-slate-100 md:pl-5 self-start">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 text-center md:text-left">Progress</p>
-                      <BookingProgressIndicator status={topOther.status} />
+                    <div className="border-t border-slate-100 pt-4">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Progress</p>
+                      <div className="overflow-x-auto pb-1">
+                        <div className="min-w-[320px]">
+                          <BookingProgressIndicator status={topOther.status} />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </CardContent>

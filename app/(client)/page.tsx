@@ -97,7 +97,7 @@ function GalleryModal({
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); setZoom((z) => Math.min(3, z + 0.5)) }}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-white/25 text-white transition hover:bg-white/40"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-black/30 text-white border border-white/25 transition hover:bg-white/20"
             aria-label="Zoom in"
           >
             <Plus className="h-4 w-4" />
@@ -105,7 +105,7 @@ function GalleryModal({
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); setZoom((z) => Math.max(1, z - 0.5)) }}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-white/25 text-white transition hover:bg-white/40"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-black/30 text-white border border-white/25 transition hover:bg-white/20"
             aria-label="Zoom out"
           >
             <Minus className="h-4 w-4" />
@@ -113,7 +113,7 @@ function GalleryModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-white/25 text-white transition hover:bg-white/40"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-black/30 text-white border border-white/25 transition hover:bg-white/20"
             aria-label="Close"
           >
             <X className="h-4 w-4" />
@@ -126,7 +126,7 @@ function GalleryModal({
           {total > 0 ? (
             <>
               <div
-                className={cn("flex items-center justify-center max-w-full", isPortrait ? "max-h-[75vh]" : "max-h-[80vh]")}
+                className={cn("flex items-center justify-center max-w-full", isPortrait ? "max-h-[60vh]" : "max-h-[80vh]")}
                 onClick={(e) => e.stopPropagation()}
               >
                 <img
@@ -162,7 +162,7 @@ function GalleryModal({
                     </button>
                   )}
                   <span className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 text-xs font-bold text-white" onClick={(e) => e.stopPropagation()}>
-                    {zoom !== 1 ? `${Math.round(zoom * 100)}% · ` : ""}{currentIndex + 1} of {total}
+                    {Math.round(zoom * 100)}% · {currentIndex + 1} of {total}
                   </span>
                 </>
               )}
