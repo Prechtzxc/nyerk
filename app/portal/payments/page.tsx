@@ -380,10 +380,10 @@ function PaymentActionButtons({
           compact
             ? "h-8 rounded-lg px-2.5 text-[10px] font-bold"
             : "h-9 rounded-lg px-3 text-[11px] font-bold shadow-sm",
-          "bg-emerald-600 text-white hover:bg-emerald-700"
+          "bg-emerald-600 text-white hover:bg-emerald-700 w-full sm:w-auto"
         )}
       >
-        {"Settle Remaining Balance"}
+        Settle Remaining Balance
       </Button>
     );
   }
@@ -506,18 +506,18 @@ function CurrentTransactionCard({
         <div className="flex flex-row items-center justify-between gap-2 sm:gap-3">
           <span
             className={cn(
-              "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.2em] whitespace-nowrap w-fit",
+              "hidden rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.2em] whitespace-nowrap w-fit sm:inline-block",
               getStatusBadgeClass(booking.paymentStatus, booking.status, (booking as any).paymentStage, (booking as any).remainingBalance),
             )}
           >
             {getStatusLabel(booking.paymentStatus, booking.status, (booking as any).paymentStage, (booking as any).remainingBalance)}
           </span>
-          <div className="flex flex-row items-center gap-1.5 sm:gap-2 shrink-0">
+          <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2 sm:shrink-0">
             {hasPaymentRecord(booking) && (
               <Button
                 variant="outline"
                 onClick={() => onView(booking)}
-                className="h-8 whitespace-nowrap rounded-lg border-slate-200 px-2.5 text-[10px] font-bold text-slate-700 hover:bg-slate-50"
+                className="h-8 whitespace-nowrap rounded-lg border-slate-200 px-2.5 text-[10px] font-bold text-slate-700 hover:bg-slate-50 sm:w-auto"
               >
                 View Details
               </Button>
@@ -584,10 +584,10 @@ function HistoryRow({
             {formatMoney(displayTotal)}
           </p>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 min-w-0">
           <span
             className={cn(
-                "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.2em] whitespace-nowrap",
+                "hidden rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.2em] whitespace-nowrap sm:inline-block",
                 getStatusBadgeClass(booking.paymentStatus, booking.status, (booking as any).paymentStage, (booking as any).remainingBalance),
             )}
           >
@@ -1801,13 +1801,13 @@ function TransactionsContent() {
                         <div className="flex flex-row items-center justify-between gap-2 sm:gap-3">
                           <span
                             className={cn(
-                              "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.2em] whitespace-nowrap w-fit",
+                              "hidden rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.2em] whitespace-nowrap w-fit sm:inline-block",
                   getStatusBadgeClass(booking.paymentStatus, booking.status, (booking as any).paymentStage, (booking as any).remainingBalance),
                             )}
                           >
                             {getStatusLabel(booking.paymentStatus, booking.status, (booking as any).paymentStage, (booking as any).remainingBalance)}
                           </span>
-                          <div className="flex flex-row items-center gap-1.5 sm:gap-2 shrink-0">
+                          <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2 sm:shrink-0">
                             {hasPaymentRecord(booking) && (
                               <Button
                                 variant="outline"

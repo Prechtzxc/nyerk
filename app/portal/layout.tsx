@@ -130,22 +130,19 @@ export default function ClientLayout({
             <h1 className="hidden sm:inline text-lg font-black tracking-tight text-white whitespace-nowrap">
               One Estela Place
             </h1>
-            <h1 className="sm:hidden text-base font-black tracking-tight text-white whitespace-nowrap">
-              OEP
-            </h1>
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2 shrink-0 px-3 sm:px-4 lg:px-6">
+        <div className="flex items-center justify-end gap-1.5 shrink-0 px-2 sm:gap-2 sm:px-3 lg:px-6">
           <div className="relative shrink-0">
             <Button
               variant="ghost"
               size="icon"
-              className="relative shrink-0 rounded-full text-white hover:bg-white/15"
+              className="relative h-9 w-9 shrink-0 rounded-full text-white hover:bg-white/15 sm:h-10 sm:w-10"
               onClick={() => setShowNotifications(!showNotifications)}
               aria-label="Notifications"
             >
-              <Bell className="h-5 w-5 shrink-0 overflow-hidden" />
+              <Bell className="h-[18px] w-[18px] shrink-0 overflow-hidden sm:h-5 sm:w-5" />
               {notificationUnread > 0 && (
                 <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-black tabular-nums text-white shadow-md ring-2 ring-orange-700">
                   {notificationUnread > 99 ? "99+" : notificationUnread}

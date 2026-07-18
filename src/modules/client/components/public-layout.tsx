@@ -12,10 +12,8 @@ import {
   LogOut,
   Mail,
   MapPin,
-  Menu,
   Phone,
   User,
-  X,
 } from "lucide-react"
 
 import { Button } from "@shared/components/ui/button"
@@ -46,7 +44,6 @@ interface PublicLayoutProps {
 export function PublicLayout({ children }: PublicLayoutProps) {
   const { user, logout, isLoading } = useAuth()
   const { cmsData } = useCMS()
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
 
   const handleLogout = () => {
@@ -180,54 +177,23 @@ export function PublicLayout({ children }: PublicLayoutProps) {
               </DropdownMenu>
             ) : (
               <>
-                <div className="hidden items-center gap-3 sm:flex">
+                <div className="flex items-center gap-2 sm:gap-3">
                   <LoginDialog>
-                    <Button className="h-10 rounded-xl bg-white px-6 text-sm font-black text-orange-600 shadow-sm hover:bg-orange-50">
+                    <Button className="h-9 rounded-xl bg-white px-4 text-xs font-black text-orange-600 shadow-sm hover:bg-orange-50 sm:h-10 sm:px-6 sm:text-sm">
                       Login
                     </Button>
                   </LoginDialog>
 
                   <SignupDialog>
-                    <Button className="h-10 rounded-xl bg-slate-950 px-6 text-sm font-black text-white shadow-sm hover:bg-slate-900">
+                    <Button className="h-9 rounded-xl bg-slate-950 px-4 text-xs font-black text-white shadow-sm hover:bg-slate-900 sm:h-10 sm:px-6 sm:text-sm">
                       Sign Up
                     </Button>
                   </SignupDialog>
                 </div>
-
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="shrink-0 text-white hover:bg-white/15 sm:hidden"
-                  onClick={() => setIsMobileMenuOpen((current) => !current)}
-                >
-                  {isMobileMenuOpen ? (
-                    <X className="h-6 w-6 shrink-0 overflow-hidden" />
-                  ) : (
-                    <Menu className="h-6 w-6 shrink-0 overflow-hidden" />
-                  )}
-                </Button>
               </>
             )}
           </div>
         </div>
-
-        {!user && isMobileMenuOpen && (
-          <div className="absolute left-0 top-full w-full border-t border-orange-500/40 bg-orange-600 shadow-xl sm:hidden">
-            <div className="container mx-auto flex flex-col gap-3 px-4 py-5">
-              <LoginDialog>
-                <Button className="h-11 w-full justify-center rounded-xl bg-white font-black text-orange-600 hover:bg-orange-50">
-                  Login
-                </Button>
-              </LoginDialog>
-
-              <SignupDialog>
-                <Button className="h-11 w-full justify-center rounded-xl bg-slate-950 font-black text-white hover:bg-slate-900">
-                  Sign Up
-                </Button>
-              </SignupDialog>
-            </div>
-          </div>
-        )}
       </header>
 
       <main className="flex-1 pt-16 w-full max-w-full">{children}</main>

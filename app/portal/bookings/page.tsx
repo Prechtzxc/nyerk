@@ -498,7 +498,7 @@ function HorizontalBookingCard({
       <div className="flex shrink-0 items-center justify-between gap-2 sm:flex-col sm:items-end sm:gap-1.5">
         <span
           className={cn(
-            "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.2em] whitespace-nowrap",
+            "hidden rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.2em] whitespace-nowrap sm:inline-block",
             getStatusBadgeClass(booking.status),
           )}
         >
@@ -554,10 +554,10 @@ function HistoryRow({
           </span>
         </p>
       </div>
-      <div className="flex shrink-0 items-center gap-1.5 flex-wrap sm:flex-nowrap">
+      <div className="flex shrink-0 items-center gap-1.5 sm:flex-nowrap">
         <span
           className={cn(
-            "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.2em] whitespace-nowrap",
+            "hidden rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.2em] whitespace-nowrap sm:inline-block",
             getStatusBadgeClass(booking.status),
           )}
         >

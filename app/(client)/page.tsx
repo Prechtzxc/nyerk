@@ -283,7 +283,7 @@ function LandingPageContent() {
             {homepage.heroBadge}
           </div>
 
-          <h1 className="mx-auto mb-6 max-w-4xl whitespace-pre-line text-4xl font-black leading-tight text-white drop-shadow-lg md:text-6xl">
+          <h1 className="mx-auto mb-6 max-w-4xl whitespace-pre-line hidden font-black leading-tight text-white drop-shadow-lg sm:block sm:text-4xl md:text-6xl">
             {homepage.heroTitle}
           </h1>
 
