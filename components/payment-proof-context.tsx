@@ -104,6 +104,8 @@ export function PaymentProofProvider({ children }: { children: React.ReactNode }
       })
       setProofs(loaded)
       initialLoadDone.current = true
+    }, (error) => {
+      console.error("[PaymentProof] Firestore snapshot error:", error)
     })
 
     return () => unsub()

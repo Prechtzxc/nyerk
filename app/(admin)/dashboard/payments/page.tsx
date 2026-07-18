@@ -738,7 +738,7 @@ function PaymentCard({
         </div>
       </div>
 
-      <div className="flex shrink-0 items-center justify-between gap-2 sm:flex-col sm:items-end sm:gap-1">
+      <div className="flex shrink-0 items-center justify-between gap-2 sm:flex-col sm:items-center sm:gap-1.5">
         <PaymentBadge payment={payment} />
         <Button
           variant="outline"
@@ -1102,7 +1102,7 @@ function PaymentBadge({ payment }: { payment: BookingRecord }) {
   const remainingBalance = getSafePrice(
     (payment as any).remainingBalance || Math.max(totalAmount - amountPaid, 0)
   )
-  const baseClass = "inline-flex w-fit items-center gap-1 rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.2em]"
+  const baseClass = "inline-flex min-w-[140px] items-center justify-center gap-1 rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.2em]"
 
   if (paymentStatus === "rejected") {
     return <span className={`${baseClass} border-rose-100 bg-rose-50 text-rose-700`}><XCircle className="h-3 w-3" />Rejected</span>

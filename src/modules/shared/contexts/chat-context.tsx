@@ -129,6 +129,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         initialLoadDone.current = true
         setIsChatLoaded(true)
       }
+    }, (error) => {
+      console.error("[ChatContext] Firestore snapshot error:", error)
     })
 
     return () => unsub()

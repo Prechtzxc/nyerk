@@ -1122,6 +1122,8 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         loaded.push(normalizeBookingForNewFields({ ...d, id: docSnap.id }))
       })
       setBookings(loaded)
+    }, (error) => {
+      console.error("[BookingContext] Bookings snapshot error:", error)
     })
 
     // Real-time subscription for office rentals
@@ -1133,6 +1135,8 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         loaded.push({ ...d, id: docSnap.id })
       })
       setOfficeRentals(loaded)
+    }, (error) => {
+      console.error("[BookingContext] Office rentals snapshot error:", error)
     })
 
     // Real-time subscription for maintenance records
@@ -1144,6 +1148,8 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         loaded.push({ ...d, id: docSnap.id })
       })
       setMaintenanceRecords(loaded)
+    }, (error) => {
+      console.error("[BookingContext] Maintenance records snapshot error:", error)
     })
 
     return () => {

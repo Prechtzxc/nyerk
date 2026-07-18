@@ -119,17 +119,6 @@ export default function ProfilePage() {
   return (
     <div className="w-full min-w-0 max-w-full overflow-x-hidden">
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6 animate-in fade-in duration-500">
-        <section className="border-b border-slate-200 pb-5 mb-6">
-          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-orange-600">
-            Account
-          </p>
-          <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
-            My Profile
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Manage your account settings and personal information.
-          </p>
-        </section>
 
         <Card className="overflow-hidden rounded-2xl border-slate-200 bg-white shadow-sm">
         <CardContent className="p-0">

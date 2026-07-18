@@ -26,9 +26,13 @@ export async function clearUnread(scope: "client" | "admin") {
 export function subscribeUnreadUpdates(callback: (count: number) => void) {
   const unsubClient = onSnapshot(docRef("client"), (snap) => {
     callback(snap.data()?.count ?? 0)
+  }, (error) => {
+    console.error("[ChatUnread] Client unread snapshot error:", error)
   })
   const unsubAdmin = onSnapshot(docRef("admin"), (snap) => {
     callback(snap.data()?.count ?? 0)
+  }, (error) => {
+    console.error("[ChatUnread] Admin unread snapshot error:", error)
   })
   return () => {
     unsubClient()
@@ -39,6 +43,8 @@ export function subscribeUnreadUpdates(callback: (count: number) => void) {
 export function subscribeScopeUnread(scope: "client" | "admin", callback: (count: number) => void) {
   const unsub = onSnapshot(docRef(scope), (snap) => {
     callback(snap.data()?.count ?? 0)
+  }, (error) => {
+    console.error(`[ChatUnread] ${scope} unread snapshot error:`, error)
   })
   return unsub
 }

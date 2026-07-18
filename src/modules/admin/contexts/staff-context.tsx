@@ -11,6 +11,7 @@ import {
 import { db } from "@/lib/firebase"
 import type { StaffPermissions } from "@/src/modules/shared/types/permissions"
 import { DEFAULT_STAFF_PERMISSIONS } from "@/src/modules/shared/types/permissions"
+import { useAuth } from "@/src/modules/shared/auth/auth-context"
 
 export type StaffAccount = {
   id: string
@@ -50,10 +51,17 @@ type StaffContextValue = {
 const StaffContext = createContext<StaffContextValue | null>(null)
 
 export const StaffProvider = ({ children }: { children: React.ReactNode }) => {
+  const { user } = useAuth()
   const [staff, setStaff] = useState<StaffAccount[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    const role = user?.role?.toLowerCase() ?? ""
+    if (role !== "admin" && role !== "staff") {
+      setLoading(false)
+      return
+    }
+
     const q = query(collection(db, "users"), where("role", "==", "staff"))
     const unsub = onSnapshot(
       q,
