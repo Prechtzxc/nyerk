@@ -128,7 +128,7 @@ export function ForgotPasswordDialog({ open, onOpenChange, onBackToLogin }: Forg
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="w-[95vw] sm:max-w-[425px] overflow-y-auto max-h-[90dvh] p-4 sm:p-6 rounded-2xl">
         <DialogHeader>
           <div className="flex items-center gap-3">
             {step !== "email" && step !== "success" && (
@@ -155,7 +155,7 @@ export function ForgotPasswordDialog({ open, onOpenChange, onBackToLogin }: Forg
         {step === "email" && (
           <form onSubmit={handleEmailSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="reset-email">Email Address</Label>
+              <Label htmlFor="reset-email" className="text-[10px] font-black uppercase tracking-[0.2em]">Email Address</Label>
               <Input
                 id="reset-email"
                 type="email"
@@ -163,10 +163,11 @@ export function ForgotPasswordDialog({ open, onOpenChange, onBackToLogin }: Forg
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                className="h-11 w-full"
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full h-11" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -189,7 +190,7 @@ export function ForgotPasswordDialog({ open, onOpenChange, onBackToLogin }: Forg
         {step === "verify" && (
           <form onSubmit={handleCodeVerification} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="reset-code">Reset Code</Label>
+              <Label htmlFor="reset-code" className="text-[10px] font-black uppercase tracking-[0.2em]">Reset Code</Label>
               <Input
                 id="reset-code"
                 placeholder="Enter 6-digit code"
@@ -197,10 +198,11 @@ export function ForgotPasswordDialog({ open, onOpenChange, onBackToLogin }: Forg
                 onChange={(e) => setResetCode(e.target.value)}
                 maxLength={6}
                 required
+                className="h-11 w-full"
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full h-11" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -224,7 +226,7 @@ export function ForgotPasswordDialog({ open, onOpenChange, onBackToLogin }: Forg
         {step === "reset" && (
           <form onSubmit={handlePasswordReset} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="new-password">New Password</Label>
+              <Label htmlFor="new-password" className="text-[10px] font-black uppercase tracking-[0.2em]">New Password</Label>
               <Input
                 id="new-password"
                 type="password"
@@ -232,11 +234,12 @@ export function ForgotPasswordDialog({ open, onOpenChange, onBackToLogin }: Forg
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 required
+                className="h-11 w-full"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirm-new-password">Confirm New Password</Label>
+              <Label htmlFor="confirm-new-password" className="text-[10px] font-black uppercase tracking-[0.2em]">Confirm New Password</Label>
               <Input
                 id="confirm-new-password"
                 type="password"
@@ -244,10 +247,11 @@ export function ForgotPasswordDialog({ open, onOpenChange, onBackToLogin }: Forg
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
+                className="h-11 w-full"
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full h-11" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -273,7 +277,7 @@ export function ForgotPasswordDialog({ open, onOpenChange, onBackToLogin }: Forg
               </p>
             </div>
 
-            <Button onClick={handleBackToLogin} className="w-full">
+            <Button onClick={handleBackToLogin} className="w-full h-11">
               Back to Login
             </Button>
           </div>

@@ -43,42 +43,43 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="w-[95vw] max-w-md overflow-y-auto max-h-[90dvh] rounded-2xl">
         <DialogHeader>
           <DialogTitle>My Profile</DialogTitle>
           <DialogDescription>View and edit your personal information</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSave} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Full Name</Label>
-            <Input id="name" name="name" value={formData.name} onChange={handleInputChange} required />
+            <Label htmlFor="name" className="text-[10px] font-black uppercase tracking-[0.2em]">Full Name</Label>
+            <Input id="name" name="name" value={formData.name} onChange={handleInputChange} required className="h-11 w-full" />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input id="email" name="email" type="email" value={formData.email} onChange={handleInputChange} required />
+            <Label htmlFor="email" className="text-[10px] font-black uppercase tracking-[0.2em]">Email</Label>
+            <Input id="email" name="email" type="email" value={formData.email} onChange={handleInputChange} required className="h-11 w-full" />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="phone">Phone Number</Label>
-            <Input id="phone" name="phone" type="tel" value={formData.phone} onChange={handleInputChange} required />
+            <Label htmlFor="phone" className="text-[10px] font-black uppercase tracking-[0.2em]">Phone Number</Label>
+            <Input id="phone" name="phone" type="tel" value={formData.phone} onChange={handleInputChange} required className="h-11 w-full" />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="address">Address</Label>
-            <Input id="address" name="address" value={formData.address} onChange={handleInputChange} />
+            <Label htmlFor="address" className="text-[10px] font-black uppercase tracking-[0.2em]">Address</Label>
+            <Input id="address" name="address" value={formData.address} onChange={handleInputChange} className="h-11 w-full" />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="emergencyContact">Emergency Contact</Label>
+            <Label htmlFor="emergencyContact" className="text-[10px] font-black uppercase tracking-[0.2em]">Emergency Contact</Label>
             <Input
               id="emergencyContact"
               name="emergencyContact"
               value={formData.emergencyContact}
               onChange={handleInputChange}
+              className="h-11 w-full"
             />
           </div>
-          <div className="flex justify-end space-x-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="h-11 w-full sm:w-auto">
               Cancel
             </Button>
-            <Button type="submit">Save Changes</Button>
+            <Button type="submit" className="h-11 w-full sm:w-auto">Save Changes</Button>
           </div>
         </form>
       </DialogContent>

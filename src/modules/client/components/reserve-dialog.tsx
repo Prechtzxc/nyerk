@@ -133,10 +133,10 @@ function VenueRatingBadge({ venueName }: { venueName: string }) {
   return (
     <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-md px-2.5 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm">
       <Star className="w-3.5 h-3.5 fill-[#ea580c] text-[#ea580c]" />
-      <span className="text-slate-900 text-[10px] font-black tracking-widest">
+      <span className="text-slate-900 text-[10px] font-black tracking-[0.2em]">
         {venueReviews.length > 0 ? averageRating.toFixed(1) : "0.0"}
       </span>
-      <span className="text-slate-400 text-[9px] font-black tracking-widest">
+      <span className="text-slate-400 text-[9px] font-black tracking-[0.2em]">
         ({venueReviews.length})
       </span>
     </div>
@@ -289,7 +289,7 @@ function BookingConfirmationDialog({
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onEdit()}>
-      <DialogContent className="flex max-h-[calc(100vh-2rem)] max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-lg flex-col gap-0 overflow-hidden rounded-2xl border-slate-200 bg-white p-0 shadow-2xl [&>button]:hidden">
+      <DialogContent className="flex max-h-[calc(100dvh-2rem)] w-[95vw] sm:max-w-lg flex-col gap-0 overflow-hidden rounded-2xl border-slate-200 bg-white p-0 shadow-2xl [&>button]:hidden">
         <div className="shrink-0 border-b border-slate-100 px-5 py-4">
           <DialogTitle className="text-xl md:text-2xl font-black text-slate-950">
             Confirm Booking Details
@@ -299,7 +299,7 @@ function BookingConfirmationDialog({
           </p>
         </div>
 
-        <div className="flex-1 space-y-2 overflow-y-auto px-5 py-4">
+        <div className="flex-1 space-y-2 overflow-y-auto max-h-[90dvh] px-5 py-4">
           <ConfirmBookingLine label="Full Name" value={payload.userInfo?.name || "Client"} />
           <ConfirmBookingLine label={isOffice ? "Rental Type" : "Event Type"} value={isOffice ? "Office Space Rental" : payload.eventType} />
           <ConfirmBookingLine label="Selected Space" value={payload.venue} />
@@ -319,7 +319,7 @@ function BookingConfirmationDialog({
           />
         </div>
 
-        <div className="shrink-0 flex flex-col gap-2 border-t border-slate-100 px-5 py-4 sm:flex-row sm:gap-3">
+        <div className="shrink-0 flex flex-col-reverse gap-2 border-t border-slate-100 px-5 py-4 sm:flex-row sm:justify-end sm:gap-3">
           <Button
             type="button"
             variant="outline"
@@ -354,7 +354,7 @@ function BookingConfirmationDialog({
 function ConfirmBookingLine({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-start justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2.5 md:rounded-xl md:px-4 md:py-3">
-      <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 md:text-[10px]">{label}</p>
+      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 md:text-[10px]">{label}</p>
       <p className="max-w-[55%] break-words text-right text-xs font-bold text-slate-900">{value}</p>
     </div>
   )
@@ -969,7 +969,7 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
                 <div className="p-4 flex flex-col gap-3 bg-white shrink-0">
                   <div className="flex items-center justify-between">
                       <div>
-                          <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-0.5">{category === 'venue' ? 'Starting at' : 'Per Month'}</p>
+                          <p className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.2em] mb-0.5">{category === 'venue' ? 'Starting at' : 'Per Month'}</p>
                           <p className="text-base md:text-lg font-black text-[#ea580c]">₱{item.price.toLocaleString()}</p>
                       </div>
                       
@@ -1011,7 +1011,7 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
               <button aria-label={`Select Room ${roomNum}`} key={roomNum} disabled={isBooked} onClick={() => { setSelectedRoom(roomNum); setStep('schedule') }}
                 className={`p-6 xl:p-6 rounded-[1.5rem] xl:rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-2 min-h-[120px] xl:min-h-[100px] focus-visible:ring-2 focus-visible:ring-orange-300 outline-none ${isBooked ? 'opacity-40 grayscale cursor-not-allowed bg-slate-50 border-slate-200' : 'bg-white hover:border-[#ea580c] hover:shadow-md border-slate-100 shadow-sm'}`}>
                 <div className="text-3xl xl:text-2xl font-black text-slate-900">0{roomNum}</div>
-                <div className={`text-[10px] xl:text-[9px] font-bold uppercase tracking-widest ${isBooked ? 'text-rose-500' : 'text-emerald-500'}`}>{isBooked ? 'Booked' : 'Available'}</div>
+                <div className={`text-[10px] xl:text-[9px] font-bold uppercase tracking-[0.2em] ${isBooked ? 'text-rose-500' : 'text-emerald-500'}`}>{isBooked ? 'Booked' : 'Available'}</div>
               </button>
             )
           })}
@@ -1242,7 +1242,7 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
                 <div className="p-3 bg-orange-50 border border-orange-100 rounded-lg flex items-start gap-2 animate-in fade-in">
                   <CheckCircle2 className="w-4 h-4 text-[#ea580c] shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-[8px] font-bold text-orange-900 uppercase tracking-widest leading-relaxed">
+                    <p className="text-[8px] font-bold text-orange-900 uppercase tracking-[0.2em] leading-relaxed">
                       6-Hour Slot Confirmed
                     </p>
                     <p className="text-[10px] font-black text-[#ea580c]">
@@ -1273,7 +1273,7 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
     const titlePriceBlock = (
       <div>
         <h2 className="text-xl font-black text-slate-900 tracking-tight leading-tight">{displayName}</h2>
-        <p className="text-[#ea580c] font-black text-lg leading-tight mt-0.5">₱{selectedItem?.price.toLocaleString()} <span className="text-slate-400 font-bold text-[9px] tracking-widest uppercase">/ {category === 'venue' ? 'Per 6 Hrs' : 'Per Month'}</span></p>
+        <p className="text-[#ea580c] font-black text-lg leading-tight mt-0.5">₱{selectedItem?.price.toLocaleString()} <span className="text-slate-400 font-bold text-[9px] tracking-[0.2em] uppercase">/ {category === 'venue' ? 'Per 6 Hrs' : 'Per Month'}</span></p>
       </div>
     )
 
@@ -1284,13 +1284,13 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
           (!libLoaded || !isViewerReady) && (
             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/60 gap-3">
               <Loader2 className="w-6 h-6 text-[#ea580c] animate-spin" />
-              <p className="text-white text-[10px] font-black tracking-widest uppercase">Loading 360° Panorama...</p>
+              <p className="text-white text-[10px] font-black tracking-[0.2em] uppercase">Loading 360° Panorama...</p>
             </div>
           )
         ) : (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/60 gap-3">
             <Camera className="w-8 h-8 text-white/60" />
-            <p className="text-white/80 text-[10px] font-black tracking-widest uppercase text-center px-4">
+            <p className="text-white/80 text-[10px] font-black tracking-[0.2em] uppercase text-center px-4">
               360 tour preview is not available for this space.
             </p>
           </div>
@@ -1307,7 +1307,7 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
                {isAutoRotating ? <PauseCircle className="w-4 h-4" /> : <PlayCircle className="w-4 h-4" />}
             </button>
             <div className="w-px h-4 bg-white/20"></div>
-            <div className="flex items-center px-2 text-white/90 text-[10px] font-bold uppercase tracking-widest gap-1.5">
+            <div className="flex items-center px-2 text-white/90 text-[10px] font-bold uppercase tracking-[0.2em] gap-1.5">
                <Navigation className="w-3 h-3 animate-pulse" /> Pan around
             </div>
           </div>
@@ -1328,13 +1328,13 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
                 (!libLoaded || !isViewerReady) && (
                   <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/60 gap-3">
                     <Loader2 className="w-6 h-6 text-[#ea580c] animate-spin" />
-                    <p className="text-white text-[10px] font-black tracking-widest uppercase">Loading 360° Panorama...</p>
+                    <p className="text-white text-[10px] font-black tracking-[0.2em] uppercase">Loading 360° Panorama...</p>
                   </div>
                 )
               ) : (
                 <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/60 gap-3">
                   <Camera className="w-8 h-8 text-white/60" />
-                  <p className="text-white/80 text-[10px] font-black tracking-widest uppercase text-center px-4">
+                  <p className="text-white/80 text-[10px] font-black tracking-[0.2em] uppercase text-center px-4">
                     360 tour preview is not available for this space.
                   </p>
                 </div>
@@ -1351,7 +1351,7 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
                      {isAutoRotating ? <PauseCircle className="w-4 h-4" /> : <PlayCircle className="w-4 h-4" />}
                   </button>
                   <div className="w-px h-4 bg-white/20"></div>
-                  <div className="flex items-center px-2 text-white/90 text-[10px] font-bold uppercase tracking-widest gap-1.5">
+                  <div className="flex items-center px-2 text-white/90 text-[10px] font-bold uppercase tracking-[0.2em] gap-1.5">
                      <Navigation className="w-3 h-3 animate-pulse" /> Pan around
                   </div>
                 </div>
@@ -1368,7 +1368,7 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
             <div className="w-full">
               <div className="flex h-6 items-center gap-2 mb-3">
                 <div className="w-5 h-5 rounded-full bg-slate-900 text-white flex items-center justify-center text-[9px] shrink-0">2</div>
-                <span className="text-[10px] font-black text-slate-900 tracking-widest uppercase">Select {category === 'venue' ? 'Time' : 'Duration'}</span>
+                <span className="text-[10px] font-black text-slate-900 tracking-[0.2em] uppercase">Select {category === 'venue' ? 'Time' : 'Duration'}</span>
               </div>
               {timePanel}
             </div>
@@ -1403,7 +1403,7 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
             <div className="flex min-h-0 flex-col gap-3 pt-[62px]">
               <div className="flex h-6 items-center gap-2">
                 <div className="w-5 h-5 rounded-full bg-slate-900 text-white flex items-center justify-center text-[9px] shrink-0">2</div>
-                <span className="text-[10px] font-black text-slate-900 tracking-widest uppercase">Select {category === 'venue' ? 'Time' : 'Duration'}</span>
+                <span className="text-[10px] font-black text-slate-900 tracking-[0.2em] uppercase">Select {category === 'venue' ? 'Time' : 'Duration'}</span>
               </div>
               <div className="w-full">
                 {timePanel}
@@ -1442,7 +1442,7 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
             </h3>
             
             <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">
+                <label className="text-[10px] font-bold text-slate-700 uppercase tracking-[0.2em]">
                     {isOffice ? 'Company / Tenant Name *' : 'Event Name *'}
                 </label>
                 <Input required value={eventName} onChange={e => setEventName(e.target.value)} placeholder={isOffice ? "e.g. Acme Corp / Juan Dela Cruz" : "e.g. 18th Birthday Party"} className="h-10 w-full rounded-xl bg-slate-50 border border-slate-200 px-3 text-xs focus-visible:ring-2 focus-visible:ring-[#ea580c]" />
@@ -1450,7 +1450,7 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
 
             {isOffice ? (
                 <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">
+                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-[0.2em]">
                         Nature of Business *
                     </label>
                     <select
@@ -1475,7 +1475,7 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">
+                        <label className="text-[10px] font-bold text-slate-700 uppercase tracking-[0.2em]">
                             Event Type *
                         </label>
                         <select
@@ -1498,7 +1498,7 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
                     </div>
                     
                     <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">
+                        <label className="text-[10px] font-bold text-slate-700 uppercase tracking-[0.2em]">
                             Expected Guests *
                         </label>
                         <Input 
@@ -1624,7 +1624,7 @@ export function ReserveDialog({ children, open: controlledOpen, onOpenChange: se
         "!flex !flex-col !gap-0 !p-0 overflow-hidden bg-white rounded-none sm:rounded-[2rem] border-0 shadow-2xl transition-all duration-300 ease-in-out w-full sm:max-h-[calc(100dvh-48px)]",
         step === 'category' && "!max-w-full sm:!max-w-[600px]",
         (step === 'list' || step === 'room') && "!max-w-full sm:!max-w-[95vw] lg:!max-w-[960px]",
-        step === 'schedule' && "w-[calc(100vw-48px)] max-w-[1180px] max-h-[calc(100dvh-32px)]",
+        step === 'schedule' && "w-[95vw] max-w-[1180px] max-h-[calc(100dvh-32px)]",
         step === 'details' && "!max-w-full sm:!max-w-[580px]",
       )}>
         

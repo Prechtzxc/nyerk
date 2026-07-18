@@ -90,11 +90,11 @@ export default function CalendarPreviewPage() {
 
   return (
     <PublicLayout>
-      <section className="pt-24 pb-16 bg-slate-50 min-h-screen">
+      <section className="pt-24 pb-16 bg-slate-50 min-h-screen overflow-x-hidden">
         <div className="container mx-auto px-4 max-w-4xl animate-in fade-in slide-in-from-bottom-8 duration-700">
           
           <div className="text-center mb-10">
-            <Badge className="bg-amber-100 text-amber-700 border-none px-4 py-1.5 mb-4 text-xs font-bold tracking-widest shadow-none">Availability Checker</Badge>
+            <Badge className="bg-amber-100 text-amber-700 border-none px-4 py-1.5 mb-4 text-xs font-bold tracking-[0.2em] shadow-none">Availability Checker</Badge>
             <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight mb-4">Space Calendar</h1>
             <p className="text-lg text-slate-500">Preview the schedule of our spaces before making a reservation.</p>
           </div>
@@ -107,7 +107,7 @@ export default function CalendarPreviewPage() {
                   
                   {/* Category Selector */}
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Category</label>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">Category</label>
                     <Select value={bookingType} onValueChange={handleCategoryChange}>
                       <SelectTrigger className="h-12 rounded-xl bg-slate-50 border-slate-200 font-bold"><SelectValue /></SelectTrigger>
                       <SelectContent className="rounded-xl">
@@ -119,7 +119,7 @@ export default function CalendarPreviewPage() {
 
                   {/* Facility Selector */}
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
                       Select {bookingType === "venue" ? "Venue" : "Office"}
                     </label>
                     <Select value={selectedFacilityId} onValueChange={setSelectedFacilityId}>
@@ -133,7 +133,7 @@ export default function CalendarPreviewPage() {
                   </div>
                </div>
 
-               <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-4">
+               <div className="bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-100 space-y-4">
                    <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2"><Info className="w-4 h-4 text-amber-600"/> Legend</h4>
                    <div className="space-y-2.5">
                       <div className="flex items-center gap-3"><div className="w-4 h-4 rounded-full bg-emerald-100 border border-emerald-300"></div><span className="text-sm font-semibold text-slate-600">🟢 Available</span></div>
@@ -166,7 +166,7 @@ export default function CalendarPreviewPage() {
                </div>
 
                <div className="grid grid-cols-7 gap-2 md:gap-3 text-center">
-                 {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(d => <div key={d} className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pb-2">{d}</div>)}
+                 {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(d => <div key={d} className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] pb-2">{d}</div>)}
                  {emptySlots.map((_, i) => <div key={`empty-${i}`} />)}
                  {days.map((day) => {
                    const status = getDayStatus(day);
@@ -200,7 +200,7 @@ export default function CalendarPreviewPage() {
         <div className="fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 p-4 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-50 animate-in slide-in-from-bottom-full duration-500">
           <div className="container mx-auto max-w-5xl flex flex-col md:flex-row items-center justify-between gap-4">
             <div>
-              <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-1">Pencil Booking Reservation</p>
+              <p className="text-xs text-slate-500 font-bold uppercase tracking-[0.2em] mb-1">Pencil Booking Reservation</p>
               <div className="flex items-center gap-2 font-black text-rose-600 bg-rose-50 px-3 py-1.5 rounded-lg w-fit border border-rose-100">
                 <Clock size={18} /> 
                 Expires in {String(Math.floor(timeLeft / 60)).padStart(2, '0')}:{String(timeLeft % 60).padStart(2, '0')}
@@ -210,13 +210,13 @@ export default function CalendarPreviewPage() {
             <div className="w-full md:w-auto flex flex-col sm:flex-row gap-3">
               <button 
                 onClick={() => setShowPaymentTimer(false)}
-                className="px-6 py-3 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 transition-colors">
+                className="w-full sm:w-auto h-11 px-6 py-3 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 transition-colors">
                 Cancel
               </button>
-              <button className="px-6 py-3 rounded-xl border-2 border-amber-600 text-amber-700 font-bold text-sm hover:bg-amber-50 transition-colors">
+              <button className="w-full sm:w-auto h-11 px-6 py-3 rounded-xl border-2 border-amber-600 text-amber-700 font-bold text-sm hover:bg-amber-50 transition-colors">
                 Pay Downpayment (50%)
               </button>
-              <button className="px-6 py-3 rounded-xl bg-amber-600 text-white font-bold text-sm hover:bg-amber-700 shadow-md transition-colors">
+              <button className="w-full sm:w-auto h-11 px-6 py-3 rounded-xl bg-amber-600 text-white font-bold text-sm hover:bg-amber-700 shadow-md transition-colors">
                 Pay Full Amount
               </button>
             </div>

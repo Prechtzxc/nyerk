@@ -54,7 +54,7 @@ export function CancellationDialog({ open, onOpenChange, booking, onConfirm }: C
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="w-[95vw] sm:max-w-md overflow-y-auto max-h-[90dvh] rounded-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center">
             <AlertTriangle className="mr-2 h-5 w-5 text-red-500" />
@@ -86,18 +86,18 @@ export function CancellationDialog({ open, onOpenChange, booking, onConfirm }: C
               className="mt-1"
             />
             <div>
-              <Label htmlFor="terms" className="text-sm">
+              <Label htmlFor="terms" className="text-sm text-[10px] font-black uppercase tracking-[0.2em]">
                 I understand and agree to the cancellation policy. I understand this action cannot be undone.
               </Label>
             </div>
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button variant="outline" className="w-full sm:w-auto h-11" onClick={() => onOpenChange(false)}>
             Keep Booking
           </Button>
-          <Button variant="destructive" onClick={onConfirm} disabled={!agreedToTerms}>
+          <Button variant="destructive" className="w-full sm:w-auto h-11" onClick={onConfirm} disabled={!agreedToTerms}>
             Cancel Booking
           </Button>
         </DialogFooter>

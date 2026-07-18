@@ -238,13 +238,7 @@ export default function HomePage() {
 
 function LandingPageContent() {
   const { cmsData } = useCMS()
-  console.log("=== LANDING ===", {
-heroTitle: cmsData?.homepage?.heroTitle,
-heroSubtitle: cmsData?.homepage?.heroSubtitle,
-address: cmsData?.footer?.address,
-phone: cmsData?.footer?.phone,
-email: cmsData?.footer?.email,
-})
+
   const [galleryBooking, setGalleryBooking] = useState<PastClientBooking | null>(null)
 
   const homepage = cmsData.homepage
@@ -274,7 +268,7 @@ email: cmsData?.footer?.email,
     <PublicLayout>
       <section
         id="home"
-        className="relative flex w-full max-w-full min-h-[620px] items-center overflow-hidden bg-slate-950 text-white"
+        className="relative flex w-full max-w-full min-h-[620px] items-center overflow-hidden overflow-x-hidden bg-slate-950 text-white"
       >
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
@@ -285,7 +279,7 @@ email: cmsData?.footer?.email,
         <div className="absolute inset-0 bg-gradient-to-br from-black/80 via-black/60 to-orange-950/50" />
 
         <div className="container relative z-10 mx-auto px-4 py-24 text-center">
-          <div className="mx-auto mb-5 w-fit rounded-full border border-white/20 bg-white/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.22em] text-orange-100 backdrop-blur">
+          <div className="mx-auto mb-5 w-fit rounded-full border border-white/20 bg-white/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-orange-100 backdrop-blur">
             {homepage.heroBadge}
           </div>
 
@@ -315,11 +309,11 @@ email: cmsData?.footer?.email,
         </div>
       </section>
 
-      <section id="about" className="w-full bg-slate-50 py-20">
+      <section id="about" className="w-full bg-slate-50 py-20 overflow-x-hidden">
         <div className="container mx-auto max-w-6xl px-4">
           <div className="grid items-center gap-12 lg:grid-cols-2">
             <div>
-              <p className="mb-2 text-xs font-black uppercase tracking-[0.25em] text-orange-600">
+              <p className="mb-2 text-xs font-black uppercase tracking-[0.2em] text-orange-600">
                 {homepage.aboutLabel}
               </p>
 
@@ -329,7 +323,7 @@ email: cmsData?.footer?.email,
 
               <div className="mb-8 h-1.5 w-20 rounded-full bg-orange-600" />
 
-              <div className="space-y-6 text-lg leading-relaxed text-slate-600">
+              <div className="space-y-6 text-lg leading-relaxed text-slate-600 break-words">
                 {(homepage.aboutDescription ?? "").split("\n\n").filter(Boolean).map((para: string, i: number) => (
                   <p key={i}>{para}</p>
                 ))}
@@ -340,7 +334,7 @@ email: cmsData?.footer?.email,
               <img
                 src={getImageSource(homepage.aboutImage)}
                 alt="About One Estela Place venue"
-                className="h-full w-full object-cover transition-transform duration-700 hover:scale-105"
+                className="h-full w-full max-w-full h-auto object-cover transition-transform duration-700 hover:scale-105"
                 onError={(event) => {
                   event.currentTarget.src = "/placeholder.jpg"
                 }}
@@ -350,11 +344,11 @@ email: cmsData?.footer?.email,
         </div>
       </section>
 
-      <section className="w-full bg-white py-20">
+      <section className="w-full bg-white py-20 overflow-x-hidden">
         <div className="container mx-auto max-w-7xl px-4">
           <div className="mb-12 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-[0.25em] text-orange-600">
+              <p className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-[0.2em] text-orange-600">
                 <Sparkles className="h-4 w-4" />
                 {homepage.galleryLabel}
               </p>
@@ -368,7 +362,7 @@ email: cmsData?.footer?.email,
               </p>
             </div>
 
-            <div className="rounded-full border border-orange-200 bg-orange-50 px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-orange-700">
+            <div className="rounded-full border border-orange-200 bg-orange-50 px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-orange-700">
               Client Event Photos
             </div>
           </div>
@@ -385,7 +379,7 @@ email: cmsData?.footer?.email,
                     <img
                       src={getCoverImage(booking)}
                       alt={booking.eventName}
-                      className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                      className="h-full w-full max-w-full h-auto object-cover transition duration-700 group-hover:scale-105"
                       onError={(imageEvent) => {
                         imageEvent.currentTarget.src = "/placeholder.jpg"
                       }}
@@ -393,7 +387,7 @@ email: cmsData?.footer?.email,
 
                     <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-transparent" />
 
-                    <div className="absolute bottom-4 left-4 rounded-full bg-white/95 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-orange-700 shadow">
+                    <div className="absolute bottom-4 left-4 rounded-full bg-white/95 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-orange-700 shadow">
                       {booking.eventType || "Event"}
                     </div>
 
@@ -405,7 +399,7 @@ email: cmsData?.footer?.email,
                     )}
                   </div>
 
-                  <div className="p-5">
+                  <div className="p-4 sm:p-5">
                     <div className="mb-3 flex items-center gap-2 text-xs font-bold text-slate-500">
                       <Calendar className="h-4 w-4 text-orange-600" />
                       {formatDate(booking.date)}
@@ -415,7 +409,7 @@ email: cmsData?.footer?.email,
                       {booking.eventName}
                     </h3>
 
-                    <p className="mt-1 text-xs font-black uppercase tracking-[0.12em] text-orange-600">
+                    <p className="mt-1 text-xs font-black uppercase tracking-[0.2em] text-orange-600">
                       {booking.name}
                       {booking.companyName && <span className="font-semibold text-slate-400"> · {booking.companyName}</span>}
                     </p>
@@ -444,10 +438,10 @@ email: cmsData?.footer?.email,
         </div>
       </section>
 
-      <section id="faqs" className="w-full border-t border-slate-100 bg-slate-50 py-20">
+      <section id="faqs" className="w-full border-t border-slate-100 bg-slate-50 py-20 overflow-x-hidden">
         <div className="container mx-auto max-w-4xl px-4">
           <div className="mb-12 text-center">
-            <p className="mb-2 text-xs font-black uppercase tracking-[0.25em] text-orange-600">
+            <p className="mb-2 text-xs font-black uppercase tracking-[0.2em] text-orange-600">
               {homepage.faqLabel}
             </p>
 
@@ -465,7 +459,7 @@ email: cmsData?.footer?.email,
               <AccordionItem
                 key={faq.id || index}
                 value={`faq-${index}`}
-                className="rounded-2xl border border-slate-200 bg-white px-6 shadow-sm transition-shadow hover:shadow"
+                className="rounded-2xl border border-slate-200 bg-white px-4 sm:px-6 shadow-sm transition-shadow hover:shadow"
               >
                 <AccordionTrigger className="py-5 text-left font-bold text-slate-900 hover:text-orange-700 hover:no-underline">
                   {faq.question}
@@ -480,7 +474,7 @@ email: cmsData?.footer?.email,
         </div>
       </section>
 
-      <section className="w-full bg-slate-950 py-20 text-white">
+      <section className="w-full bg-slate-950 py-20 text-white overflow-x-hidden">
         <div className="container mx-auto px-4 text-center">
           <Camera className="mx-auto mb-5 h-12 w-12 text-orange-500" />
 
@@ -494,14 +488,14 @@ email: cmsData?.footer?.email,
 
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <ReserveButton
-              className="h-12 rounded-full bg-orange-600 px-7 text-sm font-black text-white hover:bg-orange-700"
+              className="h-12 w-full sm:w-auto rounded-full bg-orange-600 px-7 text-sm font-black text-white hover:bg-orange-700"
               size="lg"
             >
               {homepage.ctaButtonText}
             </ReserveButton>
 
             <TourButton
-              className="h-12 rounded-full border border-white/20 bg-white px-7 text-sm font-black text-slate-950 hover:bg-orange-50"
+              className="h-12 w-full sm:w-auto rounded-full border border-white/20 bg-white px-7 text-sm font-black text-slate-950 hover:bg-orange-50"
               size="lg"
             >
               {homepage.ctaText}

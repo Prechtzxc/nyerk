@@ -230,7 +230,7 @@ export function ReceiptPaper({
             >
               <span
                 className={cn(
-                  "text-xs font-black uppercase tracking-widest",
+                  "text-xs font-black uppercase tracking-[0.2em]",
                   isVerified ? "text-emerald-700" : "text-amber-700",
                 )}
               >

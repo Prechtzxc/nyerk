@@ -75,11 +75,11 @@ export default function AdminDashboardPage() {
   }, [bookings])
 
   return (
-    <div className="mx-auto w-full max-w-[1180px] px-3 py-4 sm:px-5 lg:px-6">
+    <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6 overflow-x-hidden">
       <div className="border-b border-slate-200 pb-6 mb-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
-            <p className="text-[11px] font-black uppercase tracking-[0.22em] text-orange-600">
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-orange-600">
               Admin Dashboard
             </p>
             <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
@@ -154,7 +154,7 @@ export default function AdminDashboardPage() {
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div className="flex flex-col gap-2 border-b border-slate-100 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-orange-600">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-600">
                   Latest Activity
                 </p>
                 <h2 className="mt-0.5 text-base font-black tracking-tight text-slate-950 sm:text-lg">
@@ -194,7 +194,7 @@ export default function AdminDashboardPage() {
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.22em] text-orange-600">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-600">
                     Action Center
                   </p>
                   <h3 className="mt-0.5 text-base font-black text-slate-950 sm:text-lg">
@@ -236,7 +236,7 @@ export default function AdminDashboardPage() {
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-orange-600 shadow-sm">
                   <TrendingUp className="h-4 w-4" />
                 </div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-orange-700">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-700">
                   Total Records
                 </p>
               </div>
@@ -270,7 +270,7 @@ function getBookingTime(booking: any) {
 
 function getStatusBadge(status: string) {
   const baseClass =
-    "inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-widest"
+    "inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.2em]"
 
   switch (status) {
     case "pending":
@@ -377,11 +377,11 @@ function StatCard({
         <ArrowRight className="h-3.5 w-3.5 shrink-0 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-orange-600" />
       </div>
 
-      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">
         {label}
       </p>
 
-      <h3 className="mt-0.5 whitespace-nowrap text-lg font-black tracking-tight text-slate-950 xl:text-xl 2xl:text-2xl">
+      <h3 className="mt-0.5 truncate text-lg font-black tracking-tight text-slate-950 xl:text-xl 2xl:text-2xl">
         {value}
       </h3>
 
@@ -422,7 +422,7 @@ function BookingRow({
           </div>
 
           <div className="min-w-0 flex-1">
-            <p className="break-words text-xs font-black leading-snug text-slate-950 sm:text-sm">
+            <p className="break-words text-xs font-semibold leading-snug text-slate-950 sm:text-sm line-clamp-2 min-w-0">
               {booking.eventName || "Untitled Event"}
             </p>
             <p className="mt-0.5 break-words text-[10px] font-bold leading-snug text-slate-500 sm:text-[11px]">

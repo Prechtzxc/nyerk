@@ -384,7 +384,7 @@ export function UnifiedAdminChatPanel() {
   }
 
   return (
-    <Card className="h-[600px] flex flex-col">
+    <Card className="h-[calc(100dvh-200px)] sm:h-[600px] flex flex-col">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div>
@@ -428,7 +428,7 @@ export function UnifiedAdminChatPanel() {
 
           <TabsContent value="conversations" className="flex-1 flex m-0">
             {/* Conversations List */}
-            <div className="w-80 border-r flex flex-col">
+            <div className="w-full sm:w-80 border-r flex flex-col">
               <div className="p-4 border-b">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -736,7 +736,7 @@ export function UnifiedAdminChatPanel() {
                         value={messageInput}
                         onChange={handleInputChange}
                         placeholder="Type your reply..."
-                        className="flex-1"
+                        className="flex-1 h-11"
                         disabled={!isConnected}
                       />
                       <Button

@@ -83,7 +83,7 @@ export function ModifyBookingDialog({ open, onOpenChange, booking, onSave }: Mod
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="w-[95vw] sm:max-w-2xl overflow-y-auto max-h-[90dvh] rounded-2xl">
         <DialogHeader>
           <DialogTitle>Modify Booking</DialogTitle>
           <DialogDescription>
@@ -107,17 +107,18 @@ export function ModifyBookingDialog({ open, onOpenChange, booking, onSave }: Mod
           <TabsContent value="details" className="space-y-4">
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="eventName">Event Name</Label>
+                <Label htmlFor="eventName" className="text-[10px] font-black uppercase tracking-[0.2em]">Event Name</Label>
                 <Input
                   id="eventName"
                   placeholder="Enter event name"
                   value={bookingData.eventName}
                   onChange={(e) => setBookingData({ ...bookingData, eventName: e.target.value })}
                   required
+                  className="h-11 w-full"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="guestCount">Expected Guests</Label>
+                <Label htmlFor="guestCount" className="text-[10px] font-black uppercase tracking-[0.2em]">Expected Guests</Label>
                 <Input
                   id="guestCount"
                   type="number"
@@ -125,10 +126,11 @@ export function ModifyBookingDialog({ open, onOpenChange, booking, onSave }: Mod
                   value={bookingData.guestCount}
                   onChange={(e) => setBookingData({ ...bookingData, guestCount: e.target.value })}
                   required
+                  className="h-11 w-full"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="specialRequests">Special Requests</Label>
+                <Label htmlFor="specialRequests" className="text-[10px] font-black uppercase tracking-[0.2em]">Special Requests</Label>
                 <Textarea
                   id="specialRequests"
                   placeholder="Any special requirements, decorations, catering preferences, etc."
@@ -141,7 +143,7 @@ export function ModifyBookingDialog({ open, onOpenChange, booking, onSave }: Mod
           <TabsContent value="datetime" className="space-y-4">
             <div className="grid gap-6 md:grid-cols-2">
               <div>
-                <Label className="text-base font-medium">Select Date</Label>
+                <Label className="text-[10px] font-black uppercase tracking-[0.2em]">Select Date</Label>
                 <Calendar
                   mode="single"
                   selected={selectedDate}
@@ -152,12 +154,12 @@ export function ModifyBookingDialog({ open, onOpenChange, booking, onSave }: Mod
               </div>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="startTime">Start Time</Label>
+                  <Label htmlFor="startTime" className="text-[10px] font-black uppercase tracking-[0.2em]">Start Time</Label>
                   <Select
                     value={bookingData.startTime}
                     onValueChange={(value) => setBookingData({ ...bookingData, startTime: value })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select start time" />
                     </SelectTrigger>
                     <SelectContent>
@@ -170,12 +172,12 @@ export function ModifyBookingDialog({ open, onOpenChange, booking, onSave }: Mod
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="endTime">End Time</Label>
+                  <Label htmlFor="endTime" className="text-[10px] font-black uppercase tracking-[0.2em]">End Time</Label>
                   <Select
                     value={bookingData.endTime}
                     onValueChange={(value) => setBookingData({ ...bookingData, endTime: value })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select end time" />
                     </SelectTrigger>
                     <SelectContent>
@@ -205,11 +207,11 @@ export function ModifyBookingDialog({ open, onOpenChange, booking, onSave }: Mod
           </TabsContent>
         </Tabs>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button variant="outline" className="w-full sm:w-auto h-11" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSaveChanges}>Save Changes</Button>
+          <Button className="w-full sm:w-auto h-11" onClick={handleSaveChanges}>Save Changes</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

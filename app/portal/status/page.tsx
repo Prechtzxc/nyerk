@@ -86,7 +86,7 @@ function StatusPill({
   return (
     <span
       className={cn(
-        "inline-block rounded-md border px-2 py-0.5 text-[10px] font-black uppercase tracking-widest",
+        "inline-block whitespace-nowrap rounded-md border px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.2em]",
         tones[tone],
       )}
     >
@@ -238,7 +238,7 @@ function StatusCard({ booking, cmsData }: { booking: StatusBooking; cmsData?: an
     <Card className="overflow-hidden rounded-2xl border-slate-200 bg-white shadow-sm">
       <div className="flex flex-col gap-1 border-b border-slate-100 bg-gradient-to-r from-orange-50 to-white p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
         <div className="min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-orange-600">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-600">
             {isOfficeRental ? "Office Rental" : "Event Booking"}
           </p>
           <h2 className="mt-1 truncate text-lg font-black text-slate-900">
@@ -262,7 +262,7 @@ function StatusCard({ booking, cmsData }: { booking: StatusBooking; cmsData?: an
 
       <CardContent className="grid gap-4 p-4 sm:grid-cols-2 sm:p-5">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
             Booking Status
           </p>
           <div className="mt-3">
@@ -313,13 +313,13 @@ function StatusCard({ booking, cmsData }: { booking: StatusBooking; cmsData?: an
 
         <div className="space-y-4">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
               Payment Status
             </p>
             <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
               <div className="grid grid-cols-2 gap-2 text-[11px] font-bold text-slate-700">
                 <div>
-                  <p className="text-[9px] uppercase tracking-widest text-slate-400">
+                  <p className="text-[9px] uppercase tracking-[0.2em] text-slate-400">
                     Method
                   </p>
                   <p className="mt-0.5 text-slate-900">
@@ -327,7 +327,7 @@ function StatusCard({ booking, cmsData }: { booking: StatusBooking; cmsData?: an
                   </p>
                 </div>
                 <div>
-                  <p className="text-[9px] uppercase tracking-widest text-slate-400">
+                  <p className="text-[9px] uppercase tracking-[0.2em] text-slate-400">
                     Amount
                   </p>
                   <p className="mt-0.5 text-slate-900">
@@ -335,7 +335,7 @@ function StatusCard({ booking, cmsData }: { booking: StatusBooking; cmsData?: an
                   </p>
                 </div>
                 <div>
-                  <p className="text-[9px] uppercase tracking-widest text-slate-400">
+                  <p className="text-[9px] uppercase tracking-[0.2em] text-slate-400">
                     Type
                   </p>
                   <p className="mt-0.5 text-slate-900">
@@ -347,7 +347,7 @@ function StatusCard({ booking, cmsData }: { booking: StatusBooking; cmsData?: an
                   </p>
                 </div>
                 <div>
-                  <p className="text-[9px] uppercase tracking-widest text-slate-400">
+                  <p className="text-[9px] uppercase tracking-[0.2em] text-slate-400">
                     Payment Status
                   </p>
                   <p className="mt-0.5 text-slate-900">
@@ -360,7 +360,7 @@ function StatusCard({ booking, cmsData }: { booking: StatusBooking; cmsData?: an
 
           {isCancelReq && (
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
                 Cancellation Status
               </p>
               <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-1">
@@ -387,7 +387,7 @@ function StatusCard({ booking, cmsData }: { booking: StatusBooking; cmsData?: an
 
           {isCancelled && (
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
                 Cancellation Status
               </p>
               <div className={cn(
@@ -434,7 +434,7 @@ function StatusCard({ booking, cmsData }: { booking: StatusBooking; cmsData?: an
 
           {refundStatus && !isCancelled && !isCancelReq && (
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
                 Refund Status
               </p>
               <div
@@ -461,7 +461,7 @@ function StatusCard({ booking, cmsData }: { booking: StatusBooking; cmsData?: an
 
           {hasContractFile && (
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
                 Contract Document
               </p>
               <div
@@ -504,7 +504,7 @@ function StatusCard({ booking, cmsData }: { booking: StatusBooking; cmsData?: an
           )}
 
           <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
               Contract Status
             </p>
             <div
@@ -595,11 +595,11 @@ export default function StatusPage() {
 
   return (
     <div className="w-full min-w-0 max-w-full overflow-x-hidden">
-      <div className="mx-auto w-full max-w-[1180px] px-3 py-4 sm:px-5 lg:px-6 animate-in fade-in duration-500">
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6 animate-in fade-in duration-500">
         <section className="border-b border-slate-200 pb-5 mb-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.24em] text-orange-600">
+              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-orange-600">
                 Reservations
               </p>
               <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
@@ -615,7 +615,7 @@ export default function StatusPage() {
                   type="button"
                   onClick={() => setFilter("current")}
                   className={cn(
-                    "rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-widest transition",
+                    "rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] transition",
                     filter === "current"
                       ? "bg-orange-600 text-white"
                       : "text-slate-600 hover:text-slate-900",
@@ -627,7 +627,7 @@ export default function StatusPage() {
                   type="button"
                   onClick={() => setFilter("all")}
                   className={cn(
-                    "rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-widest transition",
+                    "rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] transition",
                     filter === "all"
                       ? "bg-orange-600 text-white"
                       : "text-slate-600 hover:text-slate-900",

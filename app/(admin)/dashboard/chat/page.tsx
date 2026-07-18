@@ -111,7 +111,7 @@ export default function AdminSupportChatPage() {
 
   return (
     <>
-      <div className="flex h-full w-full bg-white rounded-none border-none">
+      <div className="flex h-full w-full bg-white rounded-none border-none overflow-x-hidden">
         {/* INBOX SIDEBAR */}
         <div className="w-80 flex flex-col border-r border-slate-200 shrink-0 bg-white">
           <div className="p-4 border-b border-slate-100">

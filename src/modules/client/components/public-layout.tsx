@@ -61,10 +61,10 @@ export function PublicLayout({ children }: PublicLayoutProps) {
   if (isLoading) {
     return (
       <div className="flex min-h-screen w-full max-w-full overflow-x-hidden flex-col font-sans">
-        <header className="fixed top-0 left-0 right-0 z-[9999] bg-gradient-to-r from-orange-600 via-orange-600 to-orange-700 shadow-lg">
-          <div className="container mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
-            <Link href="/" className="group flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-xl font-black text-orange-600 shadow-sm">
+        <header className="fixed top-0 left-0 right-0 z-[9999] bg-gradient-to-r from-orange-600 via-orange-600 to-orange-700 shadow-lg overflow-hidden">
+          <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-3 sm:px-4">
+            <Link href="/" className="group flex items-center gap-3 shrink-0 min-w-0">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-xl font-black text-orange-600 shadow-sm">
                 {(cmsData?.footer?.brandName || "One Estela Place").charAt(0)}
               </div>
               {(() => {
@@ -73,7 +73,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
                 const last = words.length > 1 ? words.pop() : ""
                 const rest = words.join(" ")
                 return (
-                  <span className="text-xl font-black tracking-tight text-white">
+                  <span className="hidden sm:inline text-xl font-black tracking-tight text-white">
                     {rest} {last ? <span className="text-orange-100">{last}</span> : null}
                   </span>
                 )
@@ -93,10 +93,10 @@ export function PublicLayout({ children }: PublicLayoutProps) {
 
   return (
     <div className="flex min-h-screen w-full max-w-full overflow-x-hidden flex-col font-sans">
-        <header className="fixed top-0 left-0 right-0 z-[9999] bg-gradient-to-r from-orange-600 via-orange-600 to-orange-700 shadow-lg">
-        <div className="container mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
-          <Link href="/" className="group flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-xl font-black text-orange-600 shadow-sm transition-transform group-hover:scale-105">
+        <header className="fixed top-0 left-0 right-0 z-[9999] bg-gradient-to-r from-orange-600 via-orange-600 to-orange-700 shadow-lg overflow-hidden">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-3 sm:px-4">
+          <Link href="/" className="group flex items-center gap-3 shrink-0 min-w-0">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-xl font-black text-orange-600 shadow-sm transition-transform group-hover:scale-105">
               {(cmsData?.footer?.brandName || "One Estela Place").charAt(0)}
             </div>
 
@@ -106,22 +106,22 @@ export function PublicLayout({ children }: PublicLayoutProps) {
               const last = words.length > 1 ? words.pop() : ""
               const rest = words.join(" ")
               return (
-                <span className="text-xl font-black tracking-tight text-white">
+                <span className="hidden sm:inline text-xl font-black tracking-tight text-white">
                   {rest} {last ? <span className="text-orange-100">{last}</span> : null}
                 </span>
               )
             })()}
           </Link>
 
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
-                    className="relative h-11 w-11 rounded-full border-2 border-white/50 p-0 hover:border-white hover:bg-white/10"
+                    className="relative h-10 w-10 sm:h-11 sm:w-11 rounded-full border-2 border-white/50 p-0 hover:border-white hover:bg-white/10 shrink-0"
                   >
-                    <Avatar className="h-9 w-9">
+                    <Avatar className="h-8 w-8 sm:h-9 sm:w-9">
                       <AvatarImage src={user.profilePicture || "/placeholder-user.jpg"} alt={user.name} />
                       <AvatarFallback className="bg-white font-black text-orange-600">
                         {user.name.charAt(0)}
@@ -197,13 +197,13 @@ export function PublicLayout({ children }: PublicLayoutProps) {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-white hover:bg-white/15 sm:hidden"
+                  className="shrink-0 text-white hover:bg-white/15 sm:hidden"
                   onClick={() => setIsMobileMenuOpen((current) => !current)}
                 >
                   {isMobileMenuOpen ? (
-                    <X className="h-6 w-6" />
+                    <X className="h-6 w-6 shrink-0 overflow-hidden" />
                   ) : (
-                    <Menu className="h-6 w-6" />
+                    <Menu className="h-6 w-6 shrink-0 overflow-hidden" />
                   )}
                 </Button>
               </>
@@ -289,7 +289,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
 
               <li className="flex items-center gap-3">
                 <Mail className="h-5 w-5 shrink-0 text-orange-500" />
-                <span>{cmsData?.footer?.email || "inquiries@oneestelaplace.com"}</span>
+                <span className="break-all">{cmsData?.footer?.email || "inquiries@oneestelaplace.com"}</span>
               </li>
             </ul>
           </div>
@@ -322,7 +322,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
         </div>
 
         <div className="container mx-auto mt-12 flex max-w-7xl flex-col items-center justify-between gap-4 border-t border-slate-800 px-4 pt-8 text-xs text-slate-500 md:flex-row">
-          <p>© {new Date().getFullYear()} {cmsData?.footer?.copyrightText || "One Estela Place. All rights reserved."}</p>
+          <p className="text-center md:text-left">© {new Date().getFullYear()} {cmsData?.footer?.copyrightText || "One Estela Place. All rights reserved."}</p>
 
           <div className="flex gap-6">
             <Link href="#" className="transition-colors hover:text-white">

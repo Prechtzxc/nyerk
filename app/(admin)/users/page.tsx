@@ -75,9 +75,9 @@ export default function UsersPage() {
 
   return (
     <div className="w-full min-w-0 max-w-full overflow-x-hidden">
-      <div className="mx-auto w-full max-w-[1180px] px-3 py-4 sm:px-5 lg:px-6">
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
         <section className="border-b border-slate-200 pb-5 mb-6">
-          <p className="text-[11px] font-black uppercase tracking-[0.22em] text-orange-600">
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-orange-600">
             Admin Users Information
           </p>
           <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
@@ -119,15 +119,15 @@ export default function UsersPage() {
                 </div>
                 <div className="min-w-0 flex-1 grid grid-cols-2 gap-x-3 gap-y-1.5 sm:grid-cols-3 sm:gap-x-4">
                   <div className="min-w-0">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Name</p>
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Name</p>
                     <p className="text-xs font-black text-slate-800 truncate">{u.fullName || "—"}</p>
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Email</p>
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Email</p>
                     <p className="text-xs font-bold text-slate-800 truncate">{u.email || "—"}</p>
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Phone</p>
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Phone</p>
                     <p className="text-xs font-bold text-slate-800 truncate">{u.phone || "—"}</p>
                   </div>
                 </div>

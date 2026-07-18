@@ -80,7 +80,7 @@ export function ImageCropper({ open, imageUrl, onCrop, onClose }: ImageCropperPr
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose() }}>
-      <DialogContent className="sm:max-w-[440px]">
+      <DialogContent className="w-[95vw] overflow-y-auto max-h-[90dvh] sm:max-w-[440px] rounded-2xl">
         <DialogHeader>
           <DialogTitle className="text-xl font-black text-slate-900">Adjust Photo</DialogTitle>
         </DialogHeader>
@@ -127,13 +127,13 @@ export function ImageCropper({ open, imageUrl, onCrop, onClose }: ImageCropperPr
           )}
           <p className="text-xs text-slate-500">Drag to reposition · Slide to zoom</p>
         </div>
-        <div className="flex justify-end gap-3">
-          <Button variant="outline" onClick={onClose} className="rounded-md">
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <Button variant="outline" onClick={onClose} className="h-11 w-full rounded-md sm:w-auto">
             Cancel
           </Button>
           <Button
             onClick={applyCrop}
-            className="rounded-md bg-slate-900 text-white hover:bg-slate-800"
+            className="h-11 w-full rounded-md bg-slate-900 text-white hover:bg-slate-800 sm:w-auto"
           >
             Apply Crop
           </Button>

@@ -118,9 +118,12 @@ export default function ProfilePage() {
 
   return (
     <div className="w-full min-w-0 max-w-full overflow-x-hidden">
-      <div className="mx-auto w-full max-w-[1180px] px-3 py-4 sm:px-5 lg:px-6 animate-in fade-in duration-500">
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6 animate-in fade-in duration-500">
         <section className="border-b border-slate-200 pb-5 mb-6">
-          <h1 className="text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-orange-600">
+            Account
+          </p>
+          <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
             My Profile
           </h1>
           <p className="mt-1 text-sm text-slate-500">
@@ -163,7 +166,7 @@ export default function ProfilePage() {
               <div className="flex flex-col items-center gap-2 sm:items-end">
                 <div className="flex w-fit items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-emerald-700">
                   <ShieldCheck className="h-5 w-5 shrink-0" />
-                  <span className="text-xs font-black uppercase tracking-wider">
+                  <span className="text-xs font-black uppercase tracking-[0.2em]">
                     Active Account
                   </span>
                 </div>
@@ -333,7 +336,7 @@ function FieldWrapper({
 }) {
   return (
     <div className="space-y-2">
-      <Label className="text-[10px] font-black uppercase tracking-widest text-slate-600 sm:text-xs">
+      <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 sm:text-xs">
         {label}
       </Label>
       {children}

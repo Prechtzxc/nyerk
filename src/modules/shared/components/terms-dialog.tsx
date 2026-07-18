@@ -12,12 +12,12 @@ interface TermsDialogProps {
 export function TermsDialog({ open, onOpenChange }: TermsDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh]">
+      <DialogContent className="w-[95vw] max-w-4xl overflow-y-auto max-h-[90dvh]">
         <DialogHeader>
           <DialogTitle>Terms and Conditions</DialogTitle>
           <DialogDescription>One Estela Place - Event Venue Rental Agreement</DialogDescription>
         </DialogHeader>
-        <ScrollArea className="h-[60vh] pr-4">
+        <ScrollArea className="h-auto max-h-[60vh] pr-4">
           <div className="space-y-6 text-sm">
             <div className="text-center border-b pb-4">
               <p className="font-semibold">Effective Date: March 15, 2019</p>

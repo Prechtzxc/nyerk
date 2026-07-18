@@ -31,7 +31,7 @@ export function CMSPaymentTab({ onNavigate }: { onNavigate: (key: string) => voi
         action={
           <Button
             onClick={handleSave}
-            className="h-9 rounded-lg bg-orange-600 px-4 text-xs font-black text-white shadow-sm hover:bg-orange-700"
+            className="h-11 rounded-lg bg-orange-600 text-xs font-bold text-white hover:bg-orange-700 w-full sm:w-auto"
           >
             <Save className="mr-1.5 h-3.5 w-3.5" />
             Save Payment Settings
@@ -42,42 +42,42 @@ export function CMSPaymentTab({ onNavigate }: { onNavigate: (key: string) => voi
       <div className="grid gap-5 lg:grid-cols-2">
         <div className="space-y-4">
           <div>
-            <Label className="text-xs font-bold text-slate-700">Bank Name</Label>
+            <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 sm:text-xs">Bank Name</Label>
             <Input
               value={bankName}
               onChange={(e) => setBankName(e.target.value)}
               placeholder="e.g. BDO, GCash, Maya"
-              className="mt-1 h-10 rounded-xl border-slate-200 text-sm focus-visible:ring-orange-600"
+              className="mt-1 h-11 w-full rounded-lg border-slate-200 text-sm"
             />
           </div>
 
           <div>
-            <Label className="text-xs font-bold text-slate-700">Account Name</Label>
+            <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 sm:text-xs">Account Name</Label>
             <Input
               value={accountName}
               onChange={(e) => setAccountName(e.target.value)}
               placeholder="e.g. One Estela Place"
-              className="mt-1 h-10 rounded-xl border-slate-200 text-sm focus-visible:ring-orange-600"
+              className="mt-1 h-11 w-full rounded-lg border-slate-200 text-sm"
             />
           </div>
 
           <div>
-            <Label className="text-xs font-bold text-slate-700">Account Number</Label>
+            <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 sm:text-xs">Account Number</Label>
             <Input
               value={accountNumber}
               onChange={(e) => setAccountNumber(e.target.value)}
               placeholder="e.g. 0012 3456 7890"
-              className="mt-1 h-10 rounded-xl border-slate-200 text-sm focus-visible:ring-orange-600"
+              className="mt-1 h-11 w-full rounded-lg border-slate-200 text-sm"
             />
           </div>
 
           <div>
-            <Label className="text-xs font-bold text-slate-700">Payment Instructions (Optional)</Label>
+            <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 sm:text-xs">Payment Instructions (Optional)</Label>
             <Textarea
               value={instructions}
               onChange={(e) => setInstructions(e.target.value)}
               placeholder="e.g. Please upload a clear screenshot of your bank transfer receipt."
-              className="mt-1 min-h-[100px] w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm focus-visible:ring-orange-600"
+              className="mt-1 w-full min-h-[80px] resize-none rounded-lg border border-slate-200 px-4 py-3 text-sm"
             />
           </div>
         </div>

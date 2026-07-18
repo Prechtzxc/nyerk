@@ -44,7 +44,7 @@ export function CMSVirtualTourTab({ onNavigate }: { onNavigate: (tab: string) =>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-slate-100 text-left text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">
+                <tr className="border-b border-slate-100 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
                   <th className="px-4 py-2.5">Space Name</th>
                   <th className="px-4 py-2.5 hidden sm:table-cell">Type</th>
                   <th className="px-4 py-2.5">360 Image</th>
@@ -102,7 +102,7 @@ export function CMSVirtualTourTab({ onNavigate }: { onNavigate: (tab: string) =>
               <CMSPanoramaUpload value={editing.panoImage} onValueChange={(v) => setEditing({ ...editing, panoImage: v })} />
             </div>
             <div className="sticky bottom-0 flex gap-2 border-t border-slate-100 bg-white px-5 py-3.5">
-              <Button type="button" onClick={handleSave} className="h-9 flex-1 rounded-lg bg-purple-600 text-xs font-bold text-white hover:bg-purple-700">
+              <Button type="button" onClick={handleSave} className="w-full sm:w-auto h-11 flex-1 rounded-lg bg-purple-600 text-xs font-bold text-white hover:bg-purple-700">
                 <Save className="mr-1.5 h-3.5 w-3.5" /> Save
               </Button>
               <Button type="button" variant="outline" onClick={() => setEditing(null)} className="h-9 rounded-lg border-slate-200 text-xs font-bold">

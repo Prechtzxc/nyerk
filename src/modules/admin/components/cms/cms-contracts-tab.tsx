@@ -191,7 +191,7 @@ function FileUploader({
           </div>
         ) : (
           <div className="space-y-2">
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
               Available Contracts
             </p>
             <div className="space-y-1">
@@ -260,7 +260,7 @@ export function CMSContractsTab({ onNavigate }: { onNavigate: (tab: string) => v
         onNavigate={onNavigate}
       />
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2">
         <FileUploader
           label="Event Venue Contract"
           category="venue"

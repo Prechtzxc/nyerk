@@ -112,8 +112,8 @@ export function LoginDialog({ className, children }: LoginDialogProps) {
             </Button>
           )}
         </DialogTrigger>
-        <DialogContent className="sm:max-w-[440px]">
-          <div className="flex-1 overflow-y-auto min-h-0 px-7 pt-10 pb-8">
+        <DialogContent className="w-[95vw] sm:max-w-[440px] overflow-y-auto max-h-[90dvh] p-0 rounded-2xl">
+          <div className="overflow-y-auto min-h-0 p-4 sm:p-6 pt-8 sm:pt-10 pb-6 sm:pb-8">
             <DialogHeader className="mb-5 text-center sm:text-center">
               <DialogTitle className="text-2xl font-black text-slate-900">Welcome Back</DialogTitle>
               <DialogDescription className="text-slate-500 font-medium">
@@ -121,16 +121,16 @@ export function LoginDialog({ className, children }: LoginDialogProps) {
               </DialogDescription>
             </DialogHeader>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="login-email" className="text-xs font-bold text-slate-600 uppercase tracking-wider">Email Address</Label>
-                <Input id="login-email" type="email" placeholder="Enter your email" value={email} onChange={(e) => setEmail(e.target.value)} required className="h-11 rounded-md bg-slate-50 border-slate-200 focus-visible:ring-slate-900 px-4" />
+                <Label htmlFor="login-email" className="text-[10px] font-black uppercase tracking-[0.2em]">Email Address</Label>
+                <Input id="login-email" type="email" placeholder="Enter your email" value={email} onChange={(e) => setEmail(e.target.value)} required className="h-11 w-full rounded-md bg-slate-50 border-slate-200 focus-visible:ring-slate-900 px-4" />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="login-password" className="text-xs font-bold text-slate-600 uppercase tracking-wider">Password</Label>
+                <Label htmlFor="login-password" className="text-[10px] font-black uppercase tracking-[0.2em]">Password</Label>
                 <div className="relative">
-                  <Input id="login-password" type={showPassword ? "text" : "password"} placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} required className="h-11 rounded-md bg-slate-50 border-slate-200 focus-visible:ring-slate-900 px-4 pr-10" />
+                  <Input id="login-password" type={showPassword ? "text" : "password"} placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} required className="h-11 w-full rounded-md bg-slate-50 border-slate-200 focus-visible:ring-slate-900 px-4 pr-10" />
                   <Button type="button" variant="ghost" size="sm" className="absolute right-0 top-0 h-full px-3 hover:bg-transparent text-slate-400 hover:text-slate-600" onClick={() => setShowPassword(!showPassword)}>
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
@@ -148,7 +148,7 @@ export function LoginDialog({ className, children }: LoginDialogProps) {
                 </Button>
               </div>
 
-              <Button type="submit" className="w-full bg-slate-900 hover:bg-slate-800 text-white h-12 rounded-md font-bold mt-2" disabled={isLoading}>
+              <Button type="submit" className="w-full bg-slate-900 hover:bg-slate-800 text-white h-11 rounded-md font-bold mt-2" disabled={isLoading}>
                 {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Signing in...</> : "Sign In"}
               </Button>
 

@@ -25,9 +25,9 @@ export default function CMSPage() {
   }, [user, router])
 
   return (
-    <div className="mx-auto w-full max-w-[1400px] px-6 py-6 sm:px-8 lg:px-10">
+    <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6 overflow-x-hidden">
       <div className="mb-7 border-b border-slate-200 pb-6">
-        <p className="inline-flex items-center gap-1.5 rounded-md bg-orange-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-orange-700">
+        <p className="inline-flex items-center gap-1.5 rounded-md bg-orange-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-orange-700">
           Admin CMS Settings
         </p>
         <h1 className="mt-2 text-2xl font-black tracking-tight text-slate-950 md:text-3xl">

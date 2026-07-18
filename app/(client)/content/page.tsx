@@ -38,7 +38,7 @@ export default function ContentPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 overflow-x-hidden space-y-6">
         <h1 className="text-3xl font-bold">Content Management</h1>
         <p className="text-muted-foreground">Edit website content and images for the public site.</p>
 
@@ -57,15 +57,15 @@ export default function ContentPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="hero-title">Hero Title</Label>
-                    <Input id="hero-title" value={heroTitle} onChange={(e) => setHeroTitle(e.target.value)} />
+                    <Label htmlFor="hero-title" className="text-[10px] font-black uppercase tracking-[0.2em]">Hero Title</Label>
+                    <Input id="hero-title" value={heroTitle} onChange={(e) => setHeroTitle(e.target.value)} className="h-11 w-full" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="hero-subtitle">Hero Subtitle</Label>
-                    <Input id="hero-subtitle" value={heroSubtitle} onChange={(e) => setHeroSubtitle(e.target.value)} />
+                    <Label htmlFor="hero-subtitle" className="text-[10px] font-black uppercase tracking-[0.2em]">Hero Subtitle</Label>
+                    <Input id="hero-subtitle" value={heroSubtitle} onChange={(e) => setHeroSubtitle(e.target.value)} className="h-11 w-full" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="about-text">About Us Text</Label>
+                    <Label htmlFor="about-text" className="text-[10px] font-black uppercase tracking-[0.2em]">About Us Text</Label>
                     <Textarea
                       id="about-text"
                       rows={5}
@@ -74,7 +74,7 @@ export default function ContentPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="contact-info">Contact Information</Label>
+                    <Label htmlFor="contact-info" className="text-[10px] font-black uppercase tracking-[0.2em]">Contact Information</Label>
                     <Textarea id="contact-info" rows={3} placeholder="Enter your contact information" />
                   </div>
                 </CardContent>
@@ -94,7 +94,7 @@ export default function ContentPage() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-2">
-                    <Label htmlFor="hero-image">Hero Image</Label>
+                    <Label htmlFor="hero-image" className="text-[10px] font-black uppercase tracking-[0.2em]">Hero Image</Label>
                     <div className="grid gap-4">
                       <div className="h-40 rounded-md border border-dashed border-gray-300 bg-gray-50 flex items-center justify-center">
                         <div className="text-center">
@@ -106,8 +106,8 @@ export default function ContentPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Gallery Images</Label>
-                    <div className="grid grid-cols-3 gap-4">
+                    <Label className="text-[10px] font-black uppercase tracking-[0.2em]">Gallery Images</Label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                       {[1, 2, 3].map((i) => (
                         <div
                           key={i}

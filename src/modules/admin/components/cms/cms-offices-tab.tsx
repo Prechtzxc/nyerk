@@ -69,7 +69,7 @@ export function CMSOfficesTab({ onNavigate }: { onNavigate: (tab: string) => voi
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-slate-100 text-left text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">
+                <tr className="border-b border-slate-100 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
                   <th className="px-4 py-2.5 w-14"></th>
                   <th className="px-4 py-2.5">Room</th>
                   <th className="px-4 py-2.5 hidden sm:table-cell">Floor</th>
@@ -122,21 +122,21 @@ export function CMSOfficesTab({ onNavigate }: { onNavigate: (tab: string) => voi
               <button type="button" onClick={resetForm} className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100"><X className="h-4 w-4" /></button>
             </div>
             <div className="grid gap-4 p-5">
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">Room Name</label>
-                  <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Office A" className="mt-1 h-10 rounded-lg border-slate-200 text-sm font-semibold" />
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 sm:text-xs">Room Name</label>
+                  <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Office A" className="mt-1 h-11 w-full rounded-lg border-slate-200 text-sm font-semibold" />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">Capacity</label>
-                  <Input value={form.capacity} onChange={(e) => setForm({ ...form, capacity: e.target.value })} placeholder="1-4 pax" className="mt-1 h-10 rounded-lg border-slate-200 text-sm font-semibold" />
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 sm:text-xs">Capacity</label>
+                  <Input value={form.capacity} onChange={(e) => setForm({ ...form, capacity: e.target.value })} placeholder="1-4 pax" className="mt-1 h-11 w-full rounded-lg border-slate-200 text-sm font-semibold" />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">Monthly Price (₱)</label>
-                  <Input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="15000" className="mt-1 h-10 rounded-lg border-slate-200 text-sm font-semibold" />
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 sm:text-xs">Monthly Price (₱)</label>
+                  <Input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="15000" className="mt-1 h-11 w-full rounded-lg border-slate-200 text-sm font-semibold" />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">Floor</label>
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 sm:text-xs">Floor</label>
                   <div className="relative mt-1">
                     <select value={form.floor} onChange={(e) => setForm({ ...form, floor: e.target.value })}
                       className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 pr-10 text-sm font-semibold text-slate-700 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100 cursor-pointer">
@@ -148,15 +148,15 @@ export function CMSOfficesTab({ onNavigate }: { onNavigate: (tab: string) => voi
                 </div>
               </div>
               <div>
-                <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">Description</label>
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 sm:text-xs">Description</label>
                 <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Office description..."
-                  className="mt-1 min-h-[80px] resize-none rounded-lg border-slate-200 text-sm font-semibold" />
+                  className="mt-1 w-full min-h-[80px] resize-none rounded-lg border-slate-200 text-sm font-semibold" />
               </div>
               <CMSImageUpload label="Office Photo" value={form.image} accent="blue" storagePath="offices" onValueChange={(v) => setForm({ ...form, image: v })} />
               <CMSPanoramaUpload value={form.panoImage} storagePath="panoramas" onValueChange={(v) => setForm({ ...form, panoImage: v })} />
             </div>
             <div className="sticky bottom-0 flex gap-2 border-t border-slate-100 bg-white px-5 py-3.5">
-              <Button type="button" onClick={handleSave} className="h-9 flex-1 rounded-lg bg-blue-600 text-xs font-bold text-white hover:bg-blue-700">
+              <Button type="button" onClick={handleSave} className="w-full sm:w-auto h-11 flex-1 rounded-lg bg-blue-600 text-xs font-bold text-white hover:bg-blue-700">
                 <Save className="mr-1.5 h-3.5 w-3.5" /> {editingId ? "Save Changes" : "Add Office"}
               </Button>
               <Button type="button" variant="outline" onClick={resetForm} className="h-9 rounded-lg border-slate-200 text-xs font-bold">

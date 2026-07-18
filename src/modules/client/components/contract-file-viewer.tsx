@@ -67,11 +67,11 @@ export function ContractFileViewer({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent
         showCloseButton={false}
-        className="flex max-h-[calc(100vh-2rem)] w-[calc(100vw-2rem)] max-w-[900px] flex-col gap-0 overflow-hidden rounded-2xl border-0 bg-white p-0 shadow-xl"
+        className="flex max-h-[90dvh] w-[95vw] sm:max-w-2xl flex-col gap-0 overflow-hidden rounded-2xl border-0 bg-white p-0 shadow-xl"
       >
         <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-100 bg-white px-4 pt-4 pb-3 sm:px-6 sm:pt-6 sm:pb-4">
           <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-widest text-orange-600">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-600">
               Contract Preview
             </p>
             <DialogTitle className="mt-1 truncate text-lg font-black text-slate-900">
@@ -92,7 +92,7 @@ export function ContractFileViewer({
           </DialogClose>
         </div>
 
-        <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 sm:px-6 sm:py-5">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden max-h-[90dvh] px-4 py-4 sm:px-6 sm:py-5">
           {isPDF(file.fileType) ? (
             <iframe
               src={file.fileUrl}
@@ -138,11 +138,11 @@ export function ContractFileViewer({
           )}
         </div>
 
-        <div className="flex shrink-0 items-center justify-end gap-3 border-t border-slate-100 bg-slate-50/50 px-6 py-4">
+        <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-slate-100 bg-slate-50/50 px-6 py-4 sm:flex-row sm:items-center sm:justify-end">
           <Button
             type="button"
             onClick={handleDownload}
-            className="h-10 rounded-xl bg-orange-600 px-5 text-xs font-bold text-white hover:bg-orange-700"
+            className="h-11 w-full sm:w-auto rounded-xl bg-orange-600 px-5 text-xs font-bold text-white hover:bg-orange-700"
           >
             <Download className="mr-1.5 h-4 w-4" /> Download Contract
           </Button>

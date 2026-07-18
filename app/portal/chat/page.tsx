@@ -116,7 +116,7 @@ export default function ClientSupportChatPage() {
 
   return (
     <>
-      <div className="flex flex-col h-full w-full bg-white rounded-none border-none relative">
+      <div className="flex flex-col h-full w-full bg-white rounded-none border-none relative overflow-x-hidden">
         <div className="flex items-center justify-between px-4 py-4 sm:px-6 border-b border-slate-100 shrink-0">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 shrink-0"><ShieldCheck className="w-6 h-6" /></div>

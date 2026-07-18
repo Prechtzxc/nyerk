@@ -81,7 +81,7 @@ export default function ClientPaymentPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 py-8 px-4 sm:py-12 sm:px-6">
+    <div className="min-h-screen bg-slate-50 py-8 px-4 sm:py-12 sm:px-6 overflow-x-hidden">
       <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
         
         {/* HEADER: PENCIL BOOKING ALERT */}
@@ -92,13 +92,13 @@ export default function ClientPaymentPage() {
                 </div>
                 <div>
                     <h2 className="text-2xl font-black text-amber-900 mb-1.5">Pencil Booking Secured!</h2>
-                    <p className="text-sm text-amber-700 leading-relaxed max-w-xl">
+                    <p className="text-sm text-amber-700 leading-relaxed max-w-xl break-words">
                         Your slot is temporarily reserved. Please complete your payment within <strong className="font-black">24 hours</strong> to confirm your booking. Unpaid bookings will automatically be cancelled.
                     </p>
                 </div>
             </div>
             <div className="bg-white px-6 sm:px-8 py-4 rounded-2xl border border-amber-100 text-center shrink-0 shadow-sm">
-                <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-1">Time Left</p>
+                <p className="text-[10px] font-black text-amber-400 uppercase tracking-[0.2em] mb-1">Time Left</p>
                 <p className="text-3xl font-black text-[#ea580c] tracking-tight">23:59:59</p>
             </div>
         </div>
@@ -136,7 +136,7 @@ export default function ClientPaymentPage() {
                                 {paymentType === "downpayment" && <CheckCircle2 className="w-6 h-6 text-[#ea580c]" />}
                             </div>
                             <p className="text-3xl font-black text-[#ea580c]">₱{downpaymentAmount.toLocaleString()}</p>
-                            <p className="text-[10px] text-rose-500 mt-2 font-bold bg-rose-50 px-2 py-1 rounded w-fit uppercase tracking-widest border border-rose-100">Non-Refundable 50%</p>
+                            <p className="text-[10px] text-rose-500 mt-2 font-bold bg-rose-50 px-2 py-1 rounded w-fit uppercase tracking-[0.2em] border border-rose-100">Non-Refundable 50%</p>
                         </button>
                     </div>
                 </div>
@@ -179,7 +179,7 @@ export default function ClientPaymentPage() {
                     {paymentMethod === "bank" ? (
                         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
                             <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
-                                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Bank Details</p>
+                                <p className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em] mb-4">Bank Details</p>
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-center gap-2 pb-3 border-b border-slate-200 flex-wrap">
                                         <span className="text-sm font-medium text-slate-600">{paymentInfo.bankName || "BDO"}</span>
@@ -193,11 +193,11 @@ export default function ClientPaymentPage() {
                             </div>
 
                             <div className="space-y-3">
-                                <Label className="text-base font-black text-slate-900">Upload Proof of Payment</Label>
+                                <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-900">Upload Proof of Payment</Label>
                                 <p className="text-sm text-slate-500">{paymentInfo.instructions || "Please upload a clear screenshot of your bank transfer receipt."}</p>
                                 
                                 {!proofFile ? (
-                                    <div className="relative border-2 border-dashed border-slate-300 rounded-2xl p-10 hover:bg-slate-50 hover:border-[#ea580c] transition-colors group text-center cursor-pointer mt-4">
+                                    <div className="relative border-2 border-dashed border-slate-300 rounded-2xl p-6 sm:p-10 hover:bg-slate-50 hover:border-[#ea580c] transition-colors group text-center cursor-pointer mt-4">
                                         <input 
                                             type="file" 
                                             accept="image/*" 
@@ -219,7 +219,7 @@ export default function ClientPaymentPage() {
                                                 <p className="text-xs text-emerald-600 font-medium">Ready for verification</p>
                                             </div>
                                         </div>
-                                        <button onClick={() => setProofFile(null)} className="p-2 hover:bg-emerald-100 rounded-full text-emerald-600 transition-colors">
+                                        <button onClick={() => setProofFile(null)} className="h-11 w-11 p-2 hover:bg-emerald-100 rounded-full text-emerald-600 transition-colors">
                                             <X className="w-5 h-5" />
                                         </button>
                                     </div>
@@ -248,7 +248,7 @@ export default function ClientPaymentPage() {
                     
                     <div className="space-y-4 mb-6">
                         <div className="bg-slate-800/50 p-5 rounded-2xl border border-slate-700/50">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Event Name</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-1.5">Event Name</p>
                             <p className="font-black text-white text-lg">{booking.eventName}</p>
                             <p className="text-xs text-slate-300 mt-1 flex items-center gap-1.5"><MapPin className="w-3 h-3"/> {booking.venue}</p>
                         </div>
@@ -276,7 +276,7 @@ export default function ClientPaymentPage() {
                             <span className="text-white font-bold">{paymentType === 'full' ? 'Full Payment' : 'Down Payment'}</span>
                         </div>
                         <div className="flex justify-between items-center pt-4 border-t border-slate-700 border-dashed">
-                            <span className="text-slate-300 text-sm font-black uppercase tracking-widest">Amount to Pay</span>
+                            <span className="text-slate-300 text-sm font-black uppercase tracking-[0.2em]">Amount to Pay</span>
                             <span className="text-3xl font-black text-[#ea580c]">₱{amountToPay.toLocaleString()}</span>
                         </div>
                     </div>

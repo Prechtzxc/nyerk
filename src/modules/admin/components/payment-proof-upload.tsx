@@ -200,7 +200,7 @@ export function PaymentProofUpload({ open, onOpenChange, bookingId }: PaymentPro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[95vw] sm:max-w-2xl overflow-y-auto max-h-[90dvh] rounded-2xl">
         <DialogHeader>
           <DialogTitle>Payment Proof Upload</DialogTitle>
           <DialogDescription>Upload proof of payment for your booking: {booking?.eventName}</DialogDescription>
@@ -303,7 +303,7 @@ export function PaymentProofUpload({ open, onOpenChange, bookingId }: PaymentPro
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* File Upload Area */}
             <div className="space-y-4">
-              <Label>Payment Proof File *</Label>
+              <Label className="text-[10px] font-black uppercase tracking-[0.2em]">Payment Proof File *</Label>
               <div
                 className={cn(
                   "border-2 border-dashed rounded-lg p-8 text-center transition-colors",
@@ -351,14 +351,14 @@ export function PaymentProofUpload({ open, onOpenChange, bookingId }: PaymentPro
             </div>
 
             {/* Payment Details */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="paymentMethod">Payment Method *</Label>
+                <Label htmlFor="paymentMethod" className="text-[10px] font-black uppercase tracking-[0.2em]">Payment Method *</Label>
                 <Select
                   value={paymentDetails.paymentMethod}
                   onValueChange={(value) => setPaymentDetails((prev) => ({ ...prev, paymentMethod: value }))}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select payment method" />
                   </SelectTrigger>
                   <SelectContent>
@@ -376,46 +376,49 @@ export function PaymentProofUpload({ open, onOpenChange, bookingId }: PaymentPro
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="paymentAmount">Payment Amount *</Label>
+                <Label htmlFor="paymentAmount" className="text-[10px] font-black uppercase tracking-[0.2em]">Payment Amount *</Label>
                 <Input
                   id="paymentAmount"
                   placeholder="₱0.00"
                   value={paymentDetails.paymentAmount}
                   onChange={(e) => setPaymentDetails((prev) => ({ ...prev, paymentAmount: e.target.value }))}
                   required
+                  className="h-11 w-full"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="paymentDate">Payment Date *</Label>
+                <Label htmlFor="paymentDate" className="text-[10px] font-black uppercase tracking-[0.2em]">Payment Date *</Label>
                 <Input
                   id="paymentDate"
                   type="date"
                   value={paymentDetails.paymentDate}
                   onChange={(e) => setPaymentDetails((prev) => ({ ...prev, paymentDate: e.target.value }))}
                   required
+                  className="h-11 w-full"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="paymentReference">Reference Number (Optional)</Label>
+                <Label htmlFor="paymentReference" className="text-[10px] font-black uppercase tracking-[0.2em]">Reference Number (Optional)</Label>
                 <Input
                   id="paymentReference"
                   placeholder="Transaction ID, Check #, etc."
                   value={paymentDetails.paymentReference}
                   onChange={(e) => setPaymentDetails((prev) => ({ ...prev, paymentReference: e.target.value }))}
+                  className="h-11 w-full"
                 />
               </div>
             </div>
 
             {/* Submit Button */}
-            <div className="flex justify-end space-x-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button type="button" variant="outline" className="w-full sm:w-auto h-11" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isUploading || !selectedFile}>
+              <Button type="submit" className="w-full sm:w-auto h-11" disabled={isUploading || !selectedFile}>
                 {isUploading ? "Uploading..." : "Submit Payment Proof"}
               </Button>
             </div>

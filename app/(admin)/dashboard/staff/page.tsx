@@ -391,7 +391,7 @@ export default function StaffManagementPage() {
   const renderPermissionsSection = useCallback(
     (prefix: string) => (
       <div className="space-y-3">
-        <p className="text-xs font-black uppercase tracking-widest text-slate-500">
+        <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">
           Module Permissions
         </p>
         <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 sm:grid-cols-3">
@@ -509,7 +509,7 @@ export default function StaffManagementPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto w-full max-w-[1180px] px-3 py-4 sm:px-5 lg:px-6">
+<div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6 overflow-x-hidden">
         <div className="flex min-h-[300px] items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-orange-600" />
         </div>
@@ -518,10 +518,10 @@ export default function StaffManagementPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1180px] px-3 py-4 sm:px-5 lg:px-6">
+    <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6 overflow-x-hidden">
       <div className="border-b border-slate-200 pb-5 mb-5 flex flex-col gap-4">
         <div className="min-w-0">
-          <p className="text-[11px] font-black uppercase tracking-[0.22em] text-orange-600">
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-orange-600">
             Admin Staff Management
           </p>
 
@@ -548,7 +548,7 @@ export default function StaffManagementPage() {
             </Button>
           </DialogTrigger>
 
-          <DialogContent className="sm:max-w-[560px]">
+          <DialogContent className="w-[95vw] sm:max-w-[560px] max-h-[90dvh] overflow-y-auto">
             <DialogHeader className="shrink-0 px-6 pt-6 pb-0">
               <DialogTitle className="text-xl font-black text-slate-950">
                 Add New Staff
@@ -562,18 +562,18 @@ export default function StaffManagementPage() {
               {renderStaffForm("add")}
             </div>
 
-            <DialogFooter className="shrink-0 px-6 pb-6 pt-2 gap-2">
+            <DialogFooter className="shrink-0 px-6 pb-6 pt-2 gap-2 flex-col-reverse sm:flex-row sm:justify-end">
               <Button
                 variant="outline"
                 onClick={() => setIsAddDialogOpen(false)}
-                className="rounded-xl font-bold"
+                className="rounded-xl font-bold w-full sm:w-auto"
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleAddStaff}
                 disabled={isSaving}
-                className="rounded-xl bg-orange-600 px-5 font-bold text-white hover:bg-orange-700 disabled:opacity-60"
+                className="rounded-xl bg-orange-600 px-5 font-bold text-white hover:bg-orange-700 disabled:opacity-60 w-full sm:w-auto"
               >
                 {isSaving ? "Creating..." : "Add Staff"}
               </Button>
@@ -642,7 +642,7 @@ export default function StaffManagementPage() {
                       </span>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
                         Staff
                       </p>
                       <p className="break-words whitespace-normal text-sm font-black text-slate-900">
@@ -655,7 +655,7 @@ export default function StaffManagementPage() {
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">
                       Email
                     </p>
                     <p className="break-words whitespace-normal text-xs font-black text-slate-800">
@@ -668,7 +668,7 @@ export default function StaffManagementPage() {
 
                   <div className="flex shrink-0 items-center justify-between gap-2 sm:flex-col sm:items-end sm:gap-1">
                     <span
-                      className={`inline-flex rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest whitespace-nowrap ${getStatusBadgeClass(
+                      className={`inline-flex rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.2em] whitespace-nowrap ${getStatusBadgeClass(
                         normalizedStatus
                       )}`}
                     >
@@ -763,7 +763,7 @@ export default function StaffManagementPage() {
           if (!open) resetForm()
         }}
       >
-        <DialogContent className="sm:max-w-[560px]">
+        <DialogContent className="w-[95vw] sm:max-w-[560px] max-h-[90dvh] overflow-y-auto">
           <DialogHeader className="shrink-0 px-6 pt-6 pb-0">
             <DialogTitle className="text-xl font-black text-slate-950">Edit Staff</DialogTitle>
             <DialogDescription className="text-sm font-medium text-slate-500">
@@ -775,17 +775,17 @@ export default function StaffManagementPage() {
             {renderStaffForm("edit")}
           </div>
 
-          <DialogFooter className="shrink-0 px-6 pb-6 pt-2 gap-2">
+          <DialogFooter className="shrink-0 px-6 pb-6 pt-2 gap-2 flex-col-reverse sm:flex-row sm:justify-end">
             <Button
               variant="outline"
               onClick={() => setIsEditDialogOpen(false)}
-              className="rounded-xl font-bold"
+              className="rounded-xl font-bold w-full sm:w-auto"
             >
               Cancel
             </Button>
             <Button
               onClick={handleEditStaff}
-              className="rounded-xl bg-orange-600 px-5 font-bold text-white hover:bg-orange-700"
+              className="rounded-xl bg-orange-600 px-5 font-bold text-white hover:bg-orange-700 w-full sm:w-auto"
             >
               Save Changes
             </Button>

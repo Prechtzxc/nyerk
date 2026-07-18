@@ -75,20 +75,20 @@ export function MainLayout({ children }: MainLayoutProps) {
     <div className="flex flex-col h-screen overflow-hidden bg-slate-50 w-full">
       
       {/* SOLID SEAMLESS ORANGE TOP HEADER */}
-      <header className="h-16 bg-orange-600 text-white flex items-center justify-between shrink-0 z-50 shadow-md px-4 lg:px-0">
+      <header className="h-16 bg-orange-600 text-white flex items-center justify-between shrink-0 z-50 shadow-md px-3 sm:px-4 lg:px-0 overflow-hidden">
         
-        <div className="flex items-center lg:w-60 lg:px-5 shrink-0 gap-3">
-          <Button variant="ghost" size="icon" className="lg:hidden text-white hover:bg-orange-500 -ml-2" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
-            <Menu className="h-5 w-5" />
+        <div className="flex items-center lg:w-60 lg:px-5 shrink-0 gap-3 min-w-0">
+          <Button variant="ghost" size="icon" className="lg:hidden text-white hover:bg-orange-500 -ml-2 shrink-0" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+            <Menu className="h-5 w-5 shrink-0 overflow-hidden" />
           </Button>
-          <h1 className="text-lg font-black tracking-tight text-white">One Estela Place</h1>
+          <h1 className="text-base sm:text-lg font-black tracking-tight text-white whitespace-nowrap truncate">One Estela Place</h1>
         </div>
 
         {/* HEADER ACTIONS (Search + Notif + Profile Magkakatabi) */}
-        <div className="flex-1 flex items-center justify-end lg:px-8 gap-4 lg:gap-6">
+        <div className="flex items-center justify-end lg:px-8 gap-3 sm:gap-4 lg:gap-6 shrink-0 min-w-0">
           
           <div className="hidden md:flex items-center relative">
-             <Search className="h-4 w-4 absolute left-3 text-orange-200" />
+              <Search className="h-4 w-4 absolute left-3 text-orange-200 shrink-0 overflow-hidden" />
              <Input 
                type="text" 
                placeholder="Search for bookings, users..." 
@@ -96,18 +96,18 @@ export function MainLayout({ children }: MainLayoutProps) {
              />
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
              <Button variant="ghost" size="icon" className="relative text-white hover:bg-orange-500 rounded-full shrink-0">
-               <Bell className="h-5 w-5" />
+               <Bell className="h-5 w-5 shrink-0 overflow-hidden" />
                <span className="absolute top-1 right-1.5 w-2 h-2 bg-slate-900 rounded-full border border-orange-600"></span>
              </Button>
              
-             <div className="flex items-center gap-3 pl-1">
+             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                <div className="hidden md:block text-right">
                  <p className="text-xs font-bold text-white leading-none">{user.name}</p>
                  <p className="text-[10px] text-orange-200 font-medium capitalize mt-1">{user.role}</p>
                </div>
-               <div className="w-8 h-8 rounded-full bg-white text-orange-600 flex items-center justify-center font-bold text-xs uppercase shadow-sm shrink-0">
+               <div className="w-8 h-8 sm:w-9 sm:h-9 shrink-0 rounded-full bg-white text-orange-600 flex items-center justify-center font-bold text-xs uppercase shadow-sm">
                  {user.name?.charAt(0) || "A"}
                </div>
              </div>
@@ -136,7 +136,7 @@ export function MainLayout({ children }: MainLayoutProps) {
                   }`}
                 >
                   <div className="flex items-center">
-                    <item.icon className={`mr-2.5 h-4 w-4 ${isActive ? "text-orange-600" : "text-slate-400"}`} />
+                    <item.icon className={`mr-2.5 h-4 w-4 shrink-0 overflow-hidden ${isActive ? "text-orange-600" : "text-slate-400"}`} />
                     {item.name}
                   </div>
                   {item.hasPingBadge && (
@@ -158,12 +158,12 @@ export function MainLayout({ children }: MainLayoutProps) {
 
           <div className="border-t border-slate-100 p-3 bg-slate-50/50">
             <Button variant="ghost" className="flex w-full items-center justify-start text-rose-600 hover:text-rose-700 hover:bg-rose-50 h-9 text-xs font-bold px-3" onClick={handleLogout}>
-              <LogOut className="mr-3 h-4 w-4" /> Logout
+              <LogOut className="mr-3 h-4 w-4 shrink-0 overflow-hidden" /> Logout
             </Button>
           </div>
         </div>
 
-        <main className={`flex-1 overflow-auto ${pathname === "/dashboard/chat" ? "p-0" : "p-4 md:p-8"}`}>
+        <main className={`flex-1 overflow-auto ${pathname === "/dashboard/chat" ? "p-0" : "p-3 sm:p-4 md:p-6 lg:p-8"}`}>
           {children}
         </main>
       </div>

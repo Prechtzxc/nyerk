@@ -141,15 +141,15 @@ export function SignupDialog({ className, children }: SignupDialogProps) {
         )}
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-[720px]">
-        <DialogHeader className="border-b border-slate-100 shrink-0 p-6 pb-5 text-center sm:text-center">
+      <DialogContent className="w-[95vw] sm:max-w-[720px] overflow-y-auto max-h-[90dvh] p-0 rounded-2xl">
+        <DialogHeader className="border-b border-slate-100 shrink-0 p-4 sm:p-6 pb-4 sm:pb-5 text-center sm:text-center">
           <DialogTitle className="text-2xl font-black text-slate-900">Create Account</DialogTitle>
           <DialogDescription className="text-slate-500 font-medium">
             Sign up to start booking events at One Estela Place
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto min-h-0 px-6 pb-6 pt-4">
+        <div className="flex-1 overflow-y-auto min-h-0 max-h-[90dvh] px-4 sm:px-6 pb-6 pt-4">
           {errorMsg && (
             <div className="bg-destructive/10 border border-destructive/20 text-destructive text-sm font-medium p-3 rounded-md flex items-center gap-2 animate-in zoom-in-95 mb-4">
               <AlertCircle className="w-4 h-4 shrink-0" />
@@ -160,38 +160,38 @@ export function SignupDialog({ className, children }: SignupDialogProps) {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="firstName" className="text-xs font-bold text-slate-600 uppercase tracking-wider">First Name *</Label>
-                <Input id="firstName" placeholder="Juan" value={firstName} onChange={(e) => setFirstName(e.target.value)} required className="h-11 rounded-md bg-slate-50 border-slate-200 focus-visible:ring-slate-900 px-4" />
+                <Label htmlFor="firstName" className="text-[10px] font-black uppercase tracking-[0.2em]">First Name *</Label>
+                <Input id="firstName" placeholder="Juan" value={firstName} onChange={(e) => setFirstName(e.target.value)} required className="h-11 w-full rounded-md bg-slate-50 border-slate-200 focus-visible:ring-slate-900 px-4" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="middleName" className="text-xs font-bold text-slate-600 uppercase tracking-wider">Middle Name</Label>
-                <Input id="middleName" placeholder="Optional" value={middleName} onChange={(e) => setMiddleName(e.target.value)} className="h-11 rounded-md bg-slate-50 border-slate-200 focus-visible:ring-slate-900 px-4" />
+                <Label htmlFor="middleName" className="text-[10px] font-black uppercase tracking-[0.2em]">Middle Name</Label>
+                <Input id="middleName" placeholder="Optional" value={middleName} onChange={(e) => setMiddleName(e.target.value)} className="h-11 w-full rounded-md bg-slate-50 border-slate-200 focus-visible:ring-slate-900 px-4" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="lastName" className="text-xs font-bold text-slate-600 uppercase tracking-wider">Last Name *</Label>
-                <Input id="lastName" placeholder="Dela Cruz" value={lastName} onChange={(e) => setLastName(e.target.value)} required className="h-11 rounded-md bg-slate-50 border-slate-200 focus-visible:ring-slate-900 px-4" />
+                <Label htmlFor="lastName" className="text-[10px] font-black uppercase tracking-[0.2em]">Last Name *</Label>
+                <Input id="lastName" placeholder="Dela Cruz" value={lastName} onChange={(e) => setLastName(e.target.value)} required className="h-11 w-full rounded-md bg-slate-50 border-slate-200 focus-visible:ring-slate-900 px-4" />
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="signup-email" className="text-xs font-bold text-slate-600 uppercase tracking-wider">Email Address *</Label>
-                <Input id="signup-email" type="email" placeholder="juan@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required className="h-11 rounded-md bg-slate-50 border-slate-200 focus-visible:ring-slate-900 px-4" />
+                <Label htmlFor="signup-email" className="text-[10px] font-black uppercase tracking-[0.2em]">Email Address *</Label>
+                <Input id="signup-email" type="email" placeholder="juan@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required className="h-11 w-full rounded-md bg-slate-50 border-slate-200 focus-visible:ring-slate-900 px-4" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phoneNumber" className="text-xs font-bold text-slate-600 uppercase tracking-wider">Phone Number *</Label>
+                <Label htmlFor="phoneNumber" className="text-[10px] font-black uppercase tracking-[0.2em]">Phone Number *</Label>
                 <div className="relative flex items-center">
                   <span className="absolute left-3 text-slate-500 font-bold text-sm select-none pointer-events-none">+63</span>
-                  <Input id="phoneNumber" type="text" inputMode="numeric" placeholder="912 345 6789" value={phoneNumber} onChange={handlePhoneChange} required className="h-11 rounded-md bg-slate-50 border-slate-200 focus-visible:ring-slate-900 pl-11 font-mono text-sm tracking-widest" />
+                  <Input id="phoneNumber" type="text" inputMode="numeric" placeholder="912 345 6789" value={phoneNumber} onChange={handlePhoneChange} required className="h-11 w-full rounded-md bg-slate-50 border-slate-200 focus-visible:ring-slate-900 pl-11 font-mono text-sm tracking-[0.2em]" />
                 </div>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="signup-password" className="text-xs font-bold text-slate-600 uppercase tracking-wider">Create Password *</Label>
+                <Label htmlFor="signup-password" className="text-[10px] font-black uppercase tracking-[0.2em]">Create Password *</Label>
                 <div className="relative">
-                  <Input id="signup-password" type={showPassword ? "text" : "password"} placeholder="Min. 6 chars" value={password} onChange={(e) => setPassword(e.target.value)} required className="h-11 rounded-md bg-slate-50 border-slate-200 focus-visible:ring-slate-900 px-4 pr-10" />
+                  <Input id="signup-password" type={showPassword ? "text" : "password"} placeholder="Min. 6 chars" value={password} onChange={(e) => setPassword(e.target.value)} required className="h-11 w-full rounded-md bg-slate-50 border-slate-200 focus-visible:ring-slate-900 px-4 pr-10" />
                   <Button type="button" variant="ghost" size="sm" className="absolute right-0 top-0 h-full px-3 hover:bg-transparent text-slate-400 hover:text-slate-600" onClick={() => setShowPassword(!showPassword)}>
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
@@ -199,9 +199,9 @@ export function SignupDialog({ className, children }: SignupDialogProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className="text-xs font-bold text-slate-600 uppercase tracking-wider">Confirm Password *</Label>
+                <Label htmlFor="confirmPassword" className="text-[10px] font-black uppercase tracking-[0.2em]">Confirm Password *</Label>
                 <div className="relative">
-                  <Input id="confirmPassword" type={showConfirmPassword ? "text" : "password"} placeholder="Re-type password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required className="h-11 rounded-md bg-slate-50 border-slate-200 focus-visible:ring-slate-900 px-4 pr-10" />
+                  <Input id="confirmPassword" type={showConfirmPassword ? "text" : "password"} placeholder="Re-type password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required className="h-11 w-full rounded-md bg-slate-50 border-slate-200 focus-visible:ring-slate-900 px-4 pr-10" />
                   <Button type="button" variant="ghost" size="sm" className="absolute right-0 top-0 h-full px-3 hover:bg-transparent text-slate-400 hover:text-slate-600" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
                     {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
@@ -211,7 +211,7 @@ export function SignupDialog({ className, children }: SignupDialogProps) {
 
             <Button
               type="submit"
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white h-12 rounded-md font-bold mt-2"
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white h-11 rounded-md font-bold mt-2"
               disabled={isLoading || isSubmitting}
             >
               {isLoading || isSubmitting ? (

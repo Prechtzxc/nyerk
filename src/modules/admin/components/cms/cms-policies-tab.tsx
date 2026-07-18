@@ -111,7 +111,7 @@ export function CMSPoliciesTab({ onNavigate }: { onNavigate: (tab: string) => vo
       <CMSSectionHeader title="Terms &amp; Policies" description="Manage event venue terms, office space terms, cancellation, refund, payment policies, and contract information."
         currentSection="policies" onNavigate={onNavigate} />
 
-      <section className="rounded-xl border border-slate-200 bg-white shadow-sm mb-6">
+      <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-100 px-6 py-3">
           <p className="text-[11px] font-semibold text-slate-500">
             Contract Information
@@ -144,12 +144,12 @@ export function CMSPoliciesTab({ onNavigate }: { onNavigate: (tab: string) => vo
                     })
                   }
                 }}
-                className="min-h-[250px] resize-none rounded-lg border-slate-200 text-sm font-semibold leading-relaxed"
+                className="w-full min-h-[80px] resize-none rounded-lg border-slate-200 text-sm font-semibold leading-relaxed"
                 placeholder="Event venue contract details, requirements, reminders, and download instructions..."
               />
               <div className="flex items-center gap-2 justify-end">
                 <Button type="button" variant="outline" onClick={() => handleReset(evContract)}
-                  className="h-9 rounded-lg border-slate-200 px-4 text-xs font-bold text-slate-500">
+                  className="h-9 rounded-lg border-slate-200 px-4 text-xs font-bold">
                   <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Reset to Default
                 </Button>
               </div>
@@ -168,12 +168,12 @@ export function CMSPoliciesTab({ onNavigate }: { onNavigate: (tab: string) => vo
                     })
                   }
                 }}
-                className="min-h-[250px] resize-none rounded-lg border-slate-200 text-sm font-semibold leading-relaxed"
+                className="w-full min-h-[80px] resize-none rounded-lg border-slate-200 text-sm font-semibold leading-relaxed"
                 placeholder="Office rental contract details, requirements, rental terms, reminders, and download instructions..."
               />
               <div className="flex items-center gap-2 justify-end">
                 <Button type="button" variant="outline" onClick={() => handleReset(orContract)}
-                  className="h-9 rounded-lg border-slate-200 px-4 text-xs font-bold text-slate-500">
+                  className="h-9 rounded-lg border-slate-200 px-4 text-xs font-bold">
                   <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Reset to Default
                 </Button>
               </div>
@@ -233,11 +233,11 @@ export function CMSPoliciesTab({ onNavigate }: { onNavigate: (tab: string) => vo
                             <Textarea
                               value={editContent}
                               onChange={(e) => setEditContent(e.target.value)}
-                              className="min-h-[200px] resize-none rounded-lg border-slate-200 text-sm font-semibold leading-relaxed"
+                              className="w-full min-h-[80px] resize-none rounded-lg border-slate-200 text-sm font-semibold leading-relaxed"
                             />
                             <div className="flex items-center gap-2">
                               <Button type="button" onClick={() => handleSave(policy)}
-                                className="h-9 rounded-lg bg-amber-600 px-4 text-xs font-bold text-white hover:bg-amber-700">
+                                className="w-full sm:w-auto h-11 rounded-lg bg-amber-600 px-4 text-xs font-bold text-white hover:bg-amber-700">
                                 <Save className="mr-1.5 h-3.5 w-3.5" /> Save Changes
                               </Button>
                               <Button type="button" variant="outline" onClick={cancelEdit}

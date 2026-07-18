@@ -75,7 +75,7 @@ export default function ContactPage() {
 
   return (
     <PublicLayout>
-      <div className="container mx-auto px-4 py-12">
+      <div className="max-w-7xl mx-auto container px-4 sm:px-6 lg:px-8 py-12 overflow-x-hidden">
         <div className="mb-12 text-center">
           <h1 className="mb-6 text-4xl font-bold text-gray-900">Contact Us</h1>
           <p className="text-lg text-gray-600">Ready to plan your event? Get in touch with our team today.</p>
@@ -83,7 +83,7 @@ export default function ContactPage() {
 
         <div className="grid gap-12 lg:grid-cols-2">
           {/* Contact Form */}
-          <Card className="border-gray-200 shadow-lg">
+          <Card className="border-slate-200 shadow-lg">
             <CardHeader>
               <CardTitle className="text-gray-900">Send us a message</CardTitle>
               <CardDescription className="text-gray-600">
@@ -92,9 +92,9 @@ export default function ContactPage() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name" className="text-gray-700">
+                    <Label htmlFor="name" className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-700">
                       Full Name
                     </Label>
                     <Input
@@ -104,11 +104,11 @@ export default function ContactPage() {
                       value={formData.name}
                       onChange={handleInputChange}
                       required
-                      className="border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+                      className="h-11 w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="email" className="text-gray-700">
+                    <Label htmlFor="email" className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-700">
                       Email
                     </Label>
                     <Input
@@ -119,13 +119,13 @@ export default function ContactPage() {
                       value={formData.email}
                       onChange={handleInputChange}
                       required
-                      className="border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+                      className="h-11 w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500"
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="phone" className="text-gray-700">
+                    <Label htmlFor="phone" className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-700">
                       Phone
                     </Label>
                     <Input
@@ -135,11 +135,11 @@ export default function ContactPage() {
                       placeholder="(555) 123-4567"
                       value={formData.phone}
                       onChange={handleInputChange}
-                      className="border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+                      className="h-11 w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="eventType" className="text-gray-700">
+                    <Label htmlFor="eventType" className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-700">
                       Event Type
                     </Label>
                     <Input
@@ -148,12 +148,12 @@ export default function ContactPage() {
                       placeholder="Wedding, Corporate, etc."
                       value={formData.eventType}
                       onChange={handleInputChange}
-                      className="border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+                      className="h-11 w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500"
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="eventDate" className="text-gray-700">
+                  <Label htmlFor="eventDate" className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-700">
                     Preferred Event Date
                   </Label>
                   <Input
@@ -162,11 +162,11 @@ export default function ContactPage() {
                     type="date"
                     value={formData.eventDate}
                     onChange={handleInputChange}
-                    className="border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+                    className="h-11 w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="message" className="text-gray-700">
+                  <Label htmlFor="message" className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-700">
                     Message
                   </Label>
                   <Textarea
@@ -177,7 +177,7 @@ export default function ContactPage() {
                     value={formData.message}
                     onChange={handleInputChange}
                     required
-                    className="border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+                    className="h-11 min-h-[100px] w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500"
                   />
                 </div>
                 <div className="flex items-start space-x-2">
@@ -202,7 +202,7 @@ export default function ContactPage() {
                 </div>
                 <Button
                   type="submit"
-                  className="w-full bg-orange-500 text-white hover:bg-orange-600 shadow-lg border-0"
+                  className="w-full sm:w-auto h-11 bg-orange-500 text-white hover:bg-orange-600 shadow-lg border-0"
                 >
                   Send Message
                 </Button>
@@ -212,7 +212,7 @@ export default function ContactPage() {
 
           {/* Contact Information */}
           <div className="space-y-8">
-            <Card className="border-gray-200 shadow-lg hover:shadow-xl transition-shadow">
+            <Card className="border-slate-200 shadow-lg hover:shadow-xl transition-shadow">
               <CardHeader>
                 <CardTitle className="flex items-center text-gray-900">
                   <MapPin className="mr-2 h-5 w-5 text-orange-500" />
@@ -230,7 +230,7 @@ export default function ContactPage() {
               </CardContent>
             </Card>
 
-            <Card className="border-gray-200 shadow-lg hover:shadow-xl transition-shadow">
+            <Card className="border-slate-200 shadow-lg hover:shadow-xl transition-shadow">
               <CardHeader>
                 <CardTitle className="flex items-center text-gray-900">
                   <Phone className="mr-2 h-5 w-5 text-orange-500" />
@@ -242,7 +242,7 @@ export default function ContactPage() {
               </CardContent>
             </Card>
 
-            <Card className="border-gray-200 shadow-lg hover:shadow-xl transition-shadow">
+            <Card className="border-slate-200 shadow-lg hover:shadow-xl transition-shadow">
               <CardHeader>
                 <CardTitle className="flex items-center text-gray-900">
                   <Mail className="mr-2 h-5 w-5 text-orange-500" />
@@ -254,7 +254,7 @@ export default function ContactPage() {
               </CardContent>
             </Card>
 
-            <Card className="border-gray-200 shadow-lg hover:shadow-xl transition-shadow">
+            <Card className="border-slate-200 shadow-lg hover:shadow-xl transition-shadow">
               <CardHeader>
                 <CardTitle className="flex items-center text-gray-900">
                   <Clock className="mr-2 h-5 w-5 text-orange-500" />
@@ -271,7 +271,7 @@ export default function ContactPage() {
             </Card>
 
             {/* Interactive Google Map */}
-            <Card className="border-gray-200 shadow-lg hover:shadow-xl transition-shadow">
+            <Card className="border-slate-200 shadow-lg hover:shadow-xl transition-shadow">
               <CardHeader>
                 <CardTitle className="text-gray-900">Find Us</CardTitle>
               </CardHeader>

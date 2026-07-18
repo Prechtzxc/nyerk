@@ -118,26 +118,29 @@ export default function AdminLayout({
       <div className="relative flex h-screen w-full flex-col overflow-hidden bg-slate-50">
         {/* ORANGE HEADER matching client portal */}
         <header className="z-50 flex h-16 shrink-0 items-center justify-between bg-gradient-to-r from-orange-600 via-orange-600 to-orange-700 text-white shadow-lg">
-          <div className="flex h-full shrink-0 items-center gap-3 px-4 lg:w-64 lg:px-6">
+          <div className="flex h-full shrink-0 items-center gap-3 px-3 sm:px-4 lg:px-0 lg:w-64">
             <Button
               variant="ghost"
               size="icon"
               className="-ml-2 text-white hover:bg-white/15 lg:hidden"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             >
-              <Menu className="h-5 w-5" />
+              <Menu className="h-5 w-5 shrink-0 overflow-hidden" />
             </Button>
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/15 backdrop-blur">
+              <div className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg bg-white/15 backdrop-blur">
                 <span className="text-base font-black text-white">O</span>
               </div>
-              <h1 className="text-lg font-black tracking-tight text-white">
+              <h1 className="text-lg font-black tracking-tight text-white hidden sm:inline">
                 One Estela Place
+              </h1>
+              <h1 className="sm:hidden text-base font-black tracking-tight text-white">
+                OEP
               </h1>
             </div>
           </div>
 
-          <div className="flex flex-1 items-center justify-end gap-3 px-4 lg:px-6">
+          <div className="flex flex-1 items-center justify-end gap-3 px-3 sm:px-4 lg:px-0">
             <div className="flex items-center gap-3 pl-2 lg:pl-4">
             <div className="relative">
               <Button
@@ -147,7 +150,7 @@ export default function AdminLayout({
                 onClick={() => setShowNotifications(!showNotifications)}
                 aria-label="Notifications"
               >
-                <Bell className="h-5 w-5" />
+                <Bell className="h-5 w-5 shrink-0 overflow-hidden" />
                 {notificationUnread > 0 && (
                   <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-black tabular-nums text-white shadow-md ring-2 ring-orange-700">
                     {notificationUnread > 99 ? "99+" : notificationUnread}
@@ -168,14 +171,14 @@ export default function AdminLayout({
                   <p className="text-[13px] font-bold capitalize leading-tight text-white">
                     {user.name}
                   </p>
-                  <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider text-orange-100">
+                  <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-orange-100">
                     Admin
                   </p>
                 </div>
                 <UserAvatar
                   name={user.name}
                   picture={profilePicture}
-                  className="h-9 w-9"
+                  className="h-8 w-8 sm:h-9 sm:w-9"
                 />
               </Link>
             </div>
@@ -220,7 +223,7 @@ export default function AdminLayout({
                     <div className="flex items-center">
                       <item.icon
                         className={cn(
-                          "mr-3 h-4 w-4 transition-colors",
+                          "mr-3 h-4 w-4 shrink-0 overflow-hidden transition-colors",
                           isActive ? "text-white" : "text-slate-400 group-hover:text-orange-500",
                         )}
                       />
@@ -250,7 +253,7 @@ export default function AdminLayout({
                 className="group relative flex w-full items-center rounded-lg px-3 py-2.5 text-[14px] font-bold text-rose-600 transition-all hover:bg-rose-50 hover:text-rose-700"
                 onClick={() => setShowLogoutConfirm(true)}
               >
-                <LogOut className="mr-3 h-4 w-4" />
+                <LogOut className="mr-3 h-4 w-4 shrink-0 overflow-hidden" />
                 Logout
               </button>
             </div>

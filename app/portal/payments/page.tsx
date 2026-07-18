@@ -450,7 +450,7 @@ function CurrentTransactionCard({
     <div className="group flex w-full min-w-0 flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-orange-200 hover:shadow-md sm:flex-row sm:items-center sm:gap-4">
       {/* ---- Mobile layout (hidden on sm+) ---- */}
       <div className="sm:hidden">
-        <p className="text-base font-black text-slate-900">
+        <p className="text-base font-black text-slate-900 line-clamp-2">
           {booking.eventName || "Untitled"}
         </p>
         <p className="mt-0.5 text-sm font-bold text-orange-600">
@@ -464,7 +464,7 @@ function CurrentTransactionCard({
           <Receipt className="h-5 w-5" />
         </div>
         <div className="min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
             Current Transaction
           </p>
           <p className="truncate text-sm font-black text-slate-900">
@@ -479,17 +479,17 @@ function CurrentTransactionCard({
       {/* ---- Info grid ---- */}
       <div className="grid min-w-0 flex-1 grid-cols-1 gap-y-2 gap-x-3 sm:grid-cols-3">
         <div className="min-w-0">
-          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Booking ID</p>
-          <p className="mt-0.5 break-all text-xs font-black text-slate-800">{booking.id}</p>
+          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Booking ID</p>
+          <p className="mt-0.5 break-all text-xs font-black text-slate-800 truncate">{booking.id}</p>
         </div>
         <div className="min-w-0">
-          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Method</p>
+          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Method</p>
           <p className="mt-0.5 break-words text-xs font-bold text-slate-800">
             {getPaymentMethodLabel(booking.paymentMethod)}
           </p>
         </div>
         <div className="min-w-0">
-          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Type</p>
+          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Type</p>
           <p className="mt-0.5 break-words text-xs font-bold text-slate-800">
             {isOfficeRental ? "Slot Reservation" : (booking as any).paymentType === "downpayment" ? "Down Payment" : "Full Payment"}
           </p>
@@ -506,7 +506,7 @@ function CurrentTransactionCard({
         <div className="flex flex-row items-center justify-between gap-2 sm:gap-3">
           <span
             className={cn(
-              "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest whitespace-nowrap w-fit",
+              "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.2em] whitespace-nowrap w-fit",
               getStatusBadgeClass(booking.paymentStatus, booking.status, (booking as any).paymentStage, (booking as any).remainingBalance),
             )}
           >
@@ -573,13 +573,13 @@ function HistoryRow({
           </p>
         </div>
         <div className="hidden text-left sm:block">
-          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Method</p>
+          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Method</p>
           <p className="text-[11px] font-bold text-slate-700">
             {getPaymentMethodLabel(booking.paymentMethod)}
           </p>
         </div>
         <div className="hidden text-left sm:block">
-          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Amount</p>
+          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Amount</p>
           <p className="text-[11px] font-black text-slate-900">
             {formatMoney(displayTotal)}
           </p>
@@ -587,7 +587,7 @@ function HistoryRow({
         <div className="flex items-center gap-1.5">
           <span
             className={cn(
-                "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest whitespace-nowrap",
+                "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.2em] whitespace-nowrap",
                 getStatusBadgeClass(booking.paymentStatus, booking.status, (booking as any).paymentStage, (booking as any).remainingBalance),
             )}
           >
@@ -605,7 +605,7 @@ function HistoryRow({
           <DetailItem label="Booking Status" value={
             <span
               className={cn(
-                "inline-block rounded-md border px-2 py-0.5 text-[10px] font-black uppercase tracking-widest",
+                "inline-block rounded-md border px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.2em]",
                 getBookingStatusBadgeClass(booking.status),
               )}
             >
@@ -633,7 +633,7 @@ function HistoryRow({
 function DetailItem({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="min-w-0 max-w-full">
-      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">
         {label}
       </p>
       <div className="mt-0.5 whitespace-normal text-xs font-bold text-slate-800">{value}</div>
@@ -1123,7 +1123,7 @@ function TransactionsContent() {
           open={isPaymentConfirmOpen}
           onOpenChange={setIsPaymentConfirmOpen}
         >
-          <DialogContent showCloseButton={false} className="w-[calc(100vw-32px)] sm:w-fit sm:min-w-[500px] sm:max-w-[calc(100vw-48px)] max-h-[90dvh] overflow-hidden rounded-3xl bg-white shadow-2xl">
+          <DialogContent showCloseButton={false} className="w-[95vw] sm:max-w-[520px] max-h-[90dvh] overflow-y-auto rounded-3xl bg-white shadow-2xl">
             <div className="flex max-h-[90dvh] flex-col overflow-hidden">
               <header className="shrink-0 flex items-start justify-between gap-3 border-b border-slate-100 px-5 py-4">
                 <div className="flex items-center gap-3">
@@ -1177,7 +1177,7 @@ function TransactionsContent() {
                   </p>
 
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    <p className="mb-3 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
                       Payment Summary
                     </p>
 
@@ -1218,7 +1218,7 @@ function TransactionsContent() {
                       )}
                       <div className="border-t border-dashed border-slate-300 pt-3">
                         <div className="flex items-center justify-between gap-4">
-                          <span className="text-xs font-black uppercase tracking-widest text-slate-500">
+                          <span className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">
                             Amount to Pay
                           </span>
                           <span className="text-2xl font-black text-orange-600">
@@ -1244,13 +1244,13 @@ function TransactionsContent() {
                 </div>
               </div>
 
-              <footer className="shrink-0 flex justify-end gap-2 border-t border-slate-100 bg-white px-5 py-4">
+              <footer className="shrink-0 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end border-t border-slate-100 bg-white px-5 py-4">
                 <Button
                 type="button"
                 variant="outline"
                 onClick={() => setIsPaymentConfirmOpen(false)}
                 disabled={isSubmitting}
-                className="h-10 rounded-xl border-slate-200 px-4 text-xs font-bold"
+                className="h-10 w-full sm:w-auto rounded-xl border-slate-200 px-4 text-xs font-bold"
               >
                 Cancel
               </Button>
@@ -1258,7 +1258,7 @@ function TransactionsContent() {
                 type="button"
                 onClick={submitSelectedPayment}
                 disabled={isSubmitting}
-                className="h-10 rounded-xl bg-orange-600 px-4 text-xs font-bold text-white hover:bg-orange-700"
+                className="h-10 w-full sm:w-auto rounded-xl bg-orange-600 px-4 text-xs font-bold text-white hover:bg-orange-700"
               >
                 {isSubmitting
                   ? "Submitting..."
@@ -1319,7 +1319,7 @@ function TransactionsContent() {
 
             {!isSettlingBalance && booking.status === "pending" && (
               <div className="rounded-2xl border border-orange-200 bg-white px-5 py-3 text-center shadow-sm">
-                <p className="text-[10px] font-black uppercase tracking-widest text-orange-500">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-500">
                   Time Left
                 </p>
                 <p className="mt-1 text-2xl font-black tabular-nums text-orange-700">
@@ -1514,7 +1514,7 @@ function TransactionsContent() {
               {paymentMethod === "bank" ? (
                 <div className="animate-in fade-in space-y-5">
                   <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 text-sm">
-                    <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                    <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
                       Bank Details
                     </p>
                     <div className="flex flex-col gap-1 border-b border-slate-200 pb-3 sm:flex-row sm:justify-between">
@@ -1624,7 +1624,7 @@ function TransactionsContent() {
               <h3 className="mb-4 text-lg font-black text-white">Summary</h3>
 
               <div className="mb-4 rounded-xl border border-slate-700 bg-slate-800 p-4">
-                <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
                   Event
                 </p>
                 <p className="break-words text-sm font-bold text-white">
@@ -1697,11 +1697,11 @@ function TransactionsContent() {
 
   return (
     <div className="w-full min-w-0 max-w-full overflow-x-hidden">
-      <div className="mx-auto w-full max-w-[1180px] px-3 py-4 sm:px-5 lg:px-6 animate-in fade-in duration-500">
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6 animate-in fade-in duration-500">
         <section className="border-b border-slate-200 pb-5 mb-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <p className="text-[11px] font-black uppercase tracking-[0.24em] text-orange-600">
+              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-orange-600">
                 Payments
               </p>
               <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
@@ -1771,7 +1771,7 @@ function TransactionsContent() {
                       >
                         {/* ---- Mobile: event name + ID ---- */}
                         <div className="sm:hidden">
-                          <p className="text-sm font-black text-slate-900">
+                          <p className="text-sm font-black text-slate-900 line-clamp-2">
                             {booking.eventName || "Untitled"}
                           </p>
                           <p className="mt-0.5 break-all text-[10px] font-semibold text-slate-500">
@@ -1801,7 +1801,7 @@ function TransactionsContent() {
                         <div className="flex flex-row items-center justify-between gap-2 sm:gap-3">
                           <span
                             className={cn(
-                              "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest whitespace-nowrap w-fit",
+                              "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.2em] whitespace-nowrap w-fit",
                   getStatusBadgeClass(booking.paymentStatus, booking.status, (booking as any).paymentStage, (booking as any).remainingBalance),
                             )}
                           >
@@ -1845,7 +1845,7 @@ function TransactionsContent() {
       >
         <DialogContent
           showCloseButton={false}
-          className="w-[min(94vw,520px)] h-[calc(100dvh-48px)] max-h-[720px] overflow-hidden rounded-3xl bg-white shadow-2xl">
+          className="w-[95vw] sm:max-w-[520px] max-h-[90dvh] overflow-y-auto rounded-3xl bg-white shadow-2xl">
           <div className="flex h-full min-h-0 flex-col overflow-hidden">
             <div className="shrink-0 border-b border-slate-100 px-5 py-4">
               <div className="flex items-start justify-between gap-3">
@@ -2005,14 +2005,14 @@ function SectionHeader({
   icon: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2.5">
       {icon && (
         <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-orange-50 text-orange-600">
           {icon}
         </div>
       )}
       <div className="min-w-0">
-        <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+        <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
           {title}
         </h2>
         {subtitle && (
@@ -2057,7 +2057,7 @@ function OfficePaymentTracker({
             </div>
             <span
               className={cn(
-                "shrink-0 rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest",
+                "shrink-0 rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.2em]",
                 getStatusBadgeClass(payment.paymentStatus),
               )}
             >
@@ -2073,7 +2073,7 @@ function OfficePaymentTracker({
         </div>
       ))}
       {compact && payments.length > 3 && (
-        <p className="text-center text-[10px] font-bold uppercase tracking-widest text-slate-400">
+        <p className="text-center text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
           +{payments.length - 3} more check payment records
         </p>
       )}

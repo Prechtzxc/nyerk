@@ -362,10 +362,10 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1180px] px-3 py-4 sm:px-5 lg:px-6">
+    <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6 overflow-x-hidden">
       <div className="border-b border-slate-200 pb-5 mb-5">
         <div className="min-w-0">
-          <p className="text-[11px] font-black uppercase tracking-[0.22em] text-orange-600">
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-orange-600">
             Admin Reports & Analytics
           </p>
           <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
@@ -459,7 +459,7 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        <div className="h-[320px] w-full">
+        <div className="h-[280px] sm:h-[320px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={monthlyPerformance} margin={{ top: 10, right: 10, left: -18, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
@@ -526,7 +526,7 @@ export default function ReportsPage() {
             </div>
           </div>
 
-          <div className="h-[300px] w-full">
+          <div className="h-[250px] sm:h-[300px] w-full">
             {revenueByVenue.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={revenueByVenue} margin={{ top: 5, right: 10, left: -18, bottom: 5 }}>
@@ -581,7 +581,7 @@ export default function ReportsPage() {
             </div>
           </div>
 
-          <div className="h-[300px] w-full">
+          <div className="h-[250px] sm:h-[300px] w-full">
             {statusCounts.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -633,7 +633,7 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        <div className="h-[300px] w-full">
+        <div className="h-[250px] sm:h-[300px] w-full">
           {eventTypeCounts.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={eventTypeCounts} margin={{ top: 5, right: 10, left: -18, bottom: 5 }}>
@@ -679,7 +679,7 @@ export default function ReportsPage() {
 
         <div className="overflow-x-auto">
           <table className="w-full min-w-[950px] text-left text-sm">
-            <thead className="border-b border-slate-100 bg-white text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+            <thead className="border-b border-slate-100 bg-white text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
               <tr>
                 <th className="p-5 pl-8">Booking ID</th>
                 <th className="p-5">Event Details</th>
@@ -718,7 +718,7 @@ export default function ReportsPage() {
 
                     <td className="p-5">
                       <span
-                        className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] ${getStatusBadgeClass(
+                        className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] ${getStatusBadgeClass(
                           status
                         )}`}
                       >

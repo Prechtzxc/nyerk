@@ -275,7 +275,7 @@ export function TourButton({ children, className, size = "lg" }: TourButtonProps
         </Button>
       </DialogTrigger>
 
-      <DialogContent showCloseButton={false} className="w-full sm:w-[calc(100%-2rem)] lg:max-w-[1200px] h-[calc(100dvh-2rem)] overflow-hidden rounded-2xl border-0 bg-black p-0 shadow-2xl">
+      <DialogContent showCloseButton={false} className="w-[95vw] sm:max-w-[1200px] max-h-[90dvh] overflow-hidden rounded-2xl border-0 bg-black p-0 shadow-2xl">
         <DialogTitle className="sr-only">360 Tour</DialogTitle>
 
         <div className="relative flex h-[calc(100dvh-32px)] flex-col overflow-hidden bg-black lg:grid lg:grid-cols-[1fr_380px]">
@@ -372,7 +372,7 @@ export function TourButton({ children, className, size = "lg" }: TourButtonProps
 
           {/* ── INFO PANEL ── */}
           <div className="flex flex-1 flex-col overflow-hidden border-t border-white/10 bg-black lg:flex-none lg:border-t-0 lg:border-l lg:border-white/10">
-            <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-6 sm:py-6">
+            <div className="flex-1 overflow-y-auto max-h-[90dvh] px-5 py-5 sm:px-6 sm:py-6">
               {/* Title and badge */}
               <div className="mb-4 flex flex-wrap items-center gap-2">
                 <span className="inline-flex rounded-full bg-orange-600 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-white">

@@ -335,7 +335,7 @@ export default function AdminPaymentsPage() {
 
   return (
     <div className="w-full min-w-0 max-w-full overflow-x-hidden">
-      <div className="mx-auto w-full max-w-[1180px] px-3 py-4 sm:px-5 lg:px-6">
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
         <PaymentActionConfirmModal
           pendingAction={pendingAction}
           note={actionNote}
@@ -404,7 +404,7 @@ export default function AdminPaymentsPage() {
         <section className="border-b border-slate-200 pb-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="min-w-0">
-              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-orange-600">
+              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-orange-600">
                 Admin Payment Verification
               </p>
 
@@ -476,7 +476,7 @@ export default function AdminPaymentsPage() {
                       setStatusFilter("all")
                       window.history.replaceState(null, "", window.location.pathname)
                     }}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-[10px] font-black uppercase tracking-widest text-slate-400 transition hover:bg-slate-100 hover:text-orange-600"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 transition hover:bg-slate-100 hover:text-orange-600"
                   >
                     Clear
                   </button>
@@ -532,7 +532,7 @@ export default function AdminPaymentsPage() {
           open={!!selectedPayment}
           onOpenChange={(open) => !open && setSelectedPayment(null)}
         >
-          <DialogContent showCloseButton={false} className="w-[min(94vw,620px)] h-[calc(100dvh-48px)] max-h-[720px] overflow-hidden rounded-3xl bg-white shadow-2xl">
+          <DialogContent showCloseButton={false} className="w-[95vw] sm:max-w-2xl max-h-[90dvh] overflow-hidden rounded-3xl bg-white shadow-2xl">
             {selectedPayment && (
               <PaymentReviewModal
                 payment={selectedPayment}
@@ -595,7 +595,7 @@ function PaymentActionConfirmModal({
 
   return (
     <Dialog open={!!pendingAction} onOpenChange={(open) => !open && onCancel()}>
-      <DialogContent className="w-[min(94vw,480px)] max-h-[90dvh] overflow-hidden rounded-3xl bg-white shadow-2xl [&>button]:hidden">
+      <DialogContent className="w-[95vw] sm:max-w-[520px] max-h-[90dvh] overflow-hidden rounded-3xl bg-white shadow-2xl [&>button]:hidden">
         <div className="flex max-h-[90dvh] flex-col overflow-hidden">
           <div className="shrink-0 flex items-center gap-3 border-b border-slate-100 px-5 py-4">
             <div
@@ -635,7 +635,7 @@ function PaymentActionConfirmModal({
 
             {(isReject || isIncomplete) && (
               <div>
-                <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-slate-500">
+                <label className="mb-1.5 block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
                   {isReject ? "Rejection Reason" : "Customer Note"}
                 </label>
                 <Textarea
@@ -652,11 +652,11 @@ function PaymentActionConfirmModal({
             )}
           </div>
 
-          <div className="shrink-0 grid grid-cols-2 gap-3 border-t border-slate-100 bg-white px-5 py-4">
+          <div className="shrink-0 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end border-t border-slate-100 bg-white px-5 py-4">
             <Button
               variant="outline"
               onClick={onCancel}
-              className="h-10 rounded-xl border-slate-200 text-xs font-black text-slate-700"
+              className="h-10 w-full sm:w-auto rounded-xl border-slate-200 text-xs font-black text-slate-700"
             >
               Cancel
             </Button>
@@ -664,7 +664,7 @@ function PaymentActionConfirmModal({
             <Button
               disabled={(isReject || isIncomplete) && !note.trim()}
               onClick={onConfirm}
-              className={`h-10 rounded-xl text-xs font-black text-white disabled:opacity-50 ${confirmColor}`}
+              className={`h-10 w-full sm:w-auto rounded-xl text-xs font-black text-white disabled:opacity-50 ${confirmColor}`}
             >
               {confirmLabel}
             </Button>
@@ -700,7 +700,7 @@ function PaymentCard({
           <Receipt className="h-5 w-5" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
             Payment
           </p>
           <p className="break-words whitespace-normal text-sm font-black text-slate-900">
@@ -714,26 +714,26 @@ function PaymentCard({
 
       <div className="grid min-w-0 flex-1 grid-cols-2 gap-x-2 gap-y-1.5 sm:grid-cols-4 sm:gap-x-3">
         <div className="min-w-0 max-w-full">
-          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">Customer</p>
+          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Customer</p>
           <p className="whitespace-normal break-words text-xs font-black text-slate-800">{payment.userInfo?.name || "—"}</p>
           <p className="whitespace-normal break-words text-[10px] font-bold text-slate-500">{payment.userInfo?.email || "—"}</p>
         </div>
         <div className="min-w-0 max-w-full">
-          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">Payment Method</p>
+          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Payment Method</p>
           <p className="whitespace-normal break-words text-xs font-bold text-slate-800">
             <PaymentMethodLabel payment={payment} />
           </p>
           <p className="whitespace-normal break-words text-[10px] font-bold text-slate-500">{getPaymentTypeLabel(payment.paymentType)}</p>
         </div>
         <div className="min-w-0 max-w-full">
-          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">Amount</p>
+          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Amount</p>
           <p className="whitespace-normal break-words text-xs font-bold text-slate-800">{formatCurrency(amountPaid)}</p>
           {payment.paymentType === "downpayment" && (
-            <p className="whitespace-normal break-words text-[10px] font-black uppercase tracking-widest text-amber-600">Partial</p>
+            <p className="whitespace-normal break-words text-[10px] font-black uppercase tracking-[0.2em] text-amber-600">Partial</p>
           )}
         </div>
         <div className="min-w-0 max-w-full">
-          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">Venue</p>
+          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Venue</p>
           <p className="whitespace-normal break-words text-xs font-bold text-slate-800">{payment.venue || "N/A"}</p>
         </div>
       </div>
@@ -756,7 +756,7 @@ function PaymentCard({
 function getContractStatusBadge(b: BookingRecord) {
   const status = b.contractStatus
   const baseClass =
-    "inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest"
+    "inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.2em]"
 
   if (status === "Signed") {
     return (
@@ -845,7 +845,7 @@ function PaymentReviewModal({
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="mb-2 flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-slate-500">
+              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
                 {payment.id || "No ID"}
               </span>
 
@@ -933,7 +933,7 @@ function PaymentReviewModal({
           <div className="space-y-4">
             <ModalSection title="Amount Summary">
               <div className="rounded-2xl border border-orange-100 bg-orange-50 p-5">
-                <p className="text-[10px] font-black uppercase tracking-widest text-orange-600">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-600">
                   {displayLabel}
                 </p>
 
@@ -949,7 +949,7 @@ function PaymentReviewModal({
 
             {payment.paymentType === "downpayment" && (acceptedDPPaid > 0 || thisSubmission > 0) ? (
               <div className="rounded-2xl bg-slate-950 p-4 text-white">
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3">
                   Downpayment Summary
                 </p>
                 <div className="space-y-1.5 text-xs">
@@ -978,7 +978,7 @@ function PaymentReviewModal({
                     <AlertCircle className="h-5 w-5" />
                   </div>
                   <div className="flex-1">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
                       {payment.downpaymentRemaining && Number(payment.downpaymentRemaining) > 0
                         ? "Downpayment Remaining"
                         : acceptedDPPaid === 0 ? "Downpayment Target" : "Remaining Balance"}
@@ -1102,7 +1102,7 @@ function PaymentBadge({ payment }: { payment: BookingRecord }) {
   const remainingBalance = getSafePrice(
     (payment as any).remainingBalance || Math.max(totalAmount - amountPaid, 0)
   )
-  const baseClass = "inline-flex w-fit items-center gap-1 rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest"
+  const baseClass = "inline-flex w-fit items-center gap-1 rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.2em]"
 
   if (paymentStatus === "rejected") {
     return <span className={`${baseClass} border-rose-100 bg-rose-50 text-rose-700`}><XCircle className="h-3 w-3" />Rejected</span>
@@ -1156,7 +1156,7 @@ function ModalSection({
 }) {
   return (
     <div>
-      <h4 className="border-b border-slate-100 pb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+      <h4 className="border-b border-slate-100 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
         {title}
       </h4>
 
@@ -1717,7 +1717,7 @@ function IncompletePaymentModal({
 
   return (
     <Dialog open={!!booking} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="w-[min(94vw,500px)] max-h-[90dvh] overflow-hidden rounded-3xl bg-white shadow-2xl [&>button]:hidden">
+        <DialogContent className="w-[95vw] sm:max-w-[520px] max-h-[90dvh] overflow-hidden rounded-3xl bg-white shadow-2xl [&>button]:hidden">
         <div className="flex max-h-[90dvh] flex-col overflow-hidden">
           {!confirmStep ? (
             <>
@@ -1749,7 +1749,7 @@ function IncompletePaymentModal({
                 </div>
 
                 <div>
-                  <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-slate-500">
+                  <label className="mb-1.5 block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
                     Verified Amount Received *
                   </label>
                   <Input
@@ -1781,7 +1781,7 @@ function IncompletePaymentModal({
                 </div>
 
                 <div>
-                  <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-slate-500">
+                  <label className="mb-1.5 block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
                     Admin Note / Reason *
                   </label>
                   <Textarea
@@ -1793,18 +1793,18 @@ function IncompletePaymentModal({
                 </div>
               </div>
 
-              <div className="shrink-0 grid grid-cols-2 gap-3 border-t border-slate-100 bg-white px-5 py-4">
+              <div className="shrink-0 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end border-t border-slate-100 bg-white px-5 py-4">
                 <Button
                   variant="outline"
                   onClick={onClose}
-                  className="h-10 rounded-xl border-slate-200 text-xs font-black text-slate-700"
+                  className="h-10 w-full sm:w-auto rounded-xl border-slate-200 text-xs font-black text-slate-700"
                 >
                   Cancel
                 </Button>
                 <Button
                   disabled={!isValidIncompleteAmount || !adminReason.trim()}
                   onClick={() => setConfirmStep(true)}
-                  className="h-10 rounded-xl bg-amber-600 text-xs font-black text-white hover:bg-amber-700 disabled:opacity-50"
+                  className="h-10 w-full sm:w-auto rounded-xl bg-amber-600 text-xs font-black text-white hover:bg-amber-700 disabled:opacity-50"
                 >
                   Continue
                 </Button>
@@ -1854,17 +1854,17 @@ function IncompletePaymentModal({
                 </div>
               </div>
 
-              <div className="shrink-0 grid grid-cols-2 gap-3 border-t border-slate-100 bg-white px-5 py-4">
+              <div className="shrink-0 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end border-t border-slate-100 bg-white px-5 py-4">
                 <Button
                   variant="outline"
                   onClick={() => setConfirmStep(false)}
-                  className="h-10 rounded-xl border-slate-200 text-xs font-black text-slate-700"
+                  className="h-10 w-full sm:w-auto rounded-xl border-slate-200 text-xs font-black text-slate-700"
                 >
                   Back
                 </Button>
                 <Button
                   onClick={handleConfirm}
-                  className="h-10 rounded-xl bg-amber-600 text-xs font-black text-white hover:bg-amber-700"
+                  className="h-10 w-full sm:w-auto rounded-xl bg-amber-600 text-xs font-black text-white hover:bg-amber-700"
                 >
                   Confirm Incomplete Payment
                 </Button>
@@ -1955,7 +1955,7 @@ function OnsiteVerifyModal({
 
   return (
     <Dialog open={!!booking} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="w-[min(94vw,500px)] max-h-[90dvh] overflow-hidden rounded-3xl bg-white shadow-2xl [&>button]:hidden">
+      <DialogContent className="w-[95vw] sm:max-w-[520px] max-h-[90dvh] overflow-hidden rounded-3xl bg-white shadow-2xl [&>button]:hidden">
         <div className="flex max-h-[90dvh] flex-col overflow-hidden">
           {!confirmStep ? (
             <>
@@ -1993,7 +1993,7 @@ function OnsiteVerifyModal({
                 </div>
 
                 <div>
-                  <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-slate-500">
+                  <label className="mb-1.5 block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
                     Amount Received *
                   </label>
                   <Input
@@ -2013,7 +2013,7 @@ function OnsiteVerifyModal({
                 </div>
 
                 <div>
-                  <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-slate-500">
+                  <label className="mb-1.5 block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
                     Admin Note (optional)
                   </label>
                   <Textarea
@@ -2025,18 +2025,18 @@ function OnsiteVerifyModal({
                 </div>
               </div>
 
-              <div className="shrink-0 grid grid-cols-2 gap-3 border-t border-slate-100 bg-white px-5 py-4">
+              <div className="shrink-0 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end border-t border-slate-100 bg-white px-5 py-4">
                 <Button
                   variant="outline"
                   onClick={onClose}
-                  className="h-10 rounded-xl border-slate-200 text-xs font-black text-slate-700"
+                  className="h-10 w-full sm:w-auto rounded-xl border-slate-200 text-xs font-black text-slate-700"
                 >
                   Cancel
                 </Button>
                 <Button
                   disabled={enteredAmount <= 0}
                   onClick={() => setConfirmStep(true)}
-                  className="h-10 rounded-xl bg-emerald-600 text-xs font-black text-white hover:bg-emerald-700 disabled:opacity-50"
+                  className="h-10 w-full sm:w-auto rounded-xl bg-emerald-600 text-xs font-black text-white hover:bg-emerald-700 disabled:opacity-50"
                 >
                   Continue
                 </Button>
@@ -2088,17 +2088,17 @@ function OnsiteVerifyModal({
                 </div>
               </div>
 
-              <div className="shrink-0 grid grid-cols-2 gap-3 border-t border-slate-100 bg-white px-5 py-4">
+              <div className="shrink-0 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end border-t border-slate-100 bg-white px-5 py-4">
                 <Button
                   variant="outline"
                   onClick={() => setConfirmStep(false)}
-                  className="h-10 rounded-xl border-slate-200 text-xs font-black text-slate-700"
+                  className="h-10 w-full sm:w-auto rounded-xl border-slate-200 text-xs font-black text-slate-700"
                 >
                   Back
                 </Button>
                 <Button
                   onClick={handleConfirm}
-                  className="h-10 rounded-xl bg-emerald-600 text-xs font-black text-white hover:bg-emerald-700"
+                  className="h-10 w-full sm:w-auto rounded-xl bg-emerald-600 text-xs font-black text-white hover:bg-emerald-700"
                 >
                   Confirm Verification
                 </Button>

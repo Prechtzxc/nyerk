@@ -99,13 +99,13 @@ export function CMSFaqsTab({ onNavigate }: { onNavigate: (tab: string) => void }
             </div>
             <div className="grid gap-4 p-5">
               <div>
-                <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">Question</label>
-                <Input value={question} onChange={(e) => setQuestion(e.target.value)} placeholder="How long is the standard venue rental?" className="mt-1 h-10 rounded-lg border-slate-200 text-sm font-semibold" />
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 sm:text-xs">Question</label>
+                <Input value={question} onChange={(e) => setQuestion(e.target.value)} placeholder="How long is the standard venue rental?" className="mt-1 h-11 w-full rounded-lg border-slate-200 text-sm font-semibold" />
               </div>
               <div>
-                <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">Answer</label>
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 sm:text-xs">Answer</label>
                 <Textarea value={answer} onChange={(e) => setAnswer(e.target.value)} placeholder="The standard venue rental is 6 hours..."
-                  className="mt-1 min-h-[120px] resize-none rounded-lg border-slate-200 text-sm font-semibold" />
+                  className="mt-1 w-full min-h-[80px] resize-none rounded-lg border-slate-200 text-sm font-semibold" />
               </div>
               <label className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-slate-200 bg-slate-50 p-3">
                 <Switch checked={isHidden} onCheckedChange={setIsHidden} />
@@ -113,7 +113,7 @@ export function CMSFaqsTab({ onNavigate }: { onNavigate: (tab: string) => void }
               </label>
             </div>
             <div className="sticky bottom-0 flex gap-2 border-t border-slate-100 bg-white px-5 py-3.5">
-              <Button type="button" onClick={handleSave} className="h-9 flex-1 rounded-lg bg-cyan-600 text-xs font-bold text-white hover:bg-cyan-700">
+              <Button type="button" onClick={handleSave} className="w-full sm:w-auto h-11 flex-1 rounded-lg bg-cyan-600 text-xs font-bold text-white hover:bg-cyan-700">
                 <Save className="mr-1.5 h-3.5 w-3.5" /> {editingId ? "Save Changes" : "Add FAQ"}
               </Button>
               <Button type="button" variant="outline" onClick={resetForm} className="h-9 rounded-lg border-slate-200 text-xs font-bold"><X className="mr-1.5 h-3.5 w-3.5" /> Cancel</Button>

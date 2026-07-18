@@ -73,7 +73,7 @@ export function MainLayout({ children }: MainLayoutProps) {
   return (
     <div className="flex min-h-screen flex-col bg-slate-50 font-sans text-slate-900">
       <header className="sticky top-0 z-40 w-full border-b border-slate-200 bg-white shadow-sm">
-        <div className="flex h-16 items-center justify-between px-4 md:px-6">
+        <div className="flex h-16 items-center justify-between px-3 sm:px-4 lg:px-0">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
@@ -81,7 +81,7 @@ export function MainLayout({ children }: MainLayoutProps) {
               className="md:hidden"
               onClick={() => setIsMobileMenuOpen((current) => !current)}
             >
-              {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              {isMobileMenuOpen ? <X className="h-5 w-5 shrink-0 overflow-hidden" /> : <Menu className="h-5 w-5 shrink-0 overflow-hidden" />}
             </Button>
 
             <Link href="/dashboard" className="flex items-center gap-3">
@@ -92,7 +92,7 @@ export function MainLayout({ children }: MainLayoutProps) {
                 <span className="text-base font-black leading-none tracking-tight text-slate-900">
                   One Estela Place
                 </span>
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-orange-600">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-orange-600">
                   Admin Console
                 </span>
               </div>
@@ -105,7 +105,7 @@ export function MainLayout({ children }: MainLayoutProps) {
               size="icon"
               className="relative h-10 w-10 rounded-xl text-slate-500 hover:bg-slate-100"
             >
-              <Bell className="h-5 w-5" />
+              <Bell className="h-5 w-5 shrink-0 overflow-hidden" />
               <Badge className="absolute right-2 top-2 h-2 w-2 rounded-full bg-orange-600 p-0 ring-2 ring-white" />
             </Button>
 
@@ -115,7 +115,7 @@ export function MainLayout({ children }: MainLayoutProps) {
                   variant="ghost"
                   className="relative h-10 w-10 rounded-full p-0 hover:bg-slate-100"
                 >
-                  <Avatar className="h-9 w-9 border-2 border-orange-200">
+                  <Avatar className="h-8 w-8 sm:h-9 sm:w-9 border-2 border-orange-200">
                     <AvatarImage src="/placeholder-user.jpg" alt={userName} />
                     <AvatarFallback className="bg-orange-600 text-sm font-black text-white">
                       {userInitial}
@@ -136,14 +136,14 @@ export function MainLayout({ children }: MainLayoutProps) {
 
                 <DropdownMenuItem asChild className="cursor-pointer">
                   <Link href="/dashboard">
-                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                    <LayoutDashboard className="mr-2 h-4 w-4 shrink-0 overflow-hidden" />
                     Dashboard
                   </Link>
                 </DropdownMenuItem>
 
                 <DropdownMenuItem asChild className="cursor-pointer">
                   <Link href="/profile">
-                    <User className="mr-2 h-4 w-4" />
+                    <User className="mr-2 h-4 w-4 shrink-0 overflow-hidden" />
                     Profile
                   </Link>
                 </DropdownMenuItem>
@@ -154,7 +154,7 @@ export function MainLayout({ children }: MainLayoutProps) {
                   className="cursor-pointer text-red-600 focus:text-red-600"
                   onClick={handleLogout}
                 >
-                  <LogOut className="mr-2 h-4 w-4" />
+                  <LogOut className="mr-2 h-4 w-4 shrink-0 overflow-hidden" />
                   Log out
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -166,12 +166,12 @@ export function MainLayout({ children }: MainLayoutProps) {
       <div className="flex flex-1">
         <aside
           className={cn(
-            "fixed inset-y-0 left-0 top-16 z-30 w-72 -translate-x-full border-r border-slate-200 bg-white transition-transform duration-200 md:sticky md:translate-x-0",
+            "fixed inset-y-0 left-0 top-16 z-30 w-64 -translate-x-full border-r border-slate-200 bg-white transition-transform duration-200 md:sticky md:translate-x-0",
             isMobileMenuOpen && "translate-x-0"
           )}
         >
           <nav className="flex h-[calc(100vh-4rem)] h-[calc(100dvh-4rem)] flex-col gap-1 overflow-y-auto p-4">
-            <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+            <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
               Admin Menu
             </p>
 
@@ -195,8 +195,7 @@ export function MainLayout({ children }: MainLayoutProps) {
                   )}
                   <Icon
                     className={cn(
-                      "h-4 w-4 shrink-0",
-                      isActive ? "text-orange-600" : "text-slate-500 group-hover:text-slate-700"
+                      "h-4 w-4 shrink-0 overflow-hidden",                      isActive ? "text-orange-600" : "text-slate-500 group-hover:text-slate-700"
                     )}
                   />
                   <span>{item.label}</span>
@@ -208,12 +207,12 @@ export function MainLayout({ children }: MainLayoutProps) {
 
         {isMobileMenuOpen && (
           <div
-            className="fixed inset-0 top-16 z-20 bg-slate-900/40 md:hidden"
+            className="fixed inset-0 top-16 z-40 bg-slate-900/40 md:hidden"
             onClick={() => setIsMobileMenuOpen(false)}
           />
         )}
 
-        <main className="flex-1 p-4 md:p-8">{children}</main>
+        <main className="flex-1 p-3 sm:p-4 md:p-6 lg:p-8">{children}</main>
       </div>
     </div>
   )

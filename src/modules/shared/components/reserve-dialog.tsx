@@ -315,7 +315,7 @@ export function ReserveDialog({ open, onOpenChange, selectedVenueId, onBackToVen
         <DialogTitle className="sr-only">Reservation Details</DialogTitle>
         <DialogDescription className="sr-only">Form to select date, time, and provide event details.</DialogDescription>
 
-        <div className="flex flex-col md:flex-row min-h-[520px]">
+        <div className="flex flex-col md:flex-row min-h-[520px] overflow-x-hidden">
           {step === 1 ? (
             <>
               {/* --- LEFT ORANGE PANEL --- */}
@@ -327,7 +327,7 @@ export function ReserveDialog({ open, onOpenChange, selectedVenueId, onBackToVen
                     </button>
                   )}
                   <div className="mt-6 mb-auto">
-                    <h2 className="text-4xl font-black tracking-tight mb-6 leading-tight">Select<br/>Schedule</h2>
+                     <h2 className="text-4xl font-black tracking-tight mb-6 leading-tight break-words">Select<br/>Schedule</h2>
                     <p className="text-white/90 text-[15px] leading-relaxed">
                       Choose your preferred date and time. All events are fixed for <strong>6 Hours</strong>.
                     </p>
@@ -358,7 +358,7 @@ export function ReserveDialog({ open, onOpenChange, selectedVenueId, onBackToVen
 
                     <div className="grid grid-cols-7 gap-x-1 gap-y-3 text-center mb-6">
                       {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map(day => (
-                        <div key={day} className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{day}</div>
+                        <div key={day} className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">{day}</div>
                       ))}
                       {emptySlots.map((_, i) => <div key={`empty-${i}`} className="aspect-square" />)}
                       {days.map((day) => {
@@ -394,7 +394,7 @@ export function ReserveDialog({ open, onOpenChange, selectedVenueId, onBackToVen
                     </div>
                     
                     {/* FLAT LEGEND */}
-                    <div className="mt-auto flex flex-wrap items-center justify-center gap-4 text-[9px] font-bold text-slate-400 uppercase tracking-widest border-t border-slate-100 pt-4">
+                    <div className="mt-auto flex flex-wrap items-center justify-center gap-4 text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] border-t border-slate-100 pt-4">
                       <span className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 bg-rose-500 rounded-full"/> Full</span>
                       <span className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 bg-[#eab308] rounded-full"/> Partial</span>
                       <span className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 bg-slate-900 rounded-full"/> Maint</span>
@@ -405,14 +405,14 @@ export function ReserveDialog({ open, onOpenChange, selectedVenueId, onBackToVen
                   <div className="w-full md:w-[240px] flex flex-col h-full shrink-0 border-t md:border-t-0 md:border-l border-slate-100 md:pl-8 pt-6 md:pt-0">
                     <div className="flex items-center gap-2 mb-6">
                       <Clock className="w-4 h-4 text-[#ea580c]" />
-                      <h3 className="font-black text-slate-900 text-sm uppercase tracking-widest">Event Time</h3>
+                      <h3 className="font-black text-slate-900 text-sm uppercase tracking-[0.2em]">Event Time</h3>
                     </div>
                     
                     <div className="space-y-5">
                       <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Select Start Time</label>
+                         <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Select Start Time</label>
                         <Select value={startTime} onValueChange={handleStartTimeChange} disabled={!date}>
-                          <SelectTrigger className="bg-white border-slate-200 rounded-2xl h-12 focus:ring-[#ea580c] text-sm shadow-sm">
+                          <SelectTrigger className="bg-white border-slate-200 rounded-2xl h-11 w-full focus:ring-[#ea580c] text-sm shadow-sm">
                             <SelectValue placeholder={date ? "Choose start time" : "Select date first"} />
                           </SelectTrigger>
                           {/* FIX: position="popper" with high z-index para hindi makulong sa modal! */}
@@ -435,8 +435,8 @@ export function ReserveDialog({ open, onOpenChange, selectedVenueId, onBackToVen
                       {/* Read-only End Time na nag-a-auto compute */}
                       {startTime && endTime && (
                         <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Computed End Time</label>
-                          <div className="h-12 bg-slate-50 border border-slate-200 rounded-2xl flex items-center px-4 text-sm font-bold text-slate-700 shadow-inner">
+                           <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Computed End Time</label>
+                           <div className="h-11 bg-slate-50 border border-slate-200 rounded-2xl flex items-center px-4 text-sm font-bold text-slate-700 shadow-inner">
                             {formatTime(parseFloat(endTime))}
                           </div>
                           <div className="bg-emerald-50 text-emerald-700 p-2.5 mt-2 rounded-xl flex items-center justify-center text-xs font-bold border border-emerald-100">
@@ -450,7 +450,7 @@ export function ReserveDialog({ open, onOpenChange, selectedVenueId, onBackToVen
                       <Button 
                         disabled={!date || !startTime || !endTime} 
                         onClick={() => setStep(2)}
-                        className="w-full h-14 rounded-2xl bg-[#fca5a5] opacity-80 hover:opacity-100 text-white font-bold text-[15px] shadow-sm transition-transform active:scale-[0.98] disabled:bg-slate-200 disabled:text-slate-400 disabled:opacity-50"
+                        className="w-full sm:w-auto h-14 rounded-2xl bg-[#fca5a5] opacity-80 hover:opacity-100 text-white font-bold text-[15px] shadow-sm transition-transform active:scale-[0.98] disabled:bg-slate-200 disabled:text-slate-400 disabled:opacity-50"
                         style={{ backgroundColor: (date && startTime && endTime) ? '#ea580c' : undefined }}
                       >
                         Continue to Details <ArrowRight className="w-4 h-4 ml-2" />
@@ -475,7 +475,7 @@ export function ReserveDialog({ open, onOpenChange, selectedVenueId, onBackToVen
                   </button>
                   
                   <div className="mt-6 mb-auto">
-                    <h2 className="text-3xl font-black tracking-tight mb-10 leading-tight">Booking<br/>Summary</h2>
+                     <h2 className="text-3xl font-black tracking-tight mb-10 leading-tight break-words">Booking<br/>Summary</h2>
 
                     <div className="space-y-10">
                       <div className="flex items-start gap-4">
@@ -483,7 +483,7 @@ export function ReserveDialog({ open, onOpenChange, selectedVenueId, onBackToVen
                           <CalendarIcon className="w-4 h-4 text-white" />
                         </div>
                         <div>
-                          <p className="text-[10px] font-bold text-white/80 uppercase tracking-widest mb-1">Selected Date</p>
+                          <p className="text-[10px] font-bold text-white/80 uppercase tracking-[0.2em] mb-1">Selected Date</p>
                           <p className="font-bold text-lg">{date ? new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ""}</p>
                         </div>
                       </div>
@@ -493,7 +493,7 @@ export function ReserveDialog({ open, onOpenChange, selectedVenueId, onBackToVen
                           <Clock className="w-4 h-4 text-white" />
                         </div>
                         <div>
-                          <p className="text-[10px] font-bold text-white/80 uppercase tracking-widest mb-1">Time & Duration</p>
+                          <p className="text-[10px] font-bold text-white/80 uppercase tracking-[0.2em] mb-1">Time & Duration</p>
                           <p className="font-bold text-lg leading-snug">{startTime ? formatTime(parseFloat(startTime)) : ""} -<br/>{endTime ? formatTime(parseFloat(endTime)) : ""}</p>
                           <p className="text-sm text-white/90 mt-1">6 Hours (Fixed)</p>
                         </div>
@@ -508,7 +508,7 @@ export function ReserveDialog({ open, onOpenChange, selectedVenueId, onBackToVen
                 
                 <div className="w-full max-w-[500px] mx-auto animate-in slide-in-from-right-8">
                   <div className="mb-5">
-                     <h2 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                      <h2 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2 break-words">
                         <PartyPopper className="w-6 h-6 text-[#f97316]" /> Event Details
                      </h2>
                      <p className="text-xs text-slate-500 mt-1">Fill out your information to complete the request.</p>
@@ -517,15 +517,15 @@ export function ReserveDialog({ open, onOpenChange, selectedVenueId, onBackToVen
                   <form onSubmit={handleSubmit} className="space-y-4">
                      
                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-slate-700 block uppercase tracking-wider">Event Name *</label>
-                        <Input required value={eventName} onChange={e => setEventName(e.target.value)} placeholder="e.g. 18th Birthday Party" className="bg-slate-50 border-slate-200 h-10 rounded-lg px-4 text-xs focus-visible:ring-[#f97316] shadow-sm" />
+                         <label className="text-[10px] font-black block uppercase tracking-[0.2em] text-slate-700">Event Name *</label>
+                         <Input required value={eventName} onChange={e => setEventName(e.target.value)} placeholder="e.g. 18th Birthday Party" className="bg-slate-50 border-slate-200 h-11 w-full rounded-lg px-4 text-xs focus-visible:ring-[#f97316] shadow-sm" />
                      </div>
 
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-bold text-slate-700 block uppercase tracking-wider">Event Type *</label>
-                          <Select value={eventType} onValueChange={setEventType} required>
-                            <SelectTrigger className="bg-slate-50 border-slate-200 h-10 rounded-lg px-4 text-xs focus-visible:ring-[#f97316] shadow-sm">
+                           <label className="text-[10px] font-black block uppercase tracking-[0.2em] text-slate-700">Event Type *</label>
+                           <Select value={eventType} onValueChange={setEventType} required>
+                             <SelectTrigger className="bg-slate-50 border-slate-200 h-11 w-full rounded-lg px-4 text-xs focus-visible:ring-[#f97316] shadow-sm">
                               <SelectValue placeholder="Choose Event Type" />
                             </SelectTrigger>
                             <SelectContent className="rounded-lg text-xs z-[99999]">
@@ -538,14 +538,14 @@ export function ReserveDialog({ open, onOpenChange, selectedVenueId, onBackToVen
                           </Select>
                        </div>
                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-bold text-slate-700 block uppercase tracking-wider">Estimated Guests *</label>
-                          <Input required type="number" value={guests} onChange={e => setGuests(e.target.value)} placeholder="Max 250" className="bg-slate-50 border-slate-200 h-10 rounded-lg px-4 text-xs focus-visible:ring-[#f97316] shadow-sm" />
+                           <label className="text-[10px] font-black block uppercase tracking-[0.2em] text-slate-700">Estimated Guests *</label>
+                           <Input required type="number" value={guests} onChange={e => setGuests(e.target.value)} placeholder="Max 250" className="bg-slate-50 border-slate-200 h-11 w-full rounded-lg px-4 text-xs focus-visible:ring-[#f97316] shadow-sm" />
                        </div>
                      </div>
                      
                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-slate-700 block uppercase tracking-wider">Special Requests / Notes</label>
-                        <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Tell us more about your event layout, catering needs, etc." className="bg-slate-50 border-slate-200 min-h-[60px] resize-none rounded-lg p-3 text-xs focus-visible:ring-[#f97316] shadow-sm" />
+                         <label className="text-[10px] font-black block uppercase tracking-[0.2em] text-slate-700">Special Requests / Notes</label>
+                        <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Tell us more about your event layout, catering needs, etc." className="bg-slate-50 border-slate-200 min-h-[60px] resize-none rounded-lg p-3 text-xs focus-visible:ring-[#f97316] shadow-sm w-full break-words" />
                      </div>
 
                      <div className="flex items-start space-x-2 py-2 mt-1 border-t border-slate-100 pt-3">
@@ -559,7 +559,7 @@ export function ReserveDialog({ open, onOpenChange, selectedVenueId, onBackToVen
                                   Terms and Conditions
                                 </button>
                               </DialogTrigger>
-                              <DialogContent className="max-w-4xl w-full h-[75vh] flex flex-col bg-white rounded-[2rem] z-[99999]">
+                               <DialogContent className="w-[95vw] sm:max-w-4xl max-h-[90dvh] overflow-y-auto flex flex-col bg-white rounded-[2rem] z-[99999]">
                                 <DialogHeader>
                                   <DialogTitle className="text-2xl font-black">Venue Booking Terms and Conditions</DialogTitle>
                                 </DialogHeader>
@@ -578,8 +578,8 @@ export function ReserveDialog({ open, onOpenChange, selectedVenueId, onBackToVen
                         </div>
                      </div>
                      
-                     <div className="pt-1 flex justify-end">
-                        <Button type="submit" disabled={isSubmitting || !eventName || !eventType || !guests || !agreed} className="w-full h-11 rounded-lg bg-[#ea580c] hover:bg-[#c2410c] text-white font-bold text-sm shadow-sm transition-transform active:scale-[0.98] disabled:opacity-50 disabled:bg-slate-300">
+                      <div className="pt-1 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                         <Button type="submit" disabled={isSubmitting || !eventName || !eventType || !guests || !agreed} className="w-full sm:w-auto h-11 rounded-lg bg-[#ea580c] hover:bg-[#c2410c] text-white font-bold text-sm shadow-sm transition-transform active:scale-[0.98] disabled:opacity-50 disabled:bg-slate-300">
                           {isSubmitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</> : (editingBooking ? "Save Changes" : "Confirm Reservation")}
                         </Button>
                      </div>

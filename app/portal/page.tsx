@@ -48,7 +48,7 @@ function BookingProgressIndicator({ status }: { status?: string }) {
     return (
       <div className="flex items-center gap-2 rounded-lg bg-rose-50 border border-rose-200 px-3 py-2">
         <XCircle className="w-4 h-4 text-rose-500 shrink-0" />
-        <span className="text-[11px] font-black uppercase tracking-widest text-rose-600">Cancelled</span>
+        <span className="text-[11px] font-black uppercase tracking-[0.2em] text-rose-600">Cancelled</span>
       </div>
     )
   }
@@ -238,7 +238,7 @@ export default function ClientDashboardPage() {
   return (
     <TooltipProvider delayDuration={400}>
     <div className="w-full min-w-0 max-w-full overflow-x-hidden">
-      <div className="mx-auto w-full max-w-[1180px] px-3 py-4 sm:px-5 lg:px-6 animate-in fade-in duration-500">
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6 animate-in fade-in duration-500">
         <section className="border-b border-slate-200 pb-5 mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
@@ -251,7 +251,7 @@ export default function ClientDashboardPage() {
                 textClassName="text-lg font-black uppercase"
               />
               <div className="min-w-0">
-                <p className="text-[11px] font-black uppercase tracking-[0.24em] text-orange-600">
+                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-orange-600">
                   Client Dashboard
                 </p>
                 <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 md:text-3xl leading-tight">
@@ -271,17 +271,17 @@ export default function ClientDashboardPage() {
         <div className="space-y-6">
           {activeRental && (
             <div>
-              <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">
+              <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3">
                 Active Office Rental
               </h2>
               <Card className="rounded-2xl border-emerald-200 bg-white shadow-sm overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-md">
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <Badge variant="outline" className="uppercase text-[10px] font-black tracking-widest px-2.5 py-1 rounded-full mb-3 border-emerald-100 bg-emerald-50 text-emerald-700 shadow-none">
+                <CardContent className="p-4 sm:p-5">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <Badge variant="outline" className="uppercase text-[10px] font-black tracking-[0.2em] px-2.5 py-1 rounded-full mb-3 border-emerald-100 bg-emerald-50 text-emerald-700 shadow-none">
                         ACTIVE RENTAL
                       </Badge>
-                      <h3 className="text-xl font-black text-slate-950 tracking-tight leading-tight mb-1">
+                      <h3 className="text-xl font-black text-slate-950 tracking-tight leading-snug mb-1 line-clamp-2">
                         {activeRental.eventName || "Office Rental"}
                       </h3>
                       <p className="text-sm font-bold text-slate-500 mb-3">{activeRental.venue || "Office Space"}</p>
@@ -306,17 +306,17 @@ export default function ClientDashboardPage() {
 
           {contractSigning && (
             <div>
-              <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">
+              <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3">
                 Action Required
               </h2>
               <Card className="rounded-2xl border-yellow-200 bg-white shadow-sm overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-md">
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <Badge variant="outline" className="uppercase text-[10px] font-black tracking-widest px-2.5 py-1 rounded-full mb-3 border-yellow-100 bg-yellow-50 text-yellow-700 shadow-none">
+                <CardContent className="p-4 sm:p-5">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <Badge variant="outline" className="uppercase text-[10px] font-black tracking-[0.2em] px-2.5 py-1 rounded-full mb-3 border-yellow-100 bg-yellow-50 text-yellow-700 shadow-none">
                         CONTRACT SIGNING REQUIRED
                       </Badge>
-                      <h3 className="text-xl font-black text-slate-950 tracking-tight leading-tight mb-1">
+                      <h3 className="text-xl font-black text-slate-950 tracking-tight leading-snug mb-1 line-clamp-2">
                         {contractSigning.eventName || "Office Rental"}
                       </h3>
                       <p className="text-sm font-bold text-slate-500">{contractSigning.venue || "Office Space"}</p>
@@ -332,17 +332,17 @@ export default function ClientDashboardPage() {
 
           {expiredRental && (
             <div>
-              <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">
+              <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3">
                 Past Rental
               </h2>
               <Card className="rounded-2xl border-red-200 bg-white shadow-sm overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-md">
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <Badge variant="outline" className="uppercase text-[10px] font-black tracking-widest px-2.5 py-1 rounded-full mb-3 border-red-100 bg-red-50 text-red-700 shadow-none">
+                <CardContent className="p-4 sm:p-5">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <Badge variant="outline" className="uppercase text-[10px] font-black tracking-[0.2em] px-2.5 py-1 rounded-full mb-3 border-red-100 bg-red-50 text-red-700 shadow-none">
                         RENTAL EXPIRED
                       </Badge>
-                      <h3 className="text-xl font-black text-slate-950 tracking-tight leading-tight mb-1">
+                      <h3 className="text-xl font-black text-slate-950 tracking-tight leading-snug mb-1 line-clamp-2">
                         {expiredRental.eventName || "Office Rental"}
                       </h3>
                       <p className="text-sm font-bold text-slate-500">{expiredRental.venue || "Office Space"}</p>
@@ -358,16 +358,16 @@ export default function ClientDashboardPage() {
 
           {topOther && !activeRental && !contractSigning && (
             <div>
-              <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Your Next Event</h2>
+              <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3">Your Next Event</h2>
               <Card className="rounded-2xl border-slate-200 shadow-sm overflow-hidden bg-white">
-                <CardContent className="p-5">
+                <CardContent className="p-4 sm:p-5">
                   <div className="flex flex-col gap-4">
-                    <div className="flex flex-col md:flex-row justify-between gap-4 md:gap-6">
+                    <div className="flex flex-col sm:flex-row justify-between gap-4">
                       <div className="flex-1 min-w-0">
-                        <Badge variant="outline" className="uppercase text-[10px] font-black tracking-widest px-2.5 py-1 rounded-full mb-3 border-emerald-100 bg-emerald-50 text-emerald-600 shadow-none">
+                        <Badge variant="outline" className="uppercase text-[10px] font-black tracking-[0.2em] px-2.5 py-1 rounded-full mb-3 border-emerald-100 bg-emerald-50 text-emerald-600 shadow-none">
                           {topOther.status}
                         </Badge>
-                        <h3 className="text-xl font-black text-slate-950 tracking-tight leading-tight mb-3">
+                        <h3 className="text-xl font-black text-slate-950 tracking-tight leading-snug mb-3 line-clamp-2">
                           {topOther.eventName || "Event"}
                         </h3>
                         <div className="flex flex-wrap gap-x-6 gap-y-1.5 text-xs text-slate-600 font-semibold bg-slate-50 p-3.5 rounded-xl border border-slate-100">
@@ -378,7 +378,7 @@ export default function ClientDashboardPage() {
                       </div>
                     </div>
                     <div className="border-t border-slate-100 pt-4">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Progress</p>
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3">Progress</p>
                       <BookingProgressIndicator status={topOther.status} />
                     </div>
                   </div>
@@ -389,9 +389,9 @@ export default function ClientDashboardPage() {
 
           {!activeRental && !contractSigning && !expiredRental && !topOther && (
             <div>
-              <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Your Next Event</h2>
+              <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3">Your Next Event</h2>
               <Card className="rounded-2xl border-slate-200 shadow-sm overflow-hidden bg-white">
-                <CardContent className="p-5 flex flex-col items-center text-center py-8">
+                <CardContent className="p-4 sm:p-5 flex flex-col items-center text-center py-8">
                   <Calendar className="mb-3 h-10 w-10 text-slate-300" />
                   <h3 className="text-base font-black text-slate-900">No active bookings</h3>
                   <p className="mt-1 max-w-sm text-xs text-slate-500">
@@ -414,7 +414,7 @@ export default function ClientDashboardPage() {
 
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Other Bookings</h2>
+              <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Other Bookings</h2>
               <Button variant="link" className="text-orange-600 text-xs font-bold h-auto p-0" asChild>
                 <Link href="/portal/bookings">View All <ArrowRight className="w-3 h-3 ml-1" /></Link>
               </Button>
@@ -432,7 +432,7 @@ export default function ClientDashboardPage() {
                     return (
                       <Link href="/portal/bookings" key={booking.id} className="p-4 flex items-center justify-between gap-3 hover:bg-slate-50 transition-colors group">
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-bold text-sm text-slate-900 truncate group-hover:text-orange-600">
+                          <h4 className="font-bold text-sm text-slate-900 truncate group-hover:text-orange-600 min-w-0">
                             {booking.eventName || "Untitled"}
                           </h4>
                           <div className="flex gap-3 text-xs text-slate-500 mt-1.5">
@@ -440,12 +440,12 @@ export default function ClientDashboardPage() {
                           </div>
                         </div>
                         {officeStatus ? (
-                          <Badge variant="outline" className={cn("text-[9px] font-black uppercase px-2.5 py-1 rounded-full shadow-none", officeStatus.badgeClass)}>
+                          <Badge variant="outline" className={cn("text-[9px] font-black uppercase px-2.5 py-1 rounded-full shadow-none whitespace-nowrap", officeStatus.badgeClass)}>
                             {officeStatus.badge}
                           </Badge>
                         ) : (
                           <Badge variant="outline" className={cn(
-                            "text-[9px] font-black uppercase px-2.5 py-1 rounded-full shadow-none",
+                            "text-[9px] font-black uppercase px-2.5 py-1 rounded-full shadow-none whitespace-nowrap",
                             booking.status === "pending" || booking.status === "verifying" ? "text-orange-600 border-orange-100 bg-orange-50" :
                             booking.status === "confirmed" ? "text-emerald-600 border-emerald-100 bg-emerald-50" :
                             booking.status === "completed" ? "text-blue-600 border-blue-100 bg-blue-50" :
@@ -464,7 +464,7 @@ export default function ClientDashboardPage() {
 
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Recent Payments</h2>
+              <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Recent Payments</h2>
               <Button variant="link" className="text-orange-600 text-xs font-bold h-auto p-0" asChild>
                 <Link href="/portal/payments">Manage <ArrowRight className="w-3 h-3 ml-1" /></Link>
               </Button>

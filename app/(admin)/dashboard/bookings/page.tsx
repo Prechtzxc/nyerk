@@ -97,7 +97,7 @@ function BalanceReminderModal({
 }) {
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onCancel()}>
-      <DialogContent className="w-[calc(100vw-28px)] max-w-[520px] rounded-2xl border-0 bg-white p-0 shadow-2xl [&>button]:hidden">
+      <DialogContent className="w-[95vw] sm:max-w-[520px] max-h-[90dvh] overflow-y-auto rounded-2xl border-0 bg-white p-0 shadow-2xl [&>button]:hidden">
         <div className="p-6 sm:p-7">
           <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
             <Bell className="h-8 w-8" />
@@ -127,17 +127,17 @@ function BalanceReminderModal({
               </div>
             </div>
           )}
-          <div className="mt-6 grid grid-cols-2 gap-3">
+          <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button
               variant="outline"
               onClick={onCancel}
-              className="h-11 rounded-xl border-slate-200 text-sm font-black text-slate-700"
+              className="h-11 w-full sm:w-auto rounded-xl border-slate-200 text-sm font-black text-slate-700"
             >
               Cancel
             </Button>
             <Button
               onClick={onConfirm}
-              className="h-11 rounded-xl bg-blue-600 text-sm font-black text-white hover:bg-blue-700"
+              className="h-11 w-full sm:w-auto rounded-xl bg-blue-600 text-sm font-black text-white hover:bg-blue-700"
             >
               Send Reminder
             </Button>
@@ -421,7 +421,7 @@ export default function AdminBookingsPage() {
 
   return (
     <div className="w-full min-w-0 max-w-full overflow-x-hidden">
-      <div className="mx-auto w-full max-w-[1180px] px-3 py-4 sm:px-5 lg:px-6 animate-in fade-in duration-500">
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6 animate-in fade-in duration-500">
         <BookingDetailsModal
           booking={selectedBooking}
           open={!!selectedBooking}
@@ -552,7 +552,7 @@ export default function AdminBookingsPage() {
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
-                <p className="text-[11px] font-black uppercase tracking-[0.22em] text-orange-600">
+                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-orange-600">
                   Admin Booking Management
                 </p>
                 <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
@@ -615,7 +615,7 @@ export default function AdminBookingsPage() {
                   <button
                     type="button"
                     onClick={() => { setSearchQuery(""); setStatusFilter("all"); window.history.replaceState(null, "", window.location.pathname) }}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-[10px] font-black uppercase tracking-widest text-slate-400 transition hover:bg-slate-100 hover:text-orange-600"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 transition hover:bg-slate-100 hover:text-orange-600"
                   >
                     Clear
                   </button>
@@ -693,7 +693,7 @@ function AdminBookingCard({
           {isOfficeRental ? <FileText className="h-5 w-5" /> : <Calendar className="h-5 w-5" />}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
             {isOfficeRental ? "Rental" : "Event"}
           </p>
           <p className="break-words whitespace-normal text-sm font-black text-slate-900">
@@ -707,22 +707,22 @@ function AdminBookingCard({
 
       <div className="grid min-w-0 flex-1 grid-cols-2 gap-x-2 gap-y-1.5 sm:grid-cols-4 sm:gap-x-3">
         <div className="min-w-0 max-w-full">
-          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">Customer</p>
+          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Customer</p>
           <p className="whitespace-normal break-words text-xs font-black text-slate-800">{booking.userInfo?.name || "—"}</p>
           <p className="whitespace-normal break-words text-[10px] font-bold text-slate-500">{booking.userInfo?.email || "—"}</p>
         </div>
         <div className="min-w-0 max-w-full">
-          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">Venue</p>
+          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Venue</p>
           <p className="whitespace-normal break-words text-xs font-bold text-slate-800">{booking.venue || "N/A"}</p>
         </div>
         <div className="min-w-0 max-w-full">
-          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">
+          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">
             {isOfficeRental ? "Start Date" : "Event Date"}
           </p>
           <p className="whitespace-normal break-words text-xs font-bold text-slate-800">{startDate}</p>
         </div>
         <div className="min-w-0 max-w-full">
-          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">End Date</p>
+          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">End Date</p>
           <p className="whitespace-normal break-words text-xs font-bold text-slate-800">{endDate}</p>
         </div>
       </div>
@@ -730,7 +730,7 @@ function AdminBookingCard({
       <div className="flex shrink-0 items-center justify-between gap-2 sm:flex-col sm:items-end sm:gap-1">
         <span
           className={cn(
-            "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest whitespace-nowrap",
+            "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.2em] whitespace-nowrap",
             getStatusBadgeClass(booking.status),
           )}
         >
@@ -886,12 +886,12 @@ function BookingDetailsModal({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent
         showCloseButton={false}
-        className="w-[min(94vw,560px)] h-[calc(100dvh-48px)] max-h-[720px] overflow-hidden rounded-3xl bg-white shadow-2xl"
+        className="w-[95vw] sm:max-w-[560px] max-h-[90dvh] overflow-hidden rounded-3xl bg-white shadow-2xl"
       >
         <div className="flex h-full min-h-0 flex-col overflow-hidden">
         <header className="shrink-0 flex items-start justify-between gap-4 border-b border-slate-100 bg-white px-5 py-4">
           <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-widest text-orange-600">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-600">
               Booking Details
             </p>
             <DialogTitle className="mt-1 break-words text-xl font-black text-slate-900">
@@ -916,7 +916,7 @@ function BookingDetailsModal({
           <div className="mb-4 flex flex-wrap items-center gap-2">
             <span
               className={cn(
-                "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
+                "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.2em]",
                 getStatusBadgeClass(booking.status),
               )}
             >
@@ -924,7 +924,7 @@ function BookingDetailsModal({
             </span>
             <span
               className={cn(
-                "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
+                "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.2em]",
                 getPaymentBadgeClass(booking.paymentStatus, booking.status),
               )}
             >
@@ -932,16 +932,16 @@ function BookingDetailsModal({
             </span>
             {booking.cancellationStatus && booking.cancellationStatus !== "None" && (
               <>
-                <span className="inline-block rounded-md border border-amber-100 bg-amber-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-amber-700">
+                <span className="inline-block rounded-md border border-amber-100 bg-amber-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-amber-700">
                   Cancel: {booking.cancellationStatus}
                 </span>
                 {amountPaid > 0 && booking.refundStatus && (
-                  <span className="inline-block rounded-md border border-blue-100 bg-blue-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-blue-700">
+                  <span className="inline-block rounded-md border border-blue-100 bg-blue-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-blue-700">
                     Refund: {booking.refundStatus}
                   </span>
                 )}
                 {amountPaid <= 0 && (
-                  <span className="inline-block rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                  <span className="inline-block rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
                     No Payment Made
                   </span>
                 )}
@@ -953,65 +953,65 @@ function BookingDetailsModal({
             <section className="rounded-2xl border border-slate-200 p-4">
               <div className="mb-3 flex items-center gap-2">
                 <div className="h-1.5 w-1.5 rounded-full bg-slate-400" />
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Booking Information</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Booking Information</p>
               </div>
               <div className="space-y-3">
                 <div className="min-w-0">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Customer</p>
+                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Customer</p>
                   <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{booking.userInfo?.name || "—"}</p>
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Email</p>
+                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Email</p>
                   <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{booking.userInfo?.email || "—"}</p>
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Booking Date</p>
+                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Booking Date</p>
                   <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{formatDate(booking.createdAt) || "—"}</p>
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">{isOfficeRental ? "Start Date" : "Event Date"}</p>
+                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">{isOfficeRental ? "Start Date" : "Event Date"}</p>
                   <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{startDate || "—"}</p>
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">End Date</p>
+                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">End Date</p>
                   <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{endDate || "—"}</p>
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Venue / Office</p>
+                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Venue / Office</p>
                   <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{booking.venue || "—"}</p>
                 </div>
                 {isOfficeRental && (
                   <>
                     <div className="min-w-0">
-                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Company Name</p>
+                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Company Name</p>
                       <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{(booking as any).companyName || booking.eventName || "N/A"}</p>
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Nature of Business</p>
+                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Nature of Business</p>
                       <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{(booking as any).natureOfBusiness || booking.eventType || "N/A"}</p>
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Rental Term</p>
+                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Rental Term</p>
                       <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{(booking as any).rentalTerm || (booking as any).contractTerm || (booking as any).officeRentalTerm || "—"}</p>
                     </div>
                   </>
                 )}
                 {!isOfficeRental && (
                   <div className="min-w-0">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Guests</p>
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Guests</p>
                     <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{booking.guestCount ? `${booking.guestCount} pax` : "—"}</p>
                   </div>
                 )}
                 <div className="min-w-0">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Time</p>
+                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Time</p>
                   <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{timeValue}</p>
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Booking ID</p>
+                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Booking ID</p>
                   <p className="mt-0.5 break-words text-xs font-bold text-slate-800">#{booking.id}</p>
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Event Type</p>
+                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Event Type</p>
                   <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{typeLabel}</p>
                 </div>
               </div>
@@ -1026,7 +1026,7 @@ function BookingDetailsModal({
             <section className="rounded-2xl border border-slate-200 p-4">
               <div className="mb-2 flex items-center gap-2">
                 <div className="h-1.5 w-1.5 rounded-full bg-slate-400" />
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Special Requests</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Special Requests</p>
               </div>
               <p className="text-xs font-semibold leading-relaxed text-slate-700">{booking.specialRequests}</p>
             </section>
@@ -1036,7 +1036,7 @@ function BookingDetailsModal({
             <section className="rounded-2xl border border-slate-200 p-4">
               <div className="mb-3 flex items-center gap-2">
                 <div className="h-1.5 w-1.5 rounded-full bg-rose-400" />
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Cancellation / Refund Status</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Cancellation / Refund Status</p>
               </div>
               <div className="space-y-2.5 text-xs font-semibold text-slate-700">
                 <div className="flex justify-between">
@@ -1089,7 +1089,7 @@ function BookingDetailsModal({
             <section className="rounded-2xl border border-slate-200 p-4">
               <div className="mb-3 flex items-center gap-2">
                 <div className="h-1.5 w-1.5 rounded-full bg-blue-400" />
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Modification Status</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Modification Status</p>
               </div>
               <div className="space-y-2.5 text-xs font-semibold text-slate-700">
                 <div className="flex justify-between">
@@ -1115,12 +1115,12 @@ function BookingDetailsModal({
             <section className="rounded-2xl border border-slate-200 p-4">
               <div className="mb-3 flex items-center gap-2">
                 <FileText className="h-4 w-4 text-slate-500" />
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Contract</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Contract</p>
               </div>
               <div className="space-y-2">
                 <span
                   className={cn(
-                    "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
+                    "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.2em]",
                     "border-emerald-100 bg-emerald-50 text-emerald-700",
                   )}
                 >
@@ -1157,13 +1157,13 @@ function BookingDetailsModal({
               <section className="rounded-2xl border border-slate-200 p-4">
                 <div className="mb-3 flex items-center gap-2">
                   <FileText className="h-4 w-4 text-slate-500" />
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Contract</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Contract</p>
                 </div>
                 <div className="min-w-0 space-y-3">
                   <div className="space-y-2">
                     <span
                       className={cn(
-                        "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
+                        "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.2em]",
                         "border-orange-100 bg-orange-50 text-orange-700",
                       )}
                     >
@@ -1209,11 +1209,11 @@ function BookingDetailsModal({
               <section className="rounded-2xl border border-slate-200 p-4">
                 <div className="mb-3 flex items-center gap-2">
                   <FileText className="h-4 w-4 text-slate-500" />
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Contract</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Contract</p>
                 </div>
                 <span
                   className={cn(
-                    "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
+                    "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.2em]",
                     "border-slate-200 bg-slate-50 text-slate-600",
                   )}
                 >
@@ -1250,7 +1250,7 @@ function BookingDetailsModal({
               <section className="rounded-2xl border border-sky-200 p-4">
                 <div className="mb-3 flex items-center gap-2">
                   <Calendar className={`h-4 w-4 ${bookingStatus === "active_rental" ? "text-sky-500" : "text-rose-500"}`} />
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Rental Information</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Rental Information</p>
                 </div>
                 <div className="space-y-2 text-xs font-semibold">
                   <div className="flex justify-between">
@@ -1342,7 +1342,7 @@ function BookingDetailsModal({
             return (
               <div className="border-t border-slate-100 bg-white px-5 py-4">
                 <div className="rounded-xl bg-amber-50 p-3 text-center mb-3">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">Cancellation Under Review</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-600">Cancellation Under Review</p>
                   <p className="mt-1 text-xs font-semibold text-amber-700">
                     The customer has requested to cancel this booking. Please review and take action.
                   </p>
@@ -1376,7 +1376,7 @@ function BookingDetailsModal({
             return (
               <div className="border-t border-slate-100 bg-white px-5 py-4">
                 <div className="rounded-xl bg-purple-50 p-3 text-center mb-3">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-purple-600">Modification Under Review</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-purple-600">Modification Under Review</p>
                   <p className="mt-1 text-xs font-semibold text-purple-700">
                     The customer has requested to modify this booking. Please review and take action.
                   </p>
@@ -1422,7 +1422,7 @@ function BookingDetailsModal({
               <div className="border-t border-slate-100 bg-white px-5 py-4">
                 {remainingBalance > 0 && (
                   <div className="rounded-xl bg-amber-50 p-3 text-center mb-3">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">Remaining Balance</p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-600">Remaining Balance</p>
                     <p className="mt-1 text-xl font-black text-amber-700">₱{remainingBalance.toLocaleString()}</p>
                   </div>
                 )}
@@ -1490,7 +1490,7 @@ function BookingDetailsModal({
               <div className="border-t border-slate-100 bg-white px-5 py-4">
                 {remainingBalance > 0 && (
                   <div className="rounded-xl bg-amber-50 p-3 text-center mb-3">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">Remaining Balance</p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-600">Remaining Balance</p>
                     <p className="mt-1 text-xl font-black text-amber-700">₱{remainingBalance.toLocaleString()}</p>
                   </div>
                 )}
@@ -1668,8 +1668,8 @@ function RecordOnsitePaymentModal({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="w-[calc(100vw-28px)] max-w-[520px] rounded-2xl border-0 p-0 shadow-2xl [&>button]:hidden bg-white">
-        <div className="flex h-full min-h-0 flex-col overflow-hidden">
+      <DialogContent className="w-[95vw] sm:max-w-[520px] max-h-[90dvh] overflow-y-auto rounded-2xl border-0 p-0 shadow-2xl [&>button]:hidden bg-white">
+        <div className="flex min-h-0 flex-col overflow-hidden">
           <div className="min-h-0 flex-1 overflow-y-auto p-6 sm:p-7">
             {step === "form" ? (
               <>
@@ -1710,7 +1710,7 @@ function RecordOnsitePaymentModal({
 
                 <div className="mt-5 space-y-4">
                   <div>
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
                       Payment Type *
                     </Label>
                     <Select value={paymentType} onValueChange={setPaymentType}>
@@ -1726,7 +1726,7 @@ function RecordOnsitePaymentModal({
                   </div>
 
                   <div>
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
                       Actual Method *
                     </Label>
                     <div className="mt-1.5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-xs font-bold text-slate-700">
@@ -1735,7 +1735,7 @@ function RecordOnsitePaymentModal({
                   </div>
 
                   <div>
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
                       Amount Received *
                     </Label>
                     <Input
@@ -1745,19 +1745,19 @@ function RecordOnsitePaymentModal({
                         setAmountReceived(digitsOnly)
                       }}
                       placeholder="Enter amount received"
-                      className="mt-1.5 h-10 rounded-xl border-slate-200 text-xs font-bold focus-visible:ring-emerald-600"
+                      className="mt-1.5 h-10 w-full rounded-xl border-slate-200 text-xs font-bold focus-visible:ring-emerald-600"
                     />
                   </div>
 
                   <div>
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
                       Admin Note / Reference
                     </Label>
                     <Textarea
                       value={adminNote}
                       onChange={(e) => setAdminNote(e.target.value)}
                       placeholder="Example: Paid onsite and received by staff."
-                      className="mt-1.5 min-h-[80px] resize-none rounded-xl border-slate-200 text-xs focus-visible:ring-emerald-600"
+                      className="mt-1.5 min-h-[80px] w-full resize-none rounded-xl border-slate-200 text-xs focus-visible:ring-emerald-600"
                     />
                   </div>
                 </div>
@@ -1821,34 +1821,34 @@ function RecordOnsitePaymentModal({
           </div>
           <div className="shrink-0 border-t p-6 sm:p-7">
             {step === "form" ? (
-              <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                 <Button
                   variant="outline"
                   onClick={onClose}
-                  className="h-11 rounded-xl border-slate-200 text-sm font-black text-slate-700"
+                  className="h-11 w-full sm:w-auto rounded-xl border-slate-200 text-sm font-black text-slate-700"
                 >
                   Cancel
                 </Button>
                 <Button
                   disabled={enteredAmount <= 0}
                   onClick={() => setStep("confirm")}
-                  className="h-11 rounded-xl bg-emerald-600 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-50"
+                  className="h-11 w-full sm:w-auto rounded-xl bg-emerald-600 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-50"
                 >
                   Continue
                 </Button>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                 <Button
                   variant="outline"
                   onClick={() => setStep("form")}
-                  className="h-11 rounded-xl border-slate-200 text-sm font-black text-slate-700"
+                  className="h-11 w-full sm:w-auto rounded-xl border-slate-200 text-sm font-black text-slate-700"
                 >
                   Back
                 </Button>
                 <Button
                   onClick={handleConfirm}
-                  className="h-11 rounded-xl bg-emerald-600 text-sm font-black text-white hover:bg-emerald-700"
+                  className="h-11 w-full sm:w-auto rounded-xl bg-emerald-600 text-sm font-black text-white hover:bg-emerald-700"
                 >
                   Confirm Onsite Payment
                 </Button>
@@ -1885,63 +1885,63 @@ function PaymentSummaryCard({
     <div>
       <div className="mb-3 flex items-center gap-2">
         <div className="h-1.5 w-1.5 rounded-full bg-orange-500" />
-        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Payment Summary</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Payment Summary</p>
       </div>
 
       <div className="space-y-3">
         <div className="min-w-0">
-          <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Method</p>
+          <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-400">Method</p>
           <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">
             {booking.paymentMethod ? getPaymentMethodLabel(booking.paymentMethod) : "—"}
           </p>
         </div>
         <div className="min-w-0">
-          <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Type</p>
+          <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-400">Type</p>
           <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">
             {booking.paymentType ? formatTextLabel(booking.paymentType) : "—"}
           </p>
         </div>
         <div className="min-w-0">
-          <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Total Amount</p>
+          <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-400">Total Amount</p>
           <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{hasTotal ? formatMoney(totalPrice) : "—"}</p>
         </div>
         {showDP && (
           <div className="min-w-0">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Selected Downpayment</p>
+            <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-400">Selected Downpayment</p>
             <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{formatMoney(selectedDP)}</p>
           </div>
         )}
         {showDP && (
           <div className="min-w-0">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Downpayment Paid</p>
+            <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-400">Downpayment Paid</p>
             <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{formatMoney(downpaymentPaid)}</p>
           </div>
         )}
         {showDP && downpaymentRemaining > 0 && (
           <div className="min-w-0">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-amber-600">Downpayment Remaining</p>
+            <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-amber-600">Downpayment Remaining</p>
             <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-amber-700">{formatMoney(downpaymentRemaining)}</p>
           </div>
         )}
         <div className="min-w-0">
-          <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Amount Paid</p>
+          <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-400">Amount Paid</p>
           <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{hasPaid ? formatMoney(amountPaid) : "—"}</p>
         </div>
         {remaining !== null && remaining > 0 && (
           <div className="min-w-0">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-amber-600">Remaining Balance</p>
+            <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-amber-600">Remaining Balance</p>
             <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-amber-700">{formatMoney(remaining)}</p>
           </div>
         )}
         {paymentStage && (
           <div className="min-w-0">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Payment Stage</p>
+            <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-400">Payment Stage</p>
             <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-800">{paymentStage}</p>
           </div>
         )}
         {bankRef && (
           <div className="min-w-0">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Bank Reference</p>
+            <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-400">Bank Reference</p>
             <p className="mt-0.5 whitespace-nowrap text-xs font-bold text-slate-900">{bankRef}</p>
           </div>
         )}
@@ -1963,7 +1963,7 @@ function ContractSigningConfirmModal({
 }) {
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onCancel()}>
-      <DialogContent className="w-[calc(100vw-28px)] max-w-[520px] rounded-2xl border-0 bg-white p-0 shadow-2xl [&>button]:hidden">
+      <DialogContent className="w-[95vw] sm:max-w-[520px] max-h-[90dvh] overflow-y-auto rounded-2xl border-0 bg-white p-0 shadow-2xl [&>button]:hidden">
         <div className="p-6 sm:p-7">
           <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
             <FileText className="h-8 w-8" />
@@ -1999,17 +1999,17 @@ function ContractSigningConfirmModal({
             </div>
           )}
 
-          <div className="mt-6 grid grid-cols-2 gap-3">
+          <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button
               variant="outline"
               onClick={onCancel}
-              className="h-11 rounded-xl border-slate-200 text-sm font-black text-slate-700"
+              className="h-11 w-full sm:w-auto rounded-xl border-slate-200 text-sm font-black text-slate-700"
             >
               Cancel
             </Button>
             <Button
               onClick={onConfirm}
-              className="h-11 rounded-xl bg-blue-600 text-sm font-black text-white hover:bg-blue-700"
+              className="h-11 w-full sm:w-auto rounded-xl bg-blue-600 text-sm font-black text-white hover:bg-blue-700"
             >
               Yes, Mark as Signed
             </Button>
@@ -2033,7 +2033,7 @@ function ApproveCancellationConfirmModal({
 }) {
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onCancel()}>
-      <DialogContent className="w-[calc(100vw-28px)] max-w-[520px] rounded-2xl border-0 bg-white p-0 shadow-2xl [&>button]:hidden">
+      <DialogContent className="w-[95vw] sm:max-w-[520px] max-h-[90dvh] overflow-y-auto rounded-2xl border-0 bg-white p-0 shadow-2xl [&>button]:hidden">
         <div className="p-6 sm:p-7">
           <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-50 text-rose-600">
             <AlertCircle className="h-8 w-8" />
@@ -2066,9 +2066,9 @@ function ApproveCancellationConfirmModal({
               )}
             </div>
           )}
-          <div className="mt-6 grid grid-cols-2 gap-3">
-            <Button variant="outline" onClick={onCancel} className="h-11 rounded-xl border-slate-200 text-sm font-black text-slate-700">Cancel</Button>
-            <Button onClick={onConfirm} className="h-11 rounded-xl bg-rose-600 text-sm font-black text-white hover:bg-rose-700">Approve Cancellation</Button>
+          <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button variant="outline" onClick={onCancel} className="h-11 w-full sm:w-auto rounded-xl border-slate-200 text-sm font-black text-slate-700">Cancel</Button>
+            <Button onClick={onConfirm} className="h-11 w-full sm:w-auto rounded-xl bg-rose-600 text-sm font-black text-white hover:bg-rose-700">Approve Cancellation</Button>
           </div>
         </div>
       </DialogContent>
@@ -2104,7 +2104,7 @@ function DeclineCancellationModal({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onCancel()}>
-      <DialogContent className="w-[calc(100vw-28px)] max-w-[520px] rounded-2xl border-0 bg-white p-0 shadow-2xl [&>button]:hidden">
+      <DialogContent className="w-[95vw] sm:max-w-[520px] max-h-[90dvh] overflow-y-auto rounded-2xl border-0 bg-white p-0 shadow-2xl [&>button]:hidden">
         <div className="p-6 sm:p-7">
           <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
             <CheckCircle2 className="h-8 w-8" />
@@ -2124,7 +2124,7 @@ function DeclineCancellationModal({
             </div>
           )}
           <div className="mt-4">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Decline Reason *</Label>
+            <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Decline Reason *</Label>
             <Textarea
               value={reason}
               onChange={(e) => { onReasonChange(e.target.value); if (reasonError && e.target.value.trim()) setReasonError(false) }}
@@ -2133,9 +2133,9 @@ function DeclineCancellationModal({
             />
             {reasonError && <p className="mt-1 text-[11px] font-semibold text-rose-600">Please provide a reason.</p>}
           </div>
-          <div className="mt-6 grid grid-cols-2 gap-3">
-            <Button variant="outline" onClick={onCancel} className="h-11 rounded-xl border-slate-200 text-sm font-black text-slate-700">Cancel</Button>
-            <Button onClick={handleConfirm} className="h-11 rounded-xl bg-emerald-600 text-sm font-black text-white hover:bg-emerald-700">Continue Booking</Button>
+          <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button variant="outline" onClick={onCancel} className="h-11 w-full sm:w-auto rounded-xl border-slate-200 text-sm font-black text-slate-700">Cancel</Button>
+            <Button onClick={handleConfirm} className="h-11 w-full sm:w-auto rounded-xl bg-emerald-600 text-sm font-black text-white hover:bg-emerald-700">Continue Booking</Button>
           </div>
         </div>
       </DialogContent>
@@ -2156,7 +2156,7 @@ function ApproveModificationConfirmModal({
 }) {
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onCancel()}>
-      <DialogContent className="w-[calc(100vw-28px)] max-w-[520px] rounded-2xl border-0 bg-white p-0 shadow-2xl [&>button]:hidden">
+      <DialogContent className="w-[95vw] sm:max-w-[520px] max-h-[90dvh] overflow-y-auto rounded-2xl border-0 bg-white p-0 shadow-2xl [&>button]:hidden">
         <div className="p-6 sm:p-7">
           <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
             <CheckCircle2 className="h-8 w-8" />
@@ -2196,9 +2196,9 @@ function ApproveModificationConfirmModal({
               )}
             </div>
           )}
-          <div className="mt-6 grid grid-cols-2 gap-3">
-            <Button variant="outline" onClick={onCancel} className="h-11 rounded-xl border-slate-200 text-sm font-black text-slate-700">Cancel</Button>
-            <Button onClick={onConfirm} className="h-11 rounded-xl bg-blue-600 text-sm font-black text-white hover:bg-blue-700">Approve Modification</Button>
+          <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button variant="outline" onClick={onCancel} className="h-11 w-full sm:w-auto rounded-xl border-slate-200 text-sm font-black text-slate-700">Cancel</Button>
+            <Button onClick={onConfirm} className="h-11 w-full sm:w-auto rounded-xl bg-blue-600 text-sm font-black text-white hover:bg-blue-700">Approve Modification</Button>
           </div>
         </div>
       </DialogContent>
@@ -2234,7 +2234,7 @@ function DeclineModificationModal({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onCancel()}>
-      <DialogContent className="w-[calc(100vw-28px)] max-w-[520px] rounded-2xl border-0 bg-white p-0 shadow-2xl [&>button]:hidden">
+      <DialogContent className="w-[95vw] sm:max-w-[520px] max-h-[90dvh] overflow-y-auto rounded-2xl border-0 bg-white p-0 shadow-2xl [&>button]:hidden">
         <div className="p-6 sm:p-7">
           <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
             <XCircle className="h-8 w-8" />
@@ -2254,7 +2254,7 @@ function DeclineModificationModal({
             </div>
           )}
           <div className="mt-4">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Decline Reason *</Label>
+            <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Decline Reason *</Label>
             <Textarea
               value={reason}
               onChange={(e) => { onReasonChange(e.target.value); if (reasonError && e.target.value.trim()) setReasonError(false) }}
@@ -2263,9 +2263,9 @@ function DeclineModificationModal({
             />
             {reasonError && <p className="mt-1 text-[11px] font-semibold text-rose-600">Please provide a reason.</p>}
           </div>
-          <div className="mt-6 grid grid-cols-2 gap-3">
-            <Button variant="outline" onClick={onCancel} className="h-11 rounded-xl border-slate-200 text-sm font-black text-slate-700">Cancel</Button>
-            <Button onClick={handleConfirm} className="h-11 rounded-xl bg-amber-600 text-sm font-black text-white hover:bg-amber-700">Decline Modification</Button>
+          <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button variant="outline" onClick={onCancel} className="h-11 w-full sm:w-auto rounded-xl border-slate-200 text-sm font-black text-slate-700">Cancel</Button>
+            <Button onClick={handleConfirm} className="h-11 w-full sm:w-auto rounded-xl bg-amber-600 text-sm font-black text-white hover:bg-amber-700">Decline Modification</Button>
           </div>
         </div>
       </DialogContent>
@@ -2286,7 +2286,7 @@ function MarkCompletedConfirmModal({
 }) {
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onCancel()}>
-      <DialogContent className="w-[calc(100vw-28px)] max-w-[520px] rounded-2xl border-0 bg-white p-0 shadow-2xl [&>button]:hidden">
+      <DialogContent className="w-[95vw] sm:max-w-[520px] max-h-[90dvh] overflow-y-auto rounded-2xl border-0 bg-white p-0 shadow-2xl [&>button]:hidden">
         <div className="p-6 sm:p-7">
           <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
             <CheckCircle2 className="h-8 w-8" />
@@ -2313,9 +2313,9 @@ function MarkCompletedConfirmModal({
               </div>
             </div>
           )}
-          <div className="mt-6 grid grid-cols-2 gap-3">
-            <Button variant="outline" onClick={onCancel} className="h-11 rounded-xl border-slate-200 text-sm font-black text-slate-700">Cancel</Button>
-            <Button onClick={onConfirm} className="h-11 rounded-xl bg-emerald-600 text-sm font-black text-white hover:bg-emerald-700">Mark as Completed</Button>
+          <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button variant="outline" onClick={onCancel} className="h-11 w-full sm:w-auto rounded-xl border-slate-200 text-sm font-black text-slate-700">Cancel</Button>
+            <Button onClick={onConfirm} className="h-11 w-full sm:w-auto rounded-xl bg-emerald-600 text-sm font-black text-white hover:bg-emerald-700">Mark as Completed</Button>
           </div>
         </div>
       </DialogContent>
@@ -2510,8 +2510,7 @@ function MaintenanceCalendarModal({
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent
-        className="flex flex-col border-0 bg-white p-0 shadow-2xl gap-0 rounded-3xl overflow-hidden"
-        style={{ maxHeight: "calc(100dvh - 32px)", maxWidth: "calc(100vw - 32px)", width: "min(94vw, 520px)" }}
+        className="flex flex-col border-0 bg-white p-0 shadow-2xl gap-0 rounded-3xl w-[95vw] sm:max-w-[520px] max-h-[90dvh] overflow-y-auto"
       >
         <div className="flex max-h-[90dvh] min-h-0 flex-col overflow-hidden">
           {/* HEADER */}
@@ -2528,7 +2527,7 @@ function MaintenanceCalendarModal({
           <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 space-y-5">
             {/* Type selector */}
             <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
                 Space Type
               </label>
               <select
@@ -2548,7 +2547,7 @@ function MaintenanceCalendarModal({
             {/* Space dropdown */}
             {maintType === "venue" ? (
               <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
                   Select Venue
                 </label>
                 <select
@@ -2567,7 +2566,7 @@ function MaintenanceCalendarModal({
             ) : (
               <>
                 <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
                     Select Building
                   </label>
                   <select
@@ -2585,7 +2584,7 @@ function MaintenanceCalendarModal({
                 </div>
                 {officeGroup && (
                   <div>
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
                       Select Room
                     </label>
                     <select
@@ -2611,13 +2610,13 @@ function MaintenanceCalendarModal({
             {/* Calendar */}
             <div>
               <div className="flex items-center justify-between">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
                   {useRange ? "Date Range" : "Select Date"}
                 </label>
                 <button
                   type="button"
                   onClick={() => setUseRange(!useRange)}
-                  className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg transition-all ${
+                  className={`text-[9px] font-bold uppercase tracking-[0.2em] px-2 py-0.5 rounded-lg transition-all ${
                     useRange
                       ? "bg-slate-900 text-white"
                       : "bg-slate-100 text-slate-500 hover:bg-slate-200"
@@ -2772,7 +2771,7 @@ function MaintenanceCalendarModal({
 
             {/* Reason */}
             <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
                 Reason / Notes <span className="text-slate-300">(optional)</span>
               </label>
               <textarea
@@ -2795,7 +2794,7 @@ function MaintenanceCalendarModal({
             {/* Existing records */}
             {spaceFilteredRecords.length > 0 && (
               <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
                   Existing Maintenance
                 </label>
                 <div className="mt-1.5 space-y-1.5 max-h-[220px] overflow-y-auto">
@@ -2841,7 +2840,7 @@ function MaintenanceCalendarModal({
             <Button
               onClick={onClose}
               variant="outline"
-              className="h-10 w-full rounded-xl border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50"
+              className="h-10 w-full sm:w-auto rounded-xl border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50"
             >
               Close
             </Button>

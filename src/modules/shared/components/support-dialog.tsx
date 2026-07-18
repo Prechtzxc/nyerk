@@ -59,7 +59,7 @@ export function SupportDialog({ open, onOpenChange }: SupportDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="w-[95vw] max-w-2xl overflow-y-auto max-h-[90dvh] rounded-2xl">
         <DialogHeader>
           <DialogTitle>Support / Help Center</DialogTitle>
           <DialogDescription>Get help with your bookings and account</DialogDescription>
@@ -115,23 +115,24 @@ export function SupportDialog({ open, onOpenChange }: SupportDialogProps) {
           <TabsContent value="ticket" className="space-y-4">
             <form onSubmit={handleTicketSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="subject">Subject</Label>
+                <Label htmlFor="subject" className="text-[10px] font-black uppercase tracking-[0.2em]">Subject</Label>
                 <Input
                   id="subject"
                   placeholder="Brief description of your issue"
                   value={ticketData.subject}
                   onChange={(e) => setTicketData({ ...ticketData, subject: e.target.value })}
                   required
+                  className="h-11 w-full"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="category">Category</Label>
+                  <Label htmlFor="category" className="text-[10px] font-black uppercase tracking-[0.2em]">Category</Label>
                   <Select
                     value={ticketData.category}
                     onValueChange={(value) => setTicketData({ ...ticketData, category: value })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="h-11">
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
@@ -144,12 +145,12 @@ export function SupportDialog({ open, onOpenChange }: SupportDialogProps) {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="priority">Priority</Label>
+                  <Label htmlFor="priority" className="text-[10px] font-black uppercase tracking-[0.2em]">Priority</Label>
                   <Select
                     value={ticketData.priority}
                     onValueChange={(value) => setTicketData({ ...ticketData, priority: value })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="h-11">
                       <SelectValue placeholder="Select priority" />
                     </SelectTrigger>
                     <SelectContent>
@@ -162,7 +163,7 @@ export function SupportDialog({ open, onOpenChange }: SupportDialogProps) {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="message">Message</Label>
+                <Label htmlFor="message" className="text-[10px] font-black uppercase tracking-[0.2em]">Message</Label>
                 <Textarea
                   id="message"
                   placeholder="Describe your issue in detail..."
@@ -172,7 +173,7 @@ export function SupportDialog({ open, onOpenChange }: SupportDialogProps) {
                   required
                 />
               </div>
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="w-full h-11">
                 Submit Support Ticket
               </Button>
             </form>

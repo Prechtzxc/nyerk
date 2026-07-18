@@ -64,7 +64,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="w-[95vw] max-w-md overflow-y-auto max-h-[90dvh] rounded-2xl">
         <DialogHeader>
           <DialogTitle>Settings</DialogTitle>
           <DialogDescription>Manage your account settings and preferences</DialogDescription>
@@ -77,36 +77,39 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
           <TabsContent value="password" className="space-y-4">
             <form onSubmit={handlePasswordChange} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="currentPassword">Current Password</Label>
+                <Label htmlFor="currentPassword" className="text-[10px] font-black uppercase tracking-[0.2em]">Current Password</Label>
                 <Input
                   id="currentPassword"
                   type="password"
                   value={passwordData.currentPassword}
                   onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
                   required
+                  className="h-11 w-full"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="newPassword">New Password</Label>
+                <Label htmlFor="newPassword" className="text-[10px] font-black uppercase tracking-[0.2em]">New Password</Label>
                 <Input
                   id="newPassword"
                   type="password"
                   value={passwordData.newPassword}
                   onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
                   required
+                  className="h-11 w-full"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                <Label htmlFor="confirmPassword" className="text-[10px] font-black uppercase tracking-[0.2em]">Confirm New Password</Label>
                 <Input
                   id="confirmPassword"
                   type="password"
                   value={passwordData.confirmPassword}
                   onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
                   required
+                  className="h-11 w-full"
                 />
               </div>
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="w-full h-11">
                 Change Password
               </Button>
             </form>
@@ -114,7 +117,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
           <TabsContent value="notifications" className="space-y-4">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <Label htmlFor="emailReminders">Email Reminders</Label>
+                <Label htmlFor="emailReminders" className="text-[10px] font-black uppercase tracking-[0.2em]">Email Reminders</Label>
                 <Switch
                   id="emailReminders"
                   checked={notifications.emailReminders}
@@ -122,7 +125,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                 />
               </div>
               <div className="flex items-center justify-between">
-                <Label htmlFor="smsReminders">SMS Reminders</Label>
+                <Label htmlFor="smsReminders" className="text-[10px] font-black uppercase tracking-[0.2em]">SMS Reminders</Label>
                 <Switch
                   id="smsReminders"
                   checked={notifications.smsReminders}
@@ -130,7 +133,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                 />
               </div>
               <div className="flex items-center justify-between">
-                <Label htmlFor="promotionalEmails">Promotional Emails</Label>
+                <Label htmlFor="promotionalEmails" className="text-[10px] font-black uppercase tracking-[0.2em]">Promotional Emails</Label>
                 <Switch
                   id="promotionalEmails"
                   checked={notifications.promotionalEmails}
@@ -138,14 +141,14 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                 />
               </div>
               <div className="flex items-center justify-between">
-                <Label htmlFor="eventUpdates">Event Updates</Label>
+                <Label htmlFor="eventUpdates" className="text-[10px] font-black uppercase tracking-[0.2em]">Event Updates</Label>
                 <Switch
                   id="eventUpdates"
                   checked={notifications.eventUpdates}
                   onCheckedChange={(checked) => setNotifications({ ...notifications, eventUpdates: checked })}
                 />
               </div>
-              <Button onClick={handleNotificationSave} className="w-full">
+              <Button onClick={handleNotificationSave} className="w-full h-11">
                 Save Preferences
               </Button>
             </div>
@@ -153,7 +156,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
         </Tabs>
         <div className="border-t pt-4">
           <h4 className="font-semibold text-red-600 mb-2">Danger Zone</h4>
-          <Button variant="destructive" onClick={handleDeleteAccount} className="w-full">
+          <Button variant="destructive" onClick={handleDeleteAccount} className="w-full h-11">
             Delete Account
           </Button>
         </div>

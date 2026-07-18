@@ -119,7 +119,7 @@ export function TransactionsDialog({ open, onOpenChange }: TransactionsDialogPro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="w-[95vw] sm:max-w-4xl overflow-y-auto max-h-[90dvh]">
         <DialogHeader>
           <DialogTitle>Admin: All Transactions</DialogTitle>
           <DialogDescription>Manage all client reservations and update their statuses.</DialogDescription>
@@ -175,7 +175,7 @@ export function TransactionsDialog({ open, onOpenChange }: TransactionsDialogPro
                     </div>
                   </div>
                 </div>
-                <div className="mt-4 flex flex-wrap gap-2 pt-3 border-t">
+                <div className="mt-4 flex flex-col sm:flex-row flex-wrap gap-2 pt-3 border-t">
                   
                   {/* Phase 4.2: Admin Approve Button */}
                   {booking.status === "pending" && (

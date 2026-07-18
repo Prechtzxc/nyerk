@@ -456,16 +456,16 @@ function HorizontalBookingCard({
     : startDate
 
   return (
-    <div className="group flex w-full max-w-full min-w-0 flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-orange-200 hover:shadow-md sm:flex-row sm:items-center sm:gap-4">
+    <div className="group flex w-full min-w-0 flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-orange-200 hover:shadow-md sm:flex-row sm:items-center sm:gap-4">
       <div className="flex shrink-0 items-center gap-3 sm:w-[200px]">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
           {isOfficeRental ? <FileText className="h-5 w-5" /> : <Calendar className="h-5 w-5" />}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
             {isOfficeRental ? "Rental" : "Event"}
           </p>
-          <p className="break-words whitespace-normal text-sm font-black text-slate-900">
+          <p className="break-words whitespace-normal text-sm font-semibold leading-snug text-slate-900 line-clamp-2 min-w-0">
             {booking.eventName || "Untitled"}
           </p>
           <p className="break-words whitespace-normal text-[11px] font-bold text-orange-600">
@@ -476,29 +476,29 @@ function HorizontalBookingCard({
 
       <div className="grid min-w-0 flex-1 grid-cols-2 gap-x-2 gap-y-1.5 sm:grid-cols-4 sm:gap-x-3">
         <div className="min-w-0 max-w-full">
-          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">Booking ID</p>
-          <p className="whitespace-normal break-words text-xs font-black text-slate-800">{booking.id}</p>
+          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Booking ID</p>
+          <p className="whitespace-normal break-words text-xs font-black text-slate-800 truncate">{booking.id}</p>
         </div>
         <div className="min-w-0 max-w-full">
-          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">Venue</p>
-          <p className="whitespace-normal break-words text-xs font-bold text-slate-800">{booking.venue || "N/A"}</p>
+          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Venue</p>
+          <p className="whitespace-normal break-words text-xs font-bold text-slate-800 truncate">{booking.venue || "N/A"}</p>
         </div>
         <div className="min-w-0 max-w-full">
-          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">
+          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">
             {isOfficeRental ? "Start Date" : "Event Date"}
           </p>
           <p className="whitespace-normal break-words text-xs font-bold text-slate-800">{startDate}</p>
         </div>
         <div className="min-w-0 max-w-full">
-          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-widest text-slate-400">End Date</p>
+          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">End Date</p>
           <p className="whitespace-normal break-words text-xs font-bold text-slate-800">{endDate}</p>
         </div>
       </div>
 
-      <div className="flex shrink-0 items-center justify-between gap-2 sm:flex-col sm:items-end sm:gap-1">
+      <div className="flex shrink-0 items-center justify-between gap-2 sm:flex-col sm:items-end sm:gap-1.5">
         <span
           className={cn(
-            "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest whitespace-nowrap",
+            "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.2em] whitespace-nowrap",
             getStatusBadgeClass(booking.status),
           )}
         >
@@ -544,10 +544,10 @@ function HistoryRow({
         {isOfficeRental ? <FileText className="h-4 w-4" /> : <Calendar className="h-4 w-4" />}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="break-words text-sm font-black text-slate-900">
+        <p className="break-words text-sm font-semibold leading-snug text-slate-900 line-clamp-2">
           {booking.eventName || "Untitled"}
         </p>
-        <p className="text-[10px] font-semibold text-slate-500 sm:text-[11px]">
+        <p className="text-[10px] font-semibold text-slate-500 sm:text-[11px] truncate">
           {booking.id}
           <span className="hidden sm:inline">
             {" · "}{typeLabel}{" · "}{booking.venue || "N/A"}{" · "}{startDate}
@@ -557,7 +557,7 @@ function HistoryRow({
       <div className="flex shrink-0 items-center gap-1.5 flex-wrap sm:flex-nowrap">
         <span
           className={cn(
-            "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest",
+            "rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.2em] whitespace-nowrap",
             getStatusBadgeClass(booking.status),
           )}
         >
@@ -653,65 +653,65 @@ function PaymentSummaryCard({
     <div>
       <div className="mb-3 flex items-center gap-2">
         <div className="h-1.5 w-1.5 rounded-full bg-orange-500" />
-        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
           Payment Summary
         </p>
       </div>
 
       <div className="space-y-3">
         <div className="min-w-0">
-          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Method</p>
+          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Method</p>
           <p className="mt-0.5 whitespace-normal sm:whitespace-nowrap break-words text-xs font-bold text-slate-800">
             {booking.paymentMethod ? getPaymentMethodLabel(booking.paymentMethod) : "—"}
           </p>
         </div>
         <div className="min-w-0">
-          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Type</p>
+          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Type</p>
           <p className="mt-0.5 whitespace-normal sm:whitespace-nowrap break-words text-xs font-bold text-slate-800">
             {booking.paymentType ? formatTextLabel(booking.paymentType) : "—"}
           </p>
         </div>
         <div className="min-w-0">
-          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Total Amount</p>
+          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Total Amount</p>
           <p className="mt-0.5 whitespace-normal sm:whitespace-nowrap text-xs font-bold text-slate-800">{hasTotal ? formatMoney(totalPrice) : "—"}</p>
         </div>
         {showDP && (
           <div className="min-w-0">
-            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Selected Downpayment</p>
+            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Selected Downpayment</p>
             <p className="mt-0.5 whitespace-normal sm:whitespace-nowrap text-xs font-bold text-slate-800">{formatMoney(selectedDP)}</p>
           </div>
         )}
         {showDP && (
           <div className="min-w-0">
-            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Downpayment Paid</p>
+            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Downpayment Paid</p>
             <p className="mt-0.5 whitespace-normal sm:whitespace-nowrap text-xs font-bold text-slate-800">{formatMoney(downpaymentPaid)}</p>
           </div>
         )}
         {!isTerminal && showDP && downpaymentRemaining > 0 && (
           <div className="min-w-0">
-            <p className="text-[9px] font-black uppercase tracking-widest text-amber-600">Downpayment Remaining</p>
+            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-amber-600">Downpayment Remaining</p>
             <p className="mt-0.5 whitespace-normal sm:whitespace-nowrap text-xs font-bold text-amber-700">{formatMoney(downpaymentRemaining)}</p>
           </div>
         )}
         <div className="min-w-0">
-          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Amount Paid</p>
+          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Amount Paid</p>
           <p className="mt-0.5 whitespace-normal sm:whitespace-nowrap text-xs font-bold text-slate-800">{hasPaid ? formatMoney(amountPaid) : "—"}</p>
         </div>
         {!isTerminal && remaining !== null && remaining > 0 && (
           <div className="min-w-0">
-            <p className="text-[9px] font-black uppercase tracking-widest text-amber-600">Remaining Balance</p>
+            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-amber-600">Remaining Balance</p>
             <p className="mt-0.5 whitespace-normal sm:whitespace-nowrap text-xs font-bold text-amber-700">{formatMoney(remaining)}</p>
           </div>
         )}
         {!isTerminal && paymentStage && (
           <div className="min-w-0">
-            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Payment Stage</p>
+            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Payment Stage</p>
             <p className="mt-0.5 whitespace-normal sm:whitespace-nowrap text-xs font-bold text-slate-800">{paymentStage}</p>
           </div>
         )}
         {bankRef && (
           <div className="min-w-0">
-            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Bank Reference</p>
+            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Bank Reference</p>
             <p className="mt-0.5 whitespace-normal sm:whitespace-nowrap break-all text-xs font-bold text-slate-900">{bankRef}</p>
           </div>
         )}
@@ -848,16 +848,16 @@ function BookingDetailsModal({
       <DialogContent
         showCloseButton={false}
         plain
-        className="w-[min(94vw,500px)] h-[calc(100dvh-48px)] max-h-[720px] overflow-hidden rounded-3xl bg-white shadow-2xl"
+        className="w-[95vw] sm:max-w-[520px] max-h-[90dvh] overflow-y-auto rounded-3xl bg-white shadow-2xl"
       >
         <div className="flex h-full min-h-0 flex-col overflow-hidden">
           <header className="shrink-0 border-b border-slate-100 px-5 py-4">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-[10px] font-black uppercase tracking-widest text-orange-600">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-600">
                   Booking Details
                 </p>
-                <DialogTitle className="mt-1 break-words text-xl font-black text-slate-900">
+                <DialogTitle className="mt-1 break-words text-xl font-black text-slate-900 line-clamp-2">
                   {booking.eventName || "Untitled Booking"}
                 </DialogTitle>
                 <p className="mt-0.5 text-xs font-bold text-slate-500">
@@ -882,7 +882,7 @@ function BookingDetailsModal({
             <div className="mb-4 flex flex-wrap items-center gap-2">
               <span
                 className={cn(
-                  "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
+                  "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.2em]",
                   getStatusBadgeClass(booking.status),
                 )}
               >
@@ -890,7 +890,7 @@ function BookingDetailsModal({
               </span>
               <span
                 className={cn(
-                  "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
+                  "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.2em]",
                   getPaymentBadgeClass(booking.paymentStatus, (booking as any).paymentStage, remainingBalance, booking.status),
                 )}
               >
@@ -899,16 +899,16 @@ function BookingDetailsModal({
               {booking.cancellationStatus &&
                 booking.cancellationStatus !== "None" && (
                   <>
-                    <span className="inline-block rounded-md border border-amber-100 bg-amber-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-amber-700">
+                    <span className="inline-block rounded-md border border-amber-100 bg-amber-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-amber-700">
                       Cancel: {booking.cancellationStatus}
                     </span>
                     {amountPaid > 0 && booking.refundStatus && (
-                      <span className="inline-block rounded-md border border-blue-100 bg-blue-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-blue-700">
+                      <span className="inline-block rounded-md border border-blue-100 bg-blue-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-blue-700">
                         Refund: {booking.refundStatus}
                       </span>
                     )}
                     {amountPaid <= 0 && (
-                      <span className="inline-block rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                      <span className="inline-block rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
                         No Payment Made
                       </span>
                     )}
@@ -920,59 +920,59 @@ function BookingDetailsModal({
               <section className="rounded-2xl border border-slate-200 p-4">
                 <div className="mb-3 flex items-center gap-2">
                   <div className="h-1.5 w-1.5 rounded-full bg-slate-400" />
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
                     Booking Information
                   </p>
                 </div>
                 <div className="space-y-3">
                   <div className="min-w-0">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Booking Date</p>
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Booking Date</p>
                     <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{formatDate(booking.createdAt) || "—"}</p>
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">{isOfficeRental ? "Start Date" : "Event Date"}</p>
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">{isOfficeRental ? "Start Date" : "Event Date"}</p>
                     <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{startDate || "—"}</p>
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">End Date</p>
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">End Date</p>
                     <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{endDate || "—"}</p>
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Venue / Office</p>
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Venue / Office</p>
                     <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{booking.venue || "—"}</p>
                   </div>
                   {isOfficeRental && (
                     <>
                       <div className="min-w-0">
-                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Company Name</p>
+                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Company Name</p>
                         <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{(booking as any).companyName || booking.eventName || "N/A"}</p>
                       </div>
                       <div className="min-w-0">
-                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Nature of Business</p>
+                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Nature of Business</p>
                         <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{(booking as any).natureOfBusiness || booking.eventType || "N/A"}</p>
                       </div>
                       <div className="min-w-0">
-                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Rental Term</p>
+                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Rental Term</p>
                         <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{(booking as any).rentalTerm || (booking as any).contractTerm || (booking as any).officeRentalTerm || "—"}</p>
                       </div>
                     </>
                   )}
                   {!isOfficeRental && (
                     <div className="min-w-0">
-                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Guests</p>
+                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Guests</p>
                       <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{booking.guestCount ? `${booking.guestCount} pax` : "—"}</p>
                     </div>
                   )}
                   <div className="min-w-0">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Time</p>
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Time</p>
                     <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{timeValue}</p>
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Booking ID</p>
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Booking ID</p>
                     <p className="mt-0.5 break-words text-xs font-bold text-slate-800">#{booking.id}</p>
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Event Type</p>
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Event Type</p>
                     <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{typeLabel}</p>
                   </div>
                 </div>
@@ -982,17 +982,17 @@ function BookingDetailsModal({
                 <section className="rounded-2xl border border-slate-200 p-4">
                   <div className="mb-3 flex items-center gap-2">
                     <div className="h-1.5 w-1.5 rounded-full bg-blue-400" />
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
                       Rental Information
                     </p>
                   </div>
                   <div className="space-y-3">
                     <div className="min-w-0">
-                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Start Date</p>
+                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Start Date</p>
                       <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{startDate || "—"}</p>
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">End Date</p>
+                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">End Date</p>
                       <p className="mt-0.5 break-words text-xs font-bold text-slate-800">{endDate || "—"}</p>
                     </div>
                     {(() => {
@@ -1000,7 +1000,7 @@ function BookingDetailsModal({
                       if (!remaining) return null
                       return (
                         <div className="min-w-0">
-                          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Remaining Duration</p>
+                          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Remaining Duration</p>
                           <p className={cn(
                             "mt-0.5 break-words text-xs font-bold",
                             remaining === "Expired" ? "text-red-600" : "text-emerald-600"
@@ -1021,7 +1021,7 @@ function BookingDetailsModal({
                   <section className="rounded-2xl border border-slate-200 p-4">
                     <div className="mb-3 flex items-center gap-2">
                       <div className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
                         Rental Progress
                       </p>
                     </div>
@@ -1029,15 +1029,15 @@ function BookingDetailsModal({
                       <Progress value={progress.progress} className="h-2.5 rounded-full bg-slate-100" />
                       <div className="grid grid-cols-3 gap-1 sm:gap-2 text-center">
                         <div>
-                          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Days Used</p>
+                          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Days Used</p>
                           <p className="text-xs font-bold text-slate-800">{progress.daysUsed}</p>
                         </div>
                         <div>
-                          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Days Left</p>
+                          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Days Left</p>
                           <p className="text-xs font-bold text-slate-800">{progress.daysRemaining}</p>
                         </div>
                         <div>
-                          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Progress</p>
+                          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Progress</p>
                           <p className="text-xs font-bold text-emerald-600">{progress.progress}%</p>
                         </div>
                       </div>
@@ -1054,7 +1054,7 @@ function BookingDetailsModal({
                 <section className="rounded-2xl border border-slate-200 p-4">
                   <div className="mb-3 flex items-center gap-2">
                     <div className="h-1.5 w-1.5 rounded-full bg-slate-400" />
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
                       Special Requests
                     </p>
                   </div>
@@ -1069,7 +1069,7 @@ function BookingDetailsModal({
                   <div className="flex gap-3">
                     <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
                     <div className="text-xs font-semibold leading-5 text-amber-800">
-                      <p className="mb-1.5 font-black uppercase tracking-widest">
+                      <p className="mb-1.5 font-black uppercase tracking-[0.2em]">
                         Important Notice
                       </p>
                       <ul className="list-disc space-y-1 pl-4 text-[11px]">
@@ -1117,7 +1117,7 @@ function BookingDetailsModal({
               <section className="rounded-2xl border border-slate-200 p-4">
                 <div className="mb-3 flex items-center gap-2">
                   <div className="h-1.5 w-1.5 rounded-full bg-rose-400" />
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
                     Cancellation / Refund Status
                   </p>
                 </div>
@@ -1183,19 +1183,19 @@ function BookingDetailsModal({
                   <section className="rounded-2xl border border-slate-200 bg-white p-4">
                     <div className="mb-3 flex items-center gap-2">
                       <FileText className="h-4 w-4 text-slate-500" />
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
                         Contract
                       </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2 mb-3">
                       {booking.status === "contract_signing_required" && (
-                        <span className="inline-block rounded-md border border-yellow-100 bg-yellow-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-yellow-700">
+                        <span className="inline-block rounded-md border border-yellow-100 bg-yellow-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-yellow-700">
                           CONTRACT SIGNING REQUIRED
                         </span>
                       )}
                       <span
                         className={cn(
-                          "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
+                          "inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.2em]",
                           booking.contractStatus === "Signed"
                             ? "border-emerald-100 bg-emerald-50 text-emerald-700"
                             : "border-orange-100 bg-orange-50 text-orange-700",
@@ -1206,7 +1206,7 @@ function BookingDetailsModal({
                     </div>
 
                     {hasContract ? (
-                      <div className="space-y-3">
+            <div className="space-y-4">
                         <div className="flex gap-2">
                           <Button
                             type="button"
@@ -1272,7 +1272,7 @@ function BookingDetailsModal({
             <div className="space-y-3">
               {isPayUnderReview && !["cancelled", "declined", "completed", "rental_expired"].includes(String(booking.status || "").toLowerCase()) && (
                 <div className="rounded-xl bg-amber-50 p-3 text-center">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">Payment Under Review</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-600">Payment Under Review</p>
                   <p className="mt-1 text-xs font-semibold text-amber-700">
                     Your payment is currently under review. Please wait for admin verification.
                   </p>
@@ -1280,7 +1280,7 @@ function BookingDetailsModal({
               )}
               {hasActiveCancellationRequest && (
                 <div className="rounded-xl bg-rose-50 p-3 text-center">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-rose-600">Cancellation Under Review</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-600">Cancellation Under Review</p>
                   <p className="mt-1 text-xs font-semibold text-rose-700">
                     Your cancellation request is under review. Please wait for admin response.
                   </p>
@@ -1502,12 +1502,12 @@ function ReceiptModal({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent
         showCloseButton={false}
-        className="w-[min(94vw,520px)] h-[calc(100dvh-48px)] max-h-[720px] overflow-hidden rounded-3xl bg-white shadow-2xl"
+        className="w-[95vw] sm:max-w-[520px] max-h-[90dvh] overflow-y-auto rounded-3xl bg-white shadow-2xl"
       >
         <div className="flex h-full min-h-0 flex-col overflow-hidden">
           <div className="shrink-0 flex items-start justify-between gap-4 border-b border-slate-100 bg-white px-5 py-4">
             <div className="min-w-0">
-              <p className="text-[10px] font-black uppercase tracking-widest text-orange-600">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-600">
                 E-Receipt
               </p>
               <DialogTitle className="mt-1 font-mono text-lg font-black tracking-tight text-slate-900">
@@ -1604,7 +1604,7 @@ const WriteReviewModal = ({
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
-      <DialogContent className="w-[95vw] max-w-md rounded-3xl border-0 bg-white p-6 shadow-2xl">
+      <DialogContent className="w-[95vw] sm:max-w-md max-h-[90dvh] overflow-y-auto rounded-3xl border-0 bg-white p-6 shadow-2xl">
         <div className="flex h-full min-h-0 flex-col overflow-hidden">
           <DialogTitle className="shrink-0 text-xl font-black text-slate-900">
             Write a Review
@@ -1613,9 +1613,9 @@ const WriteReviewModal = ({
             Share your experience for{" "}
             <span className="font-bold text-orange-600">{eventName}</span>.
           </p>
-          <div className="min-h-0 flex-1 overflow-y-auto mt-5 space-y-5">
+          <div className="min-h-0 flex-1 overflow-y-auto mt-5 space-y-4">
           <div>
-            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+            <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
               Rating
             </Label>
             <div className="mt-2 flex gap-1">
@@ -1639,27 +1639,27 @@ const WriteReviewModal = ({
             </div>
           </div>
           <div>
-            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+            <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
               Review
             </Label>
             <Textarea
               value={comment}
               onChange={(event) => setComment(event.target.value)}
               placeholder="Tell us about your experience..."
-              className="mt-2 min-h-[120px] resize-none rounded-xl border-slate-200 bg-slate-50 text-sm focus-visible:ring-2 focus-visible:ring-orange-500"
+              className="mt-2 min-h-[120px] w-full resize-none rounded-xl border-slate-200 bg-slate-50 text-sm focus-visible:ring-2 focus-visible:ring-orange-500"
             />
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button
               variant="outline"
               onClick={onClose}
-              className="h-10 flex-1 rounded-xl border-slate-200 text-xs font-bold"
+              className="h-10 w-full sm:w-auto rounded-xl border-slate-200 text-xs font-bold"
             >
               Cancel
             </Button>
             <Button
               onClick={handleSubmit}
-              className="h-10 flex-1 rounded-xl bg-orange-600 text-xs font-bold text-white shadow-sm hover:bg-orange-700"
+              className="h-10 w-full sm:w-auto rounded-xl bg-orange-600 text-xs font-bold text-white shadow-sm hover:bg-orange-700"
             >
               Submit Review
             </Button>
@@ -1713,12 +1713,12 @@ const CancellationDialog = ({
     <Dialog open={!!booking} onOpenChange={(v) => !v && onClose()}>
       <DialogContent
         showCloseButton={false}
-        className="w-[calc(100vw-32px)] sm:w-fit sm:min-w-[500px] sm:max-w-[calc(100vw-48px)] max-h-[90dvh] overflow-hidden rounded-3xl bg-white shadow-2xl"
+        className="w-[95vw] sm:max-w-[520px] max-h-[90dvh] overflow-y-auto rounded-3xl bg-white shadow-2xl"
       >
         <div className="flex max-h-[90dvh] flex-col overflow-hidden">
           <header className="shrink-0 flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4">
             <div className="min-w-0">
-              <p className="text-[10px] font-black uppercase tracking-widest text-orange-600">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-600">
                 Cancellation
               </p>
               <DialogTitle className="mt-1 text-lg font-black tracking-tight text-slate-900">
@@ -1795,7 +1795,7 @@ const CancellationDialog = ({
 
               {allowed && (
                 <div>
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                  <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
                     Reason for Cancellation *
                   </Label>
                   <Textarea
@@ -1817,17 +1817,17 @@ const CancellationDialog = ({
             </div>
           </div>
 
-          <footer className="shrink-0 flex items-center justify-end gap-2 border-t border-slate-100 bg-white px-5 py-4 flex-wrap">
+          <footer className="shrink-0 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end border-t border-slate-100 bg-white px-5 py-4">
             <Button
               variant="outline"
               onClick={onClose}
-              className="h-10 rounded-lg border-slate-200 px-4 text-xs font-bold text-slate-700 hover:bg-slate-100"
+              className="h-10 w-full sm:w-auto rounded-lg border-slate-200 px-4 text-xs font-bold text-slate-700 hover:bg-slate-100"
             >
               Cancel
             </Button>
             <Button
               onClick={handleSubmit}
-              className="h-10 rounded-lg bg-orange-600 px-5 text-xs font-bold text-white shadow-sm hover:bg-orange-700"
+              className="h-10 w-full sm:w-auto rounded-lg bg-orange-600 px-5 text-xs font-bold text-white shadow-sm hover:bg-orange-700"
             >
               Submit Cancellation Request
             </Button>
@@ -2151,7 +2151,7 @@ function ModifyBookingFlowModal({
       <DialogContent
         showCloseButton={false}
         className={cn(
-          "!flex !flex-col !gap-0 !p-0 overflow-hidden bg-white rounded-none sm:rounded-[2rem] border-0 [&>button]:hidden shadow-2xl w-[calc(100vw-32px)] max-w-2xl",
+          "!flex !flex-col !gap-0 !p-0 overflow-y-auto max-h-[90dvh] bg-white rounded-none sm:rounded-[2rem] border-0 [&>button]:hidden shadow-2xl w-[95vw] sm:max-w-2xl",
           step === "schedule" && "sm:!max-w-[95vw] lg:!max-w-[1000px]",
           step === "details" && "sm:!max-w-[660px]",
         )}
@@ -2197,7 +2197,7 @@ function ModifyBookingFlowModal({
                   <div className={`flex h-6 w-6 md:h-7 md:w-7 items-center justify-center rounded-full text-[10px] md:text-[11px] font-black transition-colors ${i <= currentStepIdx ? 'bg-[#ea580c] text-white' : 'bg-slate-100 text-slate-400'}`}>
                     {i + 1}
                   </div>
-                  <span className={`hidden sm:inline text-[8px] md:text-[9px] font-bold uppercase tracking-wider ${i <= currentStepIdx ? 'text-slate-900' : 'text-slate-400'}`}>
+                  <span className={`hidden sm:inline text-[8px] md:text-[9px] font-bold uppercase tracking-[0.2em] ${i <= currentStepIdx ? 'text-slate-900' : 'text-slate-400'}`}>
                     {label}
                   </span>
                 </div>
@@ -2219,7 +2219,7 @@ function ModifyBookingFlowModal({
                   {venueInfo && (
                     <p className="text-[#ea580c] font-black text-lg leading-tight">
                       ₱{venueInfo.price.toLocaleString()}
-                      <span className="text-slate-400 font-bold text-[9px] tracking-widest uppercase ml-1">
+                      <span className="text-slate-400 font-bold text-[9px] tracking-[0.2em] uppercase ml-1">
                         / {isOffice ? 'Per Month' : 'Per 6 Hrs'}
                       </span>
                     </p>
@@ -2233,7 +2233,7 @@ function ModifyBookingFlowModal({
                 <div className="grid grid-cols-1 xl:grid-cols-[minmax(240px,300px)_minmax(200px,1fr)] gap-4 xl:gap-6 w-full items-start">
                   {/* Calendar column */}
                   <div>
-                    <h3 className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-900 mb-3">
+                    <h3 className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-900 mb-3">
                       <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-950 text-[9px] text-white shadow-sm">1</span>
                       Select Date
                     </h3>
@@ -2252,7 +2252,7 @@ function ModifyBookingFlowModal({
                           <h5 className="text-[13px] font-black leading-none text-slate-950 md:text-sm">
                             {calendarMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                           </h5>
-                          <p className="mt-0.5 text-[7px] font-bold uppercase tracking-[0.12em] text-slate-400">
+                          <p className="mt-0.5 text-[7px] font-bold uppercase tracking-[0.2em] text-slate-400">
                             Choose an available day
                           </p>
                         </div>
@@ -2296,7 +2296,7 @@ function ModifyBookingFlowModal({
                     </div>
                     {/* Earliest bookable date info */}
                     <div className="mt-3 rounded-2xl border border-orange-100 bg-orange-50 px-2.5 py-2">
-                      <p className="text-[8px] font-black uppercase tracking-[0.12em] text-orange-700">
+                      <p className="text-[8px] font-black uppercase tracking-[0.2em] text-orange-700">
                         Earliest bookable date
                       </p>
                       <p className="mt-0.5 text-[10px] font-bold leading-3 text-orange-900">
@@ -2308,12 +2308,12 @@ function ModifyBookingFlowModal({
 
                   {/* Time / Duration column */}
                   <div>
-                    <h3 className="text-[10px] font-black text-slate-900 tracking-widest uppercase mb-2 flex items-center gap-1.5">
+                    <h3 className="text-[10px] font-black text-slate-900 tracking-[0.2em] uppercase mb-2 flex items-center gap-1.5">
                       <div className="w-5 h-5 rounded-full bg-slate-900 text-white flex items-center justify-center text-[9px]">2</div>
                       Select {isOffice ? 'Duration' : 'Time'}
                     </h3>
                     {!selectedDate ? (
-                      <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-[1rem] min-h-[120px] flex items-center justify-center text-slate-400 font-bold text-[9px] uppercase tracking-wider p-2 text-center">
+                      <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-[1rem] min-h-[120px] flex items-center justify-center text-slate-400 font-bold text-[9px] uppercase tracking-[0.2em] p-2 text-center">
                         Select a date first
                       </div>
                     ) : (
@@ -2369,7 +2369,7 @@ function ModifyBookingFlowModal({
                               <div className="p-3 bg-orange-50 border border-orange-100 rounded-lg flex items-start gap-2 animate-in fade-in">
                                 <CheckCircle2 className="w-4 h-4 text-[#ea580c] shrink-0 mt-0.5" />
                                 <div>
-                                  <p className="text-[8px] font-bold text-orange-900 uppercase tracking-widest leading-relaxed">
+                                  <p className="text-[8px] font-bold text-orange-900 uppercase tracking-[0.2em] leading-relaxed">
                                     6-Hour Slot Confirmed
                                   </p>
                                   <p className="text-[10px] font-black text-[#ea580c]">
@@ -2421,7 +2421,7 @@ function ModifyBookingFlowModal({
                       </h3>
 
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">
+                        <label className="text-[10px] font-bold text-slate-700 uppercase tracking-[0.2em]">
                           Company Name <span className="text-rose-500">*</span>
                         </label>
                         <Input
@@ -2433,7 +2433,7 @@ function ModifyBookingFlowModal({
                       </div>
 
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">
+                        <label className="text-[10px] font-bold text-slate-700 uppercase tracking-[0.2em]">
                           Nature of Business <span className="text-rose-500">*</span>
                         </label>
                         <select
@@ -2459,7 +2459,7 @@ function ModifyBookingFlowModal({
                       </div>
 
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">
+                        <label className="text-[10px] font-bold text-slate-700 uppercase tracking-[0.2em]">
                           Rental Term / Contract Duration <span className="text-rose-500">*</span>
                         </label>
                         <div className="flex flex-col gap-2">
@@ -2496,7 +2496,7 @@ function ModifyBookingFlowModal({
                       </h3>
 
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">
+                        <label className="text-[10px] font-bold text-slate-700 uppercase tracking-[0.2em]">
                           Event Name <span className="text-rose-500">*</span>
                         </label>
                         <Input
@@ -2509,7 +2509,7 @@ function ModifyBookingFlowModal({
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div className="space-y-1.5">
-                          <label className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">
+                          <label className="text-[10px] font-bold text-slate-700 uppercase tracking-[0.2em]">
                             Event Type <span className="text-rose-500">*</span>
                           </label>
                           <Select value={eventType} onValueChange={setEventType}>
@@ -2526,7 +2526,7 @@ function ModifyBookingFlowModal({
                           </Select>
                         </div>
                         <div className="space-y-1.5">
-                          <label className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">
+                          <label className="text-[10px] font-bold text-slate-700 uppercase tracking-[0.2em]">
                             Estimated Guests <span className="text-rose-500">*</span>
                           </label>
                           <Input
@@ -2550,7 +2550,7 @@ function ModifyBookingFlowModal({
 
                   {/* Reason for Modification */}
                   <div className="space-y-1.5 pt-3 border-t border-slate-100">
-                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">
+                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-[0.2em]">
                       Reason for Modification <span className="text-rose-500">*</span>
                     </label>
                     <Textarea
@@ -2838,7 +2838,7 @@ export default function MyBookingsPage() {
 
   return (
     <div className="w-full min-w-0 max-w-full overflow-x-hidden">
-      <div className="mx-auto w-full max-w-[1180px] px-3 py-4 sm:px-5 lg:px-6 animate-in fade-in duration-500">
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6 animate-in fade-in duration-500">
         <WriteReviewModal
           open={!!reviewTarget}
           booking={reviewTarget}
@@ -2904,7 +2904,7 @@ export default function MyBookingsPage() {
         <section className="border-b border-slate-200 pb-5 mb-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0 max-w-full">
-              <p className="text-[11px] font-black uppercase tracking-[0.24em] text-orange-600">
+              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-orange-600">
                 Reservations
               </p>
               <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
@@ -3165,14 +3165,14 @@ function SectionHeader({
   icon: React.ReactNode
 }) {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2.5">
       {icon && (
         <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-orange-50 text-orange-600">
           {icon}
         </div>
       )}
       <div className="min-w-0">
-        <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+        <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
           {title}
         </h2>
         {subtitle && (

@@ -89,36 +89,36 @@ export default function ReviewsPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 overflow-x-hidden space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <h1 className="text-3xl font-bold">Customer Reviews</h1>
           <Dialog>
             <DialogTrigger asChild>
               <Button>Add Review</Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="w-[95vw] sm:max-w-[425px] max-h-[90dvh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Add New Review</DialogTitle>
                 <DialogDescription>Add a customer review to your website.</DialogDescription>
               </DialogHeader>
               <form onSubmit={handleAddReview}>
-                <div className="grid gap-4 py-4">
+                <div className="space-y-4 py-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="customer-name">Customer Name</Label>
-                    <Input id="customer-name" placeholder="Enter customer name" required />
+                    <Label htmlFor="customer-name" className="text-[10px] font-black uppercase tracking-[0.2em]">Customer Name</Label>
+                    <Input id="customer-name" placeholder="Enter customer name" required className="w-full" />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="event-type">Event Type</Label>
-                    <Input id="event-type" placeholder="Enter event type" required />
+                    <Label htmlFor="event-type" className="text-[10px] font-black uppercase tracking-[0.2em]">Event Type</Label>
+                    <Input id="event-type" placeholder="Enter event type" required className="w-full" />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="event-date">Event Date</Label>
-                    <Input id="event-date" type="date" required />
+                    <Label htmlFor="event-date" className="text-[10px] font-black uppercase tracking-[0.2em]">Event Date</Label>
+                    <Input id="event-date" type="date" required className="w-full" />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="rating">Rating</Label>
+                    <Label htmlFor="rating" className="text-[10px] font-black uppercase tracking-[0.2em]">Rating</Label>
                     <Select defaultValue="5">
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select rating" />
                       </SelectTrigger>
                       <SelectContent>
@@ -131,12 +131,12 @@ export default function ReviewsPage() {
                     </Select>
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="review-text">Review</Label>
-                    <Textarea id="review-text" placeholder="Enter customer review" required />
+                    <Label htmlFor="review-text" className="text-[10px] font-black uppercase tracking-[0.2em]">Review</Label>
+                    <Textarea id="review-text" placeholder="Enter customer review" required className="w-full" />
                   </div>
                 </div>
-                <DialogFooter>
-                  <Button type="submit">Add Review</Button>
+                <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                  <Button type="submit" className="w-full sm:w-auto">Add Review</Button>
                 </DialogFooter>
               </form>
             </DialogContent>
@@ -147,7 +147,7 @@ export default function ReviewsPage() {
           {reviews.map((review) => (
             <Card key={review.id}>
               <CardHeader>
-                <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <CardTitle>{review.name}</CardTitle>
                     <CardDescription>

@@ -71,7 +71,7 @@ export function ChatWindow({ mode }: { mode: "widget" | "full" }) {
   }
 
   const containerClasses = mode === "widget" 
-    ? "flex flex-col h-[550px] max-h-[85vh] w-[340px] sm:w-[380px] bg-white rounded-[24px] shadow-2xl border border-gray-200 overflow-hidden" 
+    ? "flex flex-col h-[calc(100dvh-100px)] sm:h-[550px] sm:max-h-[85vh] w-full sm:w-[380px] bg-white rounded-[24px] shadow-2xl border border-gray-200 overflow-hidden" 
     : "flex flex-col h-full w-full bg-[#fafaf9] overflow-hidden"
 
   const paddingWrapper = mode === "full" ? "px-4 md:px-8 w-full" : "px-3 w-full"
@@ -225,10 +225,10 @@ export function ChatWindow({ mode }: { mode: "widget" | "full" }) {
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 placeholder="Type a message..."
-                className={`flex-1 border-none shadow-none bg-transparent focus-visible:ring-0 ${mode === 'widget' ? 'text-[13px] px-2 h-8' : 'px-2 md:px-3 text-[14px] md:text-[15px] h-9 md:h-10'}`}
+                className={`flex-1 border-none shadow-none bg-transparent focus-visible:ring-0 ${mode === 'widget' ? 'text-[13px] px-2 h-11' : 'px-2 md:px-3 text-[14px] md:text-[15px] h-11 md:h-10'}`}
               />
             </div>
-            <Button type="submit" disabled={!inputValue.trim()} className={`bg-[#ea580c] hover:bg-[#c2410c] text-white rounded-full shrink-0 shadow-md transition-transform active:scale-[0.95] disabled:opacity-50 flex items-center justify-center p-0 ${mode === 'widget' ? 'h-10 w-10' : 'h-12 w-12 md:h-14 md:w-14'}`}>
+            <Button type="submit" disabled={!inputValue.trim()} className={`bg-[#ea580c] hover:bg-[#c2410c] text-white rounded-full shrink-0 shadow-md transition-transform active:scale-[0.95] disabled:opacity-50 flex items-center justify-center p-0 ${mode === 'widget' ? 'h-11 w-11' : 'h-12 w-12 md:h-14 md:w-14'}`}>
               <Send className={`${mode === 'widget' ? 'w-4 h-4 ml-0.5' : 'w-5 h-5 ml-1'}`} />
             </Button>
           </form>
@@ -239,7 +239,7 @@ export function ChatWindow({ mode }: { mode: "widget" | "full" }) {
       {/* FULLSCREEN IMAGE VIEWER MODAL PARA KAY CLIENT */}
       <Dialog open={!!viewImage} onOpenChange={(open) => !open && setViewImage(null)}>
         {/* FIX: Ginaya yung modal size at style sa Payment View */}
-        <DialogContent className="max-w-5xl w-[95vw] h-[90vh] flex flex-col p-6 bg-white rounded-3xl border-none shadow-2xl z-[100]">
+        <DialogContent className="w-[95vw] sm:max-w-5xl max-h-[90dvh] flex flex-col p-6 bg-white rounded-2xl border-none shadow-2xl z-[10001] overflow-y-auto">
           <DialogHeader className="shrink-0 mb-4 flex flex-row items-center justify-between">
             <DialogTitle className="text-xl font-black text-slate-900 flex items-center gap-2">
               <FileImage className="w-5 h-5 text-[#ea580c]" /> Image Attachment
@@ -251,7 +251,7 @@ export function ChatWindow({ mode }: { mode: "widget" | "full" }) {
             )}
           </div>
           <div className="shrink-0 mt-4 flex justify-end">
-             <Button variant="outline" onClick={() => setViewImage(null)} className="rounded-xl font-bold px-8 h-12 border-slate-200 text-slate-700">Close Viewer</Button>
+             <Button variant="outline" onClick={() => setViewImage(null)} className="rounded-xl font-bold px-8 h-11 border-slate-200 text-slate-700">Close Viewer</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -263,7 +263,7 @@ export function UnifiedChatWidget() {
   const { isOpen, toggleChat } = useChat()
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+    <div className="fixed bottom-5 right-5 sm:bottom-6 sm:right-6 z-50 flex flex-col items-end">
       {isOpen && (
         <div className="mb-4 animate-in slide-in-from-bottom-5 fade-in duration-300 origin-bottom-right">
           <ChatWindow mode="widget" />

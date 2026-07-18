@@ -18,7 +18,7 @@ interface TermsDialogProps {
 export function TermsDialog({ open, onOpenChange }: TermsDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[min(90vh,720px)] w-[92vw] max-w-2xl flex-col gap-0 overflow-hidden rounded-3xl border-slate-200 p-0">
+      <DialogContent className="flex w-[95vw] max-w-2xl flex-col gap-0 overflow-hidden overflow-y-auto max-h-[90dvh] rounded-2xl border-slate-200 p-0">
         <DialogHeader className="border-b border-slate-100 bg-gradient-to-r from-orange-50 to-amber-50 px-6 py-5">
           <DialogTitle className="text-xl font-black text-slate-900">
             Terms &amp; Conditions
@@ -47,11 +47,11 @@ export function TermsDialog({ open, onOpenChange }: TermsDialogProps) {
           </div>
         </ScrollArea>
 
-        <div className="flex items-center justify-end border-t border-slate-100 bg-slate-50 px-6 py-4">
+        <div className="flex flex-col-reverse gap-2 sm:flex-row items-center justify-end border-t border-slate-100 bg-slate-50 px-6 py-4">
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="rounded-xl bg-orange-600 px-5 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-orange-700"
+            className="h-11 w-full rounded-xl bg-orange-600 px-5 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-orange-700 sm:w-auto"
           >
             Close
           </button>

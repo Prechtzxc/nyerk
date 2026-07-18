@@ -53,7 +53,7 @@ export function ClientChatWidget() {
   return (
     <>
       {isOpen && (
-        <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 w-[calc(100vw-32px)] sm:w-[380px] h-[calc(100vh-100px)] h-[calc(100dvh-100px)] max-h-[650px] bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-slate-200 flex flex-col z-[99999] overflow-hidden animate-in slide-in-from-bottom-5 duration-300">
+        <div className="fixed bottom-5 right-5 sm:bottom-6 sm:right-6 w-full sm:w-[380px] h-[calc(100dvh-80px)] sm:h-[calc(100vh-100px)] sm:max-h-[650px] bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-slate-200 flex flex-col z-50 overflow-hidden animate-in slide-in-from-bottom-5 duration-300">
           <div className="bg-[#ea580c] px-4 py-3 flex items-center justify-between text-white shrink-0 z-10 shadow-md">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center border border-white/10"><ShieldCheck className="w-5 h-5 text-white" /></div>
@@ -88,8 +88,8 @@ export function ClientChatWidget() {
             <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-full pl-3 pr-1.5 py-1.5 focus-within:ring-2 focus-within:ring-orange-500/20 focus-within:border-orange-500 transition-all">
               <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={(e) => { const file = e.target.files?.[0]; if (file) { const reader = new FileReader(); reader.onload = (ev) => setImagePreview(ev.target?.result as string); reader.readAsDataURL(file); } }} />
               <button onClick={() => fileInputRef.current?.click()} className="text-slate-400 hover:text-orange-600 p-1.5 transition-colors"><Paperclip className="w-4 h-4 sm:w-5 sm:h-5" /></button>
-              <input type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSend()} placeholder="Message admin..." className="flex-1 bg-transparent border-none focus:outline-none text-[13px] sm:text-[14px] h-8 placeholder:text-slate-400" />
-              <Button onClick={handleSend} className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#ea580c] hover:bg-[#c2410c] text-white p-0 shrink-0 shadow-sm active:scale-90 transition-transform"><Send className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-0.5" /></Button>
+              <input type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSend()} placeholder="Message admin..." className="flex-1 bg-transparent border-none focus:outline-none text-[13px] sm:text-[14px] h-11 placeholder:text-slate-400" />
+              <Button onClick={handleSend} className="w-11 h-11 sm:w-9 sm:h-9 rounded-full bg-[#ea580c] hover:bg-[#c2410c] text-white p-0 shrink-0 shadow-sm active:scale-90 transition-transform"><Send className="w-4 h-4 sm:w-4 sm:h-4 ml-0.5" /></Button>
             </div>
           </div>
         </div>
@@ -99,7 +99,7 @@ export function ClientChatWidget() {
       {!isOpen && (
         <button 
           onClick={() => setIsOpen(true)} 
-          className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 w-12 h-12 sm:w-14 sm:h-14 bg-[#ea580c] hover:bg-[#c2410c] text-white rounded-full shadow-[0_10px_30px_rgba(234,88,12,0.4)] flex items-center justify-center z-[99999] transition-all hover:scale-110 active:scale-95 group"
+          className="fixed bottom-5 right-5 sm:bottom-6 sm:right-6 w-14 h-14 sm:w-14 sm:h-14 bg-[#ea580c] hover:bg-[#c2410c] text-white rounded-full shadow-[0_10px_30px_rgba(234,88,12,0.4)] flex items-center justify-center z-50 transition-all hover:scale-110 active:scale-95 group"
         >
           <MessageSquare className="w-5 h-5 sm:w-6 sm:h-6 group-hover:animate-pulse" />
           
@@ -113,7 +113,7 @@ export function ClientChatWidget() {
       )}
 
       {fullScreenImage && (
-        <div className="fixed inset-0 z-[999999] bg-black/90 flex items-center justify-center p-4 sm:p-8 animate-in fade-in duration-200 backdrop-blur-sm" onClick={() => setFullScreenImage(null)}>
+        <div className="fixed inset-0 z-[10001] bg-black/90 flex items-center justify-center p-4 sm:p-8 animate-in fade-in duration-200 backdrop-blur-sm" onClick={() => setFullScreenImage(null)}>
           <button className="absolute top-6 right-6 text-white/70 hover:text-white transition-colors bg-white/10 hover:bg-white/20 p-2 rounded-full" onClick={(e) => { e.stopPropagation(); setFullScreenImage(null); }}><X className="w-6 h-6 sm:w-8 sm:h-8" /></button>
           <img src={fullScreenImage} alt="Fullscreen view" className="max-w-full max-h-full rounded-lg object-contain shadow-2xl animate-in zoom-in-95" onClick={(e) => e.stopPropagation()} />
         </div>

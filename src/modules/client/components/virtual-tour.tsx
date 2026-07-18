@@ -155,7 +155,7 @@ export function VirtualTour({ open, onOpenChange }: VirtualTourProps) {
           {(!libLoaded || !isViewerReady) && (
             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black gap-3">
               <Loader2 className="w-8 h-8 text-[#ea580c] animate-spin" />
-              <p className="text-white text-xs font-black tracking-widest uppercase">Loading 360° View...</p>
+              <p className="text-white text-xs font-black tracking-[0.2em] uppercase">Loading 360° View...</p>
             </div>
           )}
         </div>
@@ -164,7 +164,7 @@ export function VirtualTour({ open, onOpenChange }: VirtualTourProps) {
         <div className="absolute top-0 left-0 right-0 p-6 md:p-8 bg-gradient-to-b from-black/95 via-black/40 to-transparent pointer-events-none z-20">
           <div className="max-w-2xl">
             <div className="flex items-center gap-3 mb-3 pointer-events-auto">
-              <Badge className="bg-[#ea580c] text-white border-none px-3 py-1 font-black tracking-widest uppercase text-[10px] shadow-sm">
+              <Badge className="bg-[#ea580c] text-white border-none px-3 py-1 font-black tracking-[0.2em] uppercase text-[10px] shadow-sm">
                 {currentArea.category === "event" ? "Event Venue" : "Office Space"}
               </Badge>
               {currentArea.capacity && (
@@ -198,10 +198,10 @@ export function VirtualTour({ open, onOpenChange }: VirtualTourProps) {
             
             {/* TABS */}
             <div className="flex bg-white/10 p-1 rounded-full backdrop-blur-md border border-white/10 shrink-0">
-              <button onClick={() => setActiveTab("event")} className={`px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-colors ${activeTab === "event" ? "bg-[#ea580c] text-white shadow-md" : "text-white/70 hover:text-white"}`}>
+              <button onClick={() => setActiveTab("event")} className={`px-6 py-2 rounded-full text-xs font-bold uppercase tracking-[0.2em] transition-colors ${activeTab === "event" ? "bg-[#ea580c] text-white shadow-md" : "text-white/70 hover:text-white"}`}>
                 Venues
               </button>
-              <button onClick={() => setActiveTab("office")} className={`px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-colors ${activeTab === "office" ? "bg-[#ea580c] text-white shadow-md" : "text-white/70 hover:text-white"}`}>
+              <button onClick={() => setActiveTab("office")} className={`px-6 py-2 rounded-full text-xs font-bold uppercase tracking-[0.2em] transition-colors ${activeTab === "office" ? "bg-[#ea580c] text-white shadow-md" : "text-white/70 hover:text-white"}`}>
                 Offices
               </button>
             </div>
