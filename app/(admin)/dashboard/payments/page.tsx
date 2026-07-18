@@ -694,8 +694,8 @@ function PaymentCard({
   onView: () => void
 }) {
   return (
-    <div className="group flex w-full max-w-full min-w-0 flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-orange-200 hover:shadow-md sm:flex-row sm:items-center sm:gap-4">
-      <div className="flex shrink-0 items-center gap-3 sm:w-[200px]">
+    <div className="group flex w-full max-w-full min-w-0 flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-orange-200 hover:shadow-md sm:flex-row sm:items-center sm:gap-4 lg:gap-6">
+      <div className="flex shrink-0 items-center gap-3 sm:w-[200px] md:w-[220px]">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
           <Receipt className="h-5 w-5" />
         </div>
@@ -712,7 +712,7 @@ function PaymentCard({
         </div>
       </div>
 
-      <div className="grid min-w-0 flex-1 grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-[1.5fr_1.2fr_1fr_1.5fr] sm:gap-x-4">
+      <div className="grid min-w-0 flex-1 grid-cols-2 gap-x-4 gap-y-3 md:grid-cols-[1.2fr_1.2fr_1fr_1.5fr] lg:grid-cols-[1.2fr_1.2fr_1fr_1.5fr]">
         <div className="min-w-0 max-w-full">
           <p className="truncate text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Customer</p>
           <p className="truncate text-xs font-black text-slate-800">{payment.userInfo?.name || "—"}</p>
@@ -732,20 +732,20 @@ function PaymentCard({
             <p className="truncate text-[10px] font-black uppercase tracking-[0.2em] text-amber-600">Partial</p>
           )}
         </div>
-        <div className="min-w-0 max-w-full">
+        <div className="min-w-0 max-w-full pr-2">
           <p className="truncate text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Venue</p>
-          <p className="line-clamp-2 text-xs font-bold text-slate-800">{payment.venue || "N/A"}</p>
+          <p className="text-xs font-bold text-slate-800 break-words line-clamp-2">{payment.venue || "N/A"}</p>
         </div>
       </div>
 
-      <div className="flex shrink-0 items-center justify-between gap-2 sm:flex-col sm:items-center sm:gap-1.5">
+      <div className="flex shrink-0 items-center justify-between gap-3 sm:flex-col sm:items-end sm:gap-2">
         <PaymentBadge payment={payment} />
         <Button
           variant="outline"
           onClick={onView}
-          className="h-8 shrink-0 whitespace-nowrap rounded-lg border-slate-200 px-2.5 text-[10px] font-bold text-slate-700 hover:bg-slate-50"
+          className="h-8 shrink-0 whitespace-nowrap rounded-lg border-slate-200 px-3 text-[10px] font-bold text-slate-700 hover:bg-slate-50"
         >
-          <Eye className="mr-1 h-3 w-3" />
+          <Eye className="mr-1.5 h-3 w-3" />
           Review
         </Button>
       </div>

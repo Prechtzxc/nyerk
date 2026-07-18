@@ -216,29 +216,32 @@ export function PublicLayout({ children }: PublicLayoutProps) {
 
             <ul className="flex flex-col items-start space-y-3 text-sm">
               <li>
-                <Link href="/" className="transition-colors hover:text-orange-500">
+                <Link 
+                  href="/#home" 
+                  className="transition-colors hover:text-orange-500 scroll-smooth"
+                >
                   Home
                 </Link>
               </li>
 
               <li>
-                <Link href="/" className="transition-colors hover:text-orange-500">
+                <Link 
+                  href="/#book-event" 
+                  className="transition-colors hover:text-orange-500 scroll-smooth"
+                >
                   Book an Event
                 </Link>
               </li>
 
               <li>
-                <Link href="/" className="transition-colors hover:text-orange-500">
-                  Contact
+                <Link 
+                  href="/gallery" 
+                  className="transition-colors hover:text-orange-500"
+                >
+                  Client Gallery
                 </Link>
               </li>
             </ul>
-          </div>
-
-          <div>
-            <h4 className="mb-6 text-sm font-semibold uppercase tracking-wider text-white">
-              Contact Us
-            </h4>
 
             <ul className="space-y-4 text-sm text-slate-400">
               <li className="flex items-start gap-3">

@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useToast } from "@/src/modules/shared/hooks/use-toast";
+import { useAuth } from "@/src/modules/shared/auth/auth-context";
 import { db } from "@/lib/firebase"
 import { createNotification } from "@/src/modules/shared/lib/notifications"
 import {
@@ -1088,6 +1089,7 @@ function normalizeBookingForNewFields(booking: Booking): Booking {
 }
 
 export function BookingProvider({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [officeRentals, setOfficeRentals] = useState<OfficeRental[]>([]);
   const [maintenanceRecords, setMaintenanceRecords] = useState<MaintenanceRecord[]>([]);
@@ -1111,7 +1113,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || !user) return;
 
     // Real-time subscription for bookings
     const bookingsQuery = query(bookingsRef, orderBy("createdAt", "asc"))
@@ -1122,8 +1124,10 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         loaded.push(normalizeBookingForNewFields({ ...d, id: docSnap.id }))
       })
       setBookings(loaded)
-    }, (error) => {
-      console.error("[BookingContext] Bookings snapshot error:", error)
+    }, (error: any) => {
+      if (error.code !== 'permission-denied') {
+        console.error("[BookingContext] Bookings snapshot error:", error)
+      }
     })
 
     // Real-time subscription for office rentals
@@ -1135,8 +1139,10 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         loaded.push({ ...d, id: docSnap.id })
       })
       setOfficeRentals(loaded)
-    }, (error) => {
-      console.error("[BookingContext] Office rentals snapshot error:", error)
+    }, (error: any) => {
+      if (error.code !== 'permission-denied') {
+        console.error("[BookingContext] Office rentals snapshot error:", error)
+      }
     })
 
     // Real-time subscription for maintenance records
@@ -1148,8 +1154,10 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         loaded.push({ ...d, id: docSnap.id })
       })
       setMaintenanceRecords(loaded)
-    }, (error) => {
-      console.error("[BookingContext] Maintenance records snapshot error:", error)
+    }, (error: any) => {
+      if (error.code !== 'permission-denied') {
+        console.error("[BookingContext] Maintenance records snapshot error:", error)
+      }
     })
 
     return () => {
@@ -1157,7 +1165,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       unsubOffice()
       unsubMaint()
     }
-  }, []);
+  }, [user]);
 
   const saveBookings = async (newBookings: Booking[]) => {
     const normalizedBookings = newBookings.map(normalizeBookingForNewFields);

@@ -121,10 +121,9 @@ export function NotificationDropdown({ open, onClose }: Props) {
               {notifications.map((n) => {
                 const IconComponent = typeIcons[n.type] ?? Bell
                 
-                // Assuming 'bookingNumber' is passed in the notification object payload,
-                // fallback to a formatted title if not present.
-                const notificationTitle = (n as any).bookingNumber 
-                  ? `Booking #${(n as any).bookingNumber}`
+                // Use bookingNumber or bookingId if available, fallback to formatted event type
+                const notificationTitle = (n as any).bookingNumber || (n as any).bookingId
+                  ? `Booking #${(n as any).bookingNumber || (n as any).bookingId}`
                   : formatNotificationLabel(n.type)
 
                 return (
