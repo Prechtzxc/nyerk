@@ -112,7 +112,7 @@ export default function ClientLayout({
 
   return (
     <div className="relative flex h-screen w-full flex-col overflow-hidden bg-slate-50">
-      <header className="z-50 flex h-16 shrink-0 items-center justify-between overflow-hidden bg-gradient-to-r from-orange-600 via-orange-600 to-orange-700 text-white shadow-lg">
+      <header className="z-50 flex h-16 shrink-0 items-center justify-between bg-gradient-to-r from-orange-600 via-orange-600 to-orange-700 text-white shadow-lg">
         <div className="flex h-full shrink-0 items-center gap-3 px-3 sm:px-4 lg:w-64 lg:px-6">
           <Button
             variant="ghost"

@@ -512,7 +512,7 @@ function CurrentTransactionCard({
           >
             {getStatusLabel(booking.paymentStatus, booking.status, (booking as any).paymentStage, (booking as any).remainingBalance)}
           </span>
-          <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2 sm:shrink-0">
+          <div className="flex flex-col items-end gap-1.5 sm:flex-row sm:items-center sm:gap-2 sm:shrink-0">
             {hasPaymentRecord(booking) && (
               <Button
                 variant="outline"
@@ -1807,7 +1807,7 @@ function TransactionsContent() {
                           >
                             {getStatusLabel(booking.paymentStatus, booking.status, (booking as any).paymentStage, (booking as any).remainingBalance)}
                           </span>
-                          <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2 sm:shrink-0">
+                          <div className="flex flex-col items-end gap-1.5 sm:flex-row sm:items-center sm:gap-2 sm:shrink-0">
                             {hasPaymentRecord(booking) && (
                               <Button
                                 variant="outline"
