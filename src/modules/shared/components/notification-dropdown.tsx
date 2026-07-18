@@ -29,6 +29,14 @@ const typeIcons: Record<NotificationType, typeof Bell> = {
   balance_reminder: Bell,
 }
 
+// Fallback label formatter if a booking number isn't present
+function formatNotificationLabel(type: string): string {
+  return type
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ")
+}
+
 function formatTimestamp(ts: any): string {
   if (!ts) return ""
   const date = ts?.toDate ? ts.toDate() : new Date(ts)
@@ -80,74 +88,102 @@ export function NotificationDropdown({ open, onClose }: Props) {
       <div className="fixed inset-0 z-40" onClick={onClose} />
       <div
         ref={ref}
-        className="absolute right-0 top-full z-50 mt-2 w-[calc(100vw-32px)] sm:w-80 origin-top-right overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl"
+        className="absolute right-[-8px] top-[calc(100%+12px)] z-50 flex max-h-[70vh] w-[92vw] max-w-[360px] flex-col origin-top-right overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl sm:right-0 sm:w-80"
       >
-        <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+        {/* Sticky Header */}
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-100 bg-white/95 px-4 py-3 backdrop-blur-sm z-10">
           <h3 className="text-sm font-bold text-slate-800">Notifications</h3>
           {unreadCount > 0 && (
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 shrink-0 gap-1 px-2 text-[11px] font-bold text-slate-500 hover:text-slate-700"
+              className="h-7 shrink-0 gap-1.5 px-2 text-[11px] font-bold text-slate-500 hover:text-slate-800"
               onClick={markAllAsRead}
             >
-              <CheckCheck className="h-3 w-3" />
+              <CheckCheck className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Mark all read</span>
               <span className="sm:hidden">All read</span>
             </Button>
           )}
         </div>
 
-        <div className="max-h-80 overflow-y-auto">
+        {/* Scrollable Body */}
+        <div className="flex-1 overflow-y-auto overscroll-contain">
           {notifications.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">
-              <Bell className="h-8 w-8 text-slate-300" />
-              <p className="text-xs font-semibold text-slate-400">No notifications yet</p>
+            <div className="flex flex-col items-center justify-center gap-3 px-4 py-16 text-center">
+              <div className="rounded-full bg-slate-50 p-4">
+                <Bell className="h-8 w-8 text-slate-300" />
+              </div>
+              <p className="text-sm font-semibold text-slate-500">No notifications yet</p>
             </div>
           ) : (
-            notifications.map((n) => {
-              const IconComponent = typeIcons[n.type] ?? Bell
-              return (
-                <button
-                  key={n.id}
-                  onClick={() => handleClick(n)}
-                  className={cn(
-                    "flex w-full gap-2 px-4 py-3 text-left transition hover:bg-slate-50",
-                    !n.isRead && "bg-blue-50/60",
-                  )}
-                >
-                  <div
+            <div className="divide-y divide-slate-50/50">
+              {notifications.map((n) => {
+                const IconComponent = typeIcons[n.type] ?? Bell
+                
+                // Assuming 'bookingNumber' is passed in the notification object payload,
+                // fallback to a formatted title if not present.
+                const notificationTitle = (n as any).bookingNumber 
+                  ? `Booking #${(n as any).bookingNumber}`
+                  : formatNotificationLabel(n.type)
+
+                return (
+                  <button
+                    key={n.id}
+                    onClick={() => handleClick(n)}
                     className={cn(
-                      "mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full",
-                      !n.isRead ? "bg-blue-100 text-blue-600" : "bg-slate-100 text-slate-400",
+                      "group flex w-full gap-3 px-4 py-3.5 text-left transition-colors hover:bg-slate-50 focus:bg-slate-50 focus:outline-none",
+                      !n.isRead && "bg-blue-50/40"
                     )}
                   >
-                    <IconComponent className="h-3.5 w-3.5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p
+                    <div
                       className={cn(
-                        "text-xs leading-relaxed break-words",
-                        !n.isRead ? "font-bold text-slate-800" : "font-medium text-slate-500",
+                        "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors",
+                        !n.isRead 
+                          ? "bg-blue-100 text-blue-600" 
+                          : "bg-slate-100 text-slate-500 group-hover:bg-slate-200"
                       )}
                     >
-                      {n.message}
-                    </p>
-                    <p className="mt-0.5 text-[10px] font-semibold text-slate-400">
-                      {formatTimestamp(n.createdAt)}
-                    </p>
-                  </div>
-                  {!n.isRead && (
-                    <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-blue-500" />
-                  )}
-                </button>
-              )
-            })
+                      <IconComponent className="h-4 w-4" />
+                    </div>
+                    
+                    <div className="min-w-0 flex-1 flex-col">
+                      <div className="flex items-start justify-between gap-2">
+                        <p
+                          className={cn(
+                            "truncate text-sm tracking-tight",
+                            !n.isRead ? "font-bold text-slate-900" : "font-semibold text-slate-700"
+                          )}
+                        >
+                          {notificationTitle}
+                        </p>
+                        <p className="shrink-0 pt-0.5 text-[10px] font-medium text-slate-400">
+                          {formatTimestamp(n.createdAt)}
+                        </p>
+                      </div>
+                      
+                      <p
+                        className={cn(
+                          "mt-1 line-clamp-2 text-xs leading-relaxed",
+                          !n.isRead ? "font-medium text-slate-700" : "text-slate-500"
+                        )}
+                      >
+                        {n.message}
+                      </p>
+                    </div>
+
+                    {!n.isRead && (
+                      <div className="flex shrink-0 items-center justify-center pl-1 pt-1.5">
+                        <span className="h-2 w-2 rounded-full bg-blue-500 shadow-sm" />
+                      </div>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
           )}
         </div>
       </div>
     </>
   )
 }
-
-

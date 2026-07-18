@@ -456,8 +456,19 @@ function HorizontalBookingCard({
     : startDate
 
   return (
-    <div className="group flex w-full min-w-0 flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-orange-200 hover:shadow-md sm:flex-row sm:items-center sm:gap-4">
-      <div className="flex shrink-0 items-center gap-3 sm:w-[200px]">
+    <div className="group flex w-full min-w-0 flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-orange-200 hover:shadow-md sm:flex-row sm:items-center sm:gap-4">
+      {/* ---- Mobile layout (hidden on sm+) ---- */}
+      <div className="sm:hidden">
+        <p className="text-base font-black text-slate-900 line-clamp-2">
+          {booking.eventName || "Untitled"}
+        </p>
+        <p className="mt-0.5 text-sm font-bold text-orange-600">
+          {typeLabel}
+        </p>
+      </div>
+
+      {/* ---- Desktop layout (hidden on mobile) ---- */}
+      <div className="hidden shrink-0 items-center gap-3 sm:flex sm:w-[220px]">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
           {isOfficeRental ? <FileText className="h-5 w-5" /> : <Calendar className="h-5 w-5" />}
         </div>
@@ -474,7 +485,8 @@ function HorizontalBookingCard({
         </div>
       </div>
 
-      <div className="grid min-w-0 flex-1 grid-cols-2 gap-x-2 gap-y-1.5 sm:grid-cols-4 sm:gap-x-3">
+      {/* ---- Info grid ---- */}
+      <div className="grid min-w-0 flex-1 grid-cols-2 gap-x-2 gap-y-2 sm:grid-cols-4 sm:gap-x-3">
         <div className="min-w-0 max-w-full">
           <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Booking ID</p>
           <p className="whitespace-normal break-words text-xs font-black text-slate-800 truncate">{booking.id}</p>
@@ -495,31 +507,34 @@ function HorizontalBookingCard({
         </div>
       </div>
 
-      <div className="flex shrink-0 items-center justify-between gap-2 sm:flex-col sm:items-end sm:gap-1.5">
+      {/* ---- Status + Actions ---- */}
+      <div className="flex flex-row items-center justify-between gap-2 mt-1 sm:mt-0 sm:gap-3">
         <span
           className={cn(
-            "hidden rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.2em] whitespace-nowrap sm:inline-block",
+            "hidden rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.2em] whitespace-nowrap w-fit sm:inline-block",
             getStatusBadgeClass(booking.status),
           )}
         >
           {getStatusLabel(booking.status)}
         </span>
-        <TooltipProvider delayDuration={400}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                onClick={() => onView(booking)}
-                className="h-8 shrink-0 whitespace-nowrap rounded-lg border-slate-200 px-2.5 text-[10px] font-bold text-slate-700 hover:bg-slate-50"
-              >
-                View Details
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="left" className="text-[10px] font-semibold">
-              View full booking details
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <div className="ml-auto flex flex-row flex-wrap items-center justify-end gap-2 sm:shrink-0">
+          <TooltipProvider delayDuration={400}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  onClick={() => onView(booking)}
+                  className="h-8 shrink-0 whitespace-nowrap rounded-lg border-slate-200 px-2.5 text-[10px] font-bold text-slate-700 hover:bg-slate-50 w-auto"
+                >
+                  View Details
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="left" className="text-[10px] font-semibold">
+                View full booking details
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       </div>
     </div>
   )
@@ -539,46 +554,63 @@ function HistoryRow({
   const startDate = formatDate(booking.date)
 
   return (
-    <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-orange-200 hover:shadow-md sm:gap-3">
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
-        {isOfficeRental ? <FileText className="h-4 w-4" /> : <Calendar className="h-4 w-4" />}
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="break-words text-sm font-semibold leading-snug text-slate-900 line-clamp-2">
+    <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-3 transition hover:border-orange-200 sm:flex-row sm:items-center sm:gap-3">
+      {/* ---- Mobile layout ---- */}
+      <div className="sm:hidden">
+        <p className="text-sm font-black text-slate-900 line-clamp-2">
           {booking.eventName || "Untitled"}
         </p>
-        <p className="text-[10px] font-semibold text-slate-500 sm:text-[11px] truncate">
+        <p className="mt-0.5 break-all text-[10px] font-semibold text-slate-500">
           {booking.id}
-          <span className="hidden sm:inline">
-            {" · "}{typeLabel}{" · "}{booking.venue || "N/A"}{" · "}{startDate}
-          </span>
         </p>
       </div>
-      <div className="flex shrink-0 items-center gap-1.5 sm:flex-nowrap">
+
+      {/* ---- Desktop layout ---- */}
+      <div className="hidden items-center gap-3 min-w-0 flex-1 sm:flex">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-orange-50 text-orange-600">
+          {isOfficeRental ? <FileText className="h-4 w-4" /> : <Calendar className="h-4 w-4" />}
+        </div>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-black text-slate-900">
+            {booking.eventName || "Untitled"}
+          </p>
+          <p className="truncate text-[10px] font-semibold text-slate-500 sm:text-[11px]">
+            {booking.id}
+            <span className="hidden sm:inline">
+              {" · "}{typeLabel}{" · "}{booking.venue || "N/A"}{" · "}{startDate}
+            </span>
+          </p>
+        </div>
+      </div>
+
+      {/* ---- Status + Actions ---- */}
+      <div className="flex flex-row items-center justify-between gap-2 mt-1 sm:mt-0 sm:gap-3">
         <span
           className={cn(
-            "hidden rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.2em] whitespace-nowrap sm:inline-block",
+            "hidden rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.2em] whitespace-nowrap w-fit sm:inline-block",
             getStatusBadgeClass(booking.status),
           )}
         >
           {getStatusLabel(booking.status)}
         </span>
-        <TooltipProvider delayDuration={400}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                onClick={() => onView(booking)}
-                className="h-8 shrink-0 whitespace-nowrap rounded-lg border-slate-200 px-2.5 text-[10px] font-bold text-slate-700 hover:bg-slate-50"
-              >
-                View Details
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="left" className="text-[10px] font-semibold">
-              View full booking details
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <div className="ml-auto flex flex-row flex-wrap items-center justify-end gap-2 sm:shrink-0">
+          <TooltipProvider delayDuration={400}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  onClick={() => onView(booking)}
+                  className="h-8 shrink-0 whitespace-nowrap rounded-lg border-slate-200 px-2.5 text-[10px] font-bold text-slate-700 hover:bg-slate-50 w-auto"
+                >
+                  View Details
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="left" className="text-[10px] font-semibold">
+                View full booking details
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       </div>
     </div>
   )

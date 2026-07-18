@@ -700,41 +700,41 @@ function PaymentCard({
           <Receipt className="h-5 w-5" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+          <p className="truncate text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
             Payment
           </p>
-          <p className="break-words whitespace-normal text-sm font-black text-slate-900">
+          <p className="truncate text-sm font-black text-slate-900">
             {payment.eventName || "Untitled"}
           </p>
-          <p className="break-words whitespace-normal text-[11px] font-bold text-orange-600">
+          <p className="truncate text-[11px] font-bold text-orange-600">
             {payment.id}
           </p>
         </div>
       </div>
 
-      <div className="grid min-w-0 flex-1 grid-cols-2 gap-x-2 gap-y-1.5 sm:grid-cols-4 sm:gap-x-3">
+      <div className="grid min-w-0 flex-1 grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-[1.5fr_1.2fr_1fr_1.5fr] sm:gap-x-4">
         <div className="min-w-0 max-w-full">
-          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Customer</p>
-          <p className="whitespace-normal break-words text-xs font-black text-slate-800">{payment.userInfo?.name || "—"}</p>
-          <p className="whitespace-normal break-words text-[10px] font-bold text-slate-500">{payment.userInfo?.email || "—"}</p>
+          <p className="truncate text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Customer</p>
+          <p className="truncate text-xs font-black text-slate-800">{payment.userInfo?.name || "—"}</p>
+          <p className="truncate text-[10px] font-bold text-slate-500">{payment.userInfo?.email || "—"}</p>
         </div>
         <div className="min-w-0 max-w-full">
-          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Payment Method</p>
-          <p className="whitespace-normal break-words text-xs font-bold text-slate-800">
+          <p className="truncate text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Method</p>
+          <div className="truncate text-xs font-bold text-slate-800">
             <PaymentMethodLabel payment={payment} />
-          </p>
-          <p className="whitespace-normal break-words text-[10px] font-bold text-slate-500">{getPaymentTypeLabel(payment.paymentType)}</p>
+          </div>
+          <p className="truncate text-[10px] font-bold text-slate-500">{getPaymentTypeLabel(payment.paymentType)}</p>
         </div>
         <div className="min-w-0 max-w-full">
-          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Amount</p>
-          <p className="whitespace-normal break-words text-xs font-bold text-slate-800">{formatCurrency(amountPaid)}</p>
+          <p className="truncate text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Amount</p>
+          <p className="truncate text-xs font-bold text-slate-800">{formatCurrency(amountPaid)}</p>
           {payment.paymentType === "downpayment" && (
-            <p className="whitespace-normal break-words text-[10px] font-black uppercase tracking-[0.2em] text-amber-600">Partial</p>
+            <p className="truncate text-[10px] font-black uppercase tracking-[0.2em] text-amber-600">Partial</p>
           )}
         </div>
         <div className="min-w-0 max-w-full">
-          <p className="whitespace-normal break-words text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Venue</p>
-          <p className="whitespace-normal break-words text-xs font-bold text-slate-800">{payment.venue || "N/A"}</p>
+          <p className="truncate text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Venue</p>
+          <p className="line-clamp-2 text-xs font-bold text-slate-800">{payment.venue || "N/A"}</p>
         </div>
       </div>
 
@@ -1078,13 +1078,13 @@ function PaymentMethodLabel({ payment }: { payment: BookingRecord }) {
   const isBank = payment.paymentMethod === "bank"
 
   return (
-    <span className="inline-flex items-center gap-1.5 text-xs font-black text-slate-800">
+    <span className="inline-flex max-w-full items-center gap-1.5 text-xs font-black text-slate-800">
       {isBank ? (
-        <FileImage className="h-3.5 w-3.5 text-blue-500" />
+        <FileImage className="h-3.5 w-3.5 shrink-0 text-blue-500" />
       ) : (
-        <Banknote className="h-3.5 w-3.5 text-emerald-500" />
+        <Banknote className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
       )}
-      {getPaymentMethodLabel(payment.paymentMethod)}
+      <span className="truncate">{getPaymentMethodLabel(payment.paymentMethod)}</span>
     </span>
   )
 }
@@ -2115,5 +2115,3 @@ function getAmountValue(value: any) {
   const num = Number(String(value || 0).replace(/[^0-9.-]+/g, ""))
   return Number.isFinite(num) ? num : 0
 }
-
-

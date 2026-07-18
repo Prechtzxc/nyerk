@@ -380,7 +380,7 @@ function PaymentActionButtons({
           compact
             ? "h-8 rounded-lg px-2.5 text-[10px] font-bold"
             : "h-9 rounded-lg px-3 text-[11px] font-bold shadow-sm",
-          "bg-emerald-600 text-white hover:bg-emerald-700 w-full sm:w-auto"
+          "bg-emerald-600 text-white hover:bg-emerald-700 w-auto whitespace-nowrap"
         )}
       >
         Settle Remaining Balance
@@ -396,7 +396,7 @@ function PaymentActionButtons({
           compact
             ? "h-8 rounded-lg px-2.5 text-[10px] font-bold"
             : "h-9 rounded-lg px-3 text-[11px] font-bold shadow-sm",
-          "bg-orange-600 text-white hover:bg-orange-700"
+          "bg-orange-600 text-white hover:bg-orange-700 w-auto whitespace-nowrap"
         )}
       >
         <CreditCard className={cn("mr-1", compact ? "h-3 w-3" : "h-3.5 w-3.5")} />
@@ -499,7 +499,7 @@ function CurrentTransactionCard({
       {/* ---- Timer + actions ---- */}
       <div className="flex flex-col gap-2">
         {booking.status === "pending" && !isCashPending && !isExpired && (
-          <p className="rounded-md bg-orange-50 px-2 py-1 text-[10px] font-black text-orange-700 sm:text-right">
+          <p className="rounded-md bg-orange-50 px-2 py-1 text-[10px] font-black text-orange-700 self-end sm:self-auto sm:text-right">
             Time left: {formatCountdown(remainingMs)}
           </p>
         )}
@@ -512,12 +512,12 @@ function CurrentTransactionCard({
           >
             {getStatusLabel(booking.paymentStatus, booking.status, (booking as any).paymentStage, (booking as any).remainingBalance)}
           </span>
-          <div className="flex flex-col items-end gap-1.5 sm:flex-row sm:items-center sm:gap-2 sm:shrink-0">
+          <div className="ml-auto flex flex-row flex-wrap items-center justify-end gap-2 sm:shrink-0">
             {hasPaymentRecord(booking) && (
               <Button
                 variant="outline"
                 onClick={() => onView(booking)}
-                className="h-8 whitespace-nowrap rounded-lg border-slate-200 px-2.5 text-[10px] font-bold text-slate-700 hover:bg-slate-50 sm:w-auto"
+                className="h-8 whitespace-nowrap rounded-lg border-slate-200 px-2.5 text-[10px] font-bold text-slate-700 hover:bg-slate-50 w-auto"
               >
                 View Details
               </Button>
@@ -614,11 +614,11 @@ function HistoryRow({
           } />
           <DetailItem label="Type" value={isOfficeRental ? "Slot Reservation" : (booking as any).paymentType === "downpayment" ? "Down Payment" : "Full Payment"} />
           <DetailItem label="Amount Paid" value={formatMoney(amountPaid)} />
-          <div className="sm:col-span-3">
+          <div className="sm:col-span-3 flex justify-end mt-1">
               <Button
                 variant="outline"
                 onClick={() => onView(booking)}
-                className="h-9 w-full shrink-0 whitespace-nowrap rounded-lg border-slate-200 text-[11px] font-bold text-slate-700 hover:bg-white sm:w-auto"
+                className="h-9 shrink-0 whitespace-nowrap rounded-lg border-slate-200 px-4 text-[11px] font-bold text-slate-700 hover:bg-white w-auto"
               >
                 <Receipt className="mr-1.5 h-3.5 w-3.5" />
                 Open Full Details
@@ -1798,7 +1798,7 @@ function TransactionsContent() {
                         </div>
 
                         {/* ---- Status badge + actions ---- */}
-                        <div className="flex flex-row items-center justify-between gap-2 sm:gap-3">
+                        <div className="flex flex-row items-center justify-between gap-2 mt-1 sm:mt-0 sm:gap-3">
                           <span
                             className={cn(
                               "hidden rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.2em] whitespace-nowrap w-fit sm:inline-block",
@@ -1807,12 +1807,12 @@ function TransactionsContent() {
                           >
                             {getStatusLabel(booking.paymentStatus, booking.status, (booking as any).paymentStage, (booking as any).remainingBalance)}
                           </span>
-                          <div className="flex flex-col items-end gap-1.5 sm:flex-row sm:items-center sm:gap-2 sm:shrink-0">
+                          <div className="ml-auto flex flex-row flex-wrap items-center justify-end gap-2 sm:shrink-0">
                             {hasPaymentRecord(booking) && (
                               <Button
                                 variant="outline"
                                 onClick={() => setViewingReceipt(booking)}
-                                className="h-8 whitespace-nowrap rounded-lg border-slate-200 px-2 text-[10px] font-bold text-slate-700 hover:bg-slate-50 sm:px-2.5"
+                                className="h-8 whitespace-nowrap rounded-lg border-slate-200 px-2.5 text-[10px] font-bold text-slate-700 hover:bg-slate-50 w-auto"
                               >
                                 View Details
                               </Button>
@@ -1824,8 +1824,8 @@ function TransactionsContent() {
                               compact
                             />
                           </div>
+                        </div>
                       </div>
-                    </div>
                   );
                 })}
                 <Pagination
